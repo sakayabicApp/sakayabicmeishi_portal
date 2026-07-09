@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+ body {
+  margin: 0;
+  padding: 0;
+  background: #000;
+  overflow: hidden;
+  /* 日本語アプリの定番・美しいフォントスタック */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  -webkit-font-smoothing: antialiased; /* 文字をより滑らかに表示 */
+   letter-spacing: 0.02em; /* 文字間を少し広げると高級感が出ます */
+  line-height: 1.6;      /* 行間を広げると可読性が上がります */
+}
+ /* ログインボタンや入力欄のフォントも合わせる */
+input, button {
+  font-family: inherit; /* bodyで設定したフォントを引き継ぐ */
+}  
+  
+#camera-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  overflow: hidden;
+  /* 子要素を中央寄せにする準備 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+  #video {
+  /* 画面全体を埋めるように配置 */
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+#guide-frame {
+  position: relative; /* containerの中央配置に追従させる */
+  z-index: 2;
+  width: 80vw;
+  height: calc(80vw * 55 / 91);
+  border: 2px solid rgba(255, 255, 0, 0.8);
+  pointer-events: none;
+}
+/* 通常時 */
+.guide-default { border: 2px solid rgba(255, 255, 0, 0.8); }
+
+/* 認識成功時 */
+.guide-detected { 
+  border: 4px solid #ff0000 !important; 
+  /* 背景を暗くせず、枠だけ赤くする */
+}
+    
+#controls {
+  position: absolute;
+  bottom: 50px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+    
+ #status-message {
+  position: absolute;
+  top: 10vh; /* 画面の上から10%の位置 */
+  width: 100%;
+  text-align: center;
+  color: white;
+  font-size: 1.2rem;
+  z-index: 5; /* 枠やボタンよりも前面にする */
+  pointer-events: none; /* タップを阻害しないようにする */
+  text-shadow: 0 0 5px rgba(0,0,0,0.8);
+}   
+.page { height: 100vh; overflow-y: auto; }
+    
+ #page-search {
+  padding: 20px;
+  /* 検索窓を固定したい場合はこれ */
+  position: sticky;
+  top: 0;
+  background-color: #f5f5f5; /* 背景色（黒系なら） */
+  z-index: 10;
+}   
+
+    #searchInput {
+  width: 100%;        /* 親要素の幅いっぱいに */
+  height: 50px;       /* 高さを倍（標準が約25px前後とすると50pxでかなり大きく見えます） */
+  padding: 10px;      /* 内側の余白 */
+  font-size: 18px;    /* 文字も大きくすると入力しやすい */
+  border: 1px solid #ccc;
+  border-radius: 8px; /* 角を少し丸くすると今風です */
+  box-sizing: border-box; /* 重要：パディングを含めてwidth: 100%にする */
+  margin-bottom: 20px;
+}
+
+#bottom-nav {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  height: 60px;
+  background: #333;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
+}
+
+#bottom-nav button {
+  background: none;
+  color: white;
+  border: none;
+  font-size: 16px;
+  width: auto; /* 丸ボタンではなく文字ボタンにする */
+  height: auto;
+}
+button {
+  width: 80px;      /* 幅を指定 */
+  height: 80px;     /* 高さを幅と同じにする */
+  border-radius: 50%; /* ここで完全な丸に */
+  border: none;
+  font-size: 14px;
+  margin: 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3); /* 少し影をつけると立体的になります */
+  transition: transform 0.2s; /* 押した時の反応 */
+}
+
+/* 押した時に少し沈むエフェクト */
+button:active {
+  transform: scale(0.95);
+}    
+#capture-btn { 
+  display: block;/* 常に表示させておく */
+  background-color: #007bff; /* 青色 */
+  color: white; 
+} 
+    
+#actionBtns { display: none; }   /* 初期状態は非表示 */
+    #sendBtn { 
+  background: green; 
+  color: white; 
+}
+#retryBtn { background: red; color: white; }
+    
+    #outputCanvas {
+  display: none;
+  width: 80vw;    /* 端末画面幅の80%で表示 */
+  height: auto;   /* アスペクト比を維持 */
+  margin: 20px auto;
+  border: 5px solid #fff;
+  /* 画像が拡大表示される際にボケないようにする設定 */
+  image-rendering: -webkit-optimize-contrast;
+}
+.card {
+  background: white;
+  padding: 16px;
+  margin-bottom: 15px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card h3 { margin: 0; font-size: 18px; }
+.card p { margin: 5px 0; color: #666; font-size: 14px; }
+
+.detail-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+ #page-login {
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* 縦方向の中央 */
+  align-items: center;     /* 横方向の中央 */
+  height: 100vh;           /* 画面全体の高さ */
+  padding: 20px;
+  background: #fff;
+}
+
+/* 入力欄とボタンの親要素を整える */
+.login-box {
+  width: 100%;
+  max-width: 400px; /* スマホでも広がりすぎないように制限 */
+  text-align: center;
+} 
+  
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
+</head>
+<body>
+<div id="page-login" class="page">
+  <div class="login-box">
+    <h2>酒ゃビック名刺管理システム</h2>
+    <input type="text" id="loginId" placeholder="ID" style="width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;">
+    <input type="password" id="loginPass" placeholder="パスワード" style="width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;">
+    <button id="loginBtn" style="width: 100%; height: 50px; background: #007bff; color: white; border: none; border-radius: 8px; margin-top: 20px; font-size: 16px;">ログイン</button>
+  </div>
+</div>
+  
+<div id="page-camera" class="page">
+<div id="camera-container">
+  <video id="video" playsinline autoplay></video>
+  <div id="guide-frame"></div>
+<div id="status-message">カメラを名刺に向けてください</div>
+  <canvas id="outputCanvas"></canvas>
+    <div id="controls">
+    <button id="capture-btn">撮影</button>
+    <div id="actionBtns" style="display:none;">
+      <button id="sendBtn">送信</button>
+      <button id="retryBtn">取り直し</button>
+    </div>
+  </div>
+</div>
+</div>
+  
+<div id="page-search" class="page" style="display:none; padding: 20px; background-color: #f4f7f6; min-height: 100vh; color: #333;">
+  
+  <div class="search-header" style="position: sticky; top: 0; padding-bottom: 20px; background-color: #f4f7f6; z-index: 10;">
+    <input type="text" id="searchInput" placeholder="会社名や氏名で検索..." 
+           style="width: 100%; height: 50px; padding: 15px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; font-size: 16px;">
+  </div>
+
+  <div id="card-container">
+    </div>
+</div>
+  
+<nav id="bottom-nav">
+  <button onclick="showPage('page-camera')">撮影</button>
+  <button onclick="showPage('page-search')">検索</button>
+</nav>
+  
+<script>  
+const video = document.getElementById('video');
+const captureBtn = document.getElementById('capture-btn');
+const canvas = document.getElementById('outputCanvas');
+const guideFrame = document.getElementById('guide-frame');
+const actionBtns = document.getElementById('actionBtns');
+const sendBtn = document.getElementById('sendBtn');
+const retryBtn = document.getElementById('retryBtn');
+
+let isDetecting = true;
+let captureCounter = 0; // ここに宣言が必要
+
+  // モックデータ
+const mockData = [
+  { id: 1, name: "山田 太郎", company: "株式会社サンプル", image: "url_to_image" },
+  { id: 2, name: "佐藤 花子", company: "デザイン事務所", image: "url_to_image" }
+];
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const id = document.getElementById('loginId').value;
+  const pass = document.getElementById('loginPass').value;
+  // --- 1. 二度押し防止の開始 ---
+  loginBtn.disabled = true;
+  const originalText = loginBtn.textContent;
+  loginBtn.textContent = "ログイン処理中...";
+  loginBtn.style.backgroundColor = "#ccc"; // 色を変えるとより「押せない」ことが伝わります
+  
+  // ★ここをGASのデプロイURLに書き換えてください
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbwhwoaGExBpQc8a8Ht_cTdcW0heWssbUiWM0l1-d7pCu-nsmf1wTxX3zLAvGGiDuIhd/exec"; 
+
+  try {
+    const response = await fetch(GAS_URL, {
+      method: 'POST',
+      // モードをno-corsにするとエラーが取れない場合があるので、通常はデフォルト（cors）でGAS側を適切に設定します
+      body: JSON.stringify({ action: "login", id: id, pass: pass })
+    });
+    const result = await response.json();
+
+    if (result.success) {
+      sessionStorage.setItem('isLoggedIn', 'true');
+      showPage('page-camera');
+      document.getElementById('bottom-nav').style.display = 'flex';
+    } else {
+      alert("IDまたはパスワードが違います");
+      // 失敗した時だけボタンを戻す
+      loginBtn.disabled = false;
+      loginBtn.textContent = originalText;
+      loginBtn.style.backgroundColor = "#007bff";
+    }
+  } catch (e) {
+    console.error(e);
+    alert("通信エラーが発生しました");
+    // エラー時もボタンを戻す
+    loginBtn.disabled = false;
+    loginBtn.textContent = originalText;
+    loginBtn.style.backgroundColor = "#007bff";
+  }
+});
+  
+function showPage(pageId) {
+  // 全ページを隠す
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  // 指定ページを表示
+  document.getElementById(pageId).style.display = 'block';
+  
+  // 【ここがポイント】撮影ページに移動したときだけカメラを起動する
+  if (pageId === 'page-camera') {
+    // すでにカメラが起動していなければ起動する
+    if (!video.srcObject) {
+      startCamera();
+    }
+    isDetecting = true;
+    detectLoop();
+  } else {
+    // 撮影ページ以外はカメラを止める
+    isDetecting = false;
+    // 必要であればここでカメラストリームを停止させる処理を入れることも可能
+  }
+}
+
+
+// 検索窓のイベントを修正
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase();
+  
+  // 検索条件で絞り込み
+  const filtered = mockData.filter(item => 
+    item.name.toLowerCase().includes(query) || item.company.toLowerCase().includes(query)
+  );
+
+  // 絞り込まれた結果をカードとして再描画
+  renderCards(filtered);
+});
+
+
+function showDetail(item) {
+  document.getElementById('detailView').style.display = 'block';
+  document.getElementById('detailContent').innerHTML = `<h3>${item.name}</h3><p>${item.company}</p>`;
+}
+
+function closeDetail() {
+  document.getElementById('detailView').style.display = 'none';
+}
+  
+  
+// 1. カメラ起動
+async function startCamera() {
+  const constraints = {
+    video: {
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      facingMode: { ideal: "environment" },
+      advanced: [{ focusMode: "continuous" }]
+    }
+  };
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    video.onloadedmetadata = () => detectLoop();
+  } catch (err) { alert("カメラアクセスを許可してください"); }
+}
+
+// 2. ループ処理
+function detectLoop() {
+  if (!isDetecting) return;
+  if (video.style.display === 'none') return;
+
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = 320; tempCanvas.height = 240;
+  tempCanvas.getContext('2d').drawImage(video, 0, 0, 320, 240);
+
+  let src = cv.imread(tempCanvas);
+  let gray = new cv.Mat();
+  let canny = new cv.Mat();
+  let contours = new cv.MatVector();
+  let hierarchy = new cv.Mat();
+
+  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+  cv.Canny(gray, canny, 50, 150);
+  cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+  let found = false;
+  let minArea = (video.videoWidth * video.videoHeight) * 0.03;
+  let maxArea = (video.videoWidth * video.videoHeight) * 0.60;
+
+  for (let i = 0; i < contours.size(); ++i) {
+    let cnt = contours.get(i);
+    let area = cv.contourArea(cnt);
+    let approx = new cv.Mat();
+    cv.approxPolyDP(cnt, approx, 0.06 * cv.arcLength(cnt, true), true);
+
+    let rect = cv.boundingRect(cnt);
+    let aspectRatio = rect.width / rect.height;
+    let isGoodAspectRatio = aspectRatio > 1.3 && aspectRatio < 2.0;
+
+    if (approx.rows === 4 && area > minArea && area < maxArea && isGoodAspectRatio) {
+      found = true;
+    }
+    approx.delete();
+  }
+  
+  guideFrame.className = found ? 'guide-detected' : 'guide-default';
+
+  // ★ここで自動撮影判定
+  if (found) {
+    captureCounter++;
+    if (captureCounter >= 3) {
+      captureCounter = 0;
+      captureBtn.click();
+    }
+  } else {
+    captureCounter = 0;
+  }
+
+  src.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete();
+  setTimeout(() => requestAnimationFrame(detectLoop), 200);
+}
+
+// 3. 撮影処理
+captureBtn.addEventListener('click', async () => {
+  isDetecting = false;
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = video.videoWidth; tempCanvas.height = video.videoHeight;
+  tempCanvas.getContext('2d').drawImage(video, 0, 0);
+
+  let src = cv.imread(tempCanvas);
+  let gray = new cv.Mat();
+  let blur = new cv.Mat();
+  let canny = new cv.Mat();
+  let contours = new cv.MatVector();
+  let hierarchy = new cv.Mat();
+
+  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+  cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
+  cv.Canny(blur, canny, 20, 80);
+  cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+  let bestContour = null, maxArea = 0;
+  for (let i = 0; i < contours.size(); ++i) {
+    let cnt = contours.get(i);
+    let approx = new cv.Mat();
+    cv.approxPolyDP(cnt, approx, 0.04 * cv.arcLength(cnt, true), true);
+    if (approx.rows === 4 && cv.contourArea(cnt) > maxArea) {
+      maxArea = cv.contourArea(cnt);
+      bestContour = cnt;
+    }
+    approx.delete();
+  }
+
+  if (bestContour) {
+    warpPerspective(src, bestContour);
+    video.style.display = 'none';
+    canvas.style.display = 'block';
+    captureBtn.style.display = 'none';
+    actionBtns.style.display = 'flex';
+    guideFrame.style.display = 'none';
+  } else {
+    alert("認識できませんでした。");
+    isDetecting = true;
+    captureCounter = 0; // カウンターリセット
+    detectLoop();
+  }
+  src.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete();
+});
+
+// 【修正1】retryBtnの不要なコードを削除
+    retryBtn.addEventListener('click', () => {
+      video.style.display = 'block';
+      canvas.style.display = 'none';
+      captureBtn.style.display = 'block';
+      actionBtns.style.display = 'none';
+      guideFrame.style.display = 'block';
+      isDetecting = true;
+      captureCounter = 0;
+      detectLoop();
+    });
+
+// 5. warpPerspective (省略なし)
+function warpPerspective(src, contour) {
+  let perimeter = cv.arcLength(contour, true);
+  let approx = new cv.Mat();
+  cv.approxPolyDP(contour, approx, 0.04 * perimeter, true);
+
+  let points = [];
+  for (let i = 0; i < 4; i++) {
+    points.push({ x: approx.data32S[i * 2], y: approx.data32S[i * 2 + 1] });
+  }
+  points.sort((a, b) => a.y - b.y);
+  let top = points.slice(0, 2).sort((a, b) => a.x - b.x);
+  let bottom = points.slice(2, 4).sort((a, b) => a.x - b.x);
+  let sortedPoints = [top[0], top[1], bottom[1], bottom[0]];
+
+  let dstWidth = 800, dstHeight = 500;
+  canvas.width = dstWidth; canvas.height = dstHeight;
+  let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+    sortedPoints[0].x, sortedPoints[0].y, sortedPoints[1].x, sortedPoints[1].y,
+    sortedPoints[2].x, sortedPoints[2].y, sortedPoints[3].x, sortedPoints[3].y
+  ]);
+  let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, dstWidth, 0, dstWidth, dstHeight, 0, dstHeight]);
+  let M = cv.getPerspectiveTransform(srcTri, dstTri);
+  let dst = new cv.Mat();
+  cv.warpPerspective(src, dst, M, new cv.Size(dstWidth, dstHeight));
+  let normalized = new cv.Mat();
+  cv.normalize(dst, normalized, 0, 255, cv.NORM_MINMAX);
+  cv.imshow('outputCanvas', normalized);
+  normalized.delete(); dst.delete(); M.delete(); srcTri.delete(); dstTri.delete(); approx.delete();
+}
+
+// 【送信機能本体】
+async function uploadDirectly(canvas) {
+  const base64data = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+  const fileName = `card_${Date.now()}.jpg`; // ファイル名をここで確定させる
+  const userName = sessionStorage.getItem('userName');
+  const cloudRunUrl = '';
+  const gasUrl = 'https://script.google.com/macros/s/AKfycbwhwoaGExBpQc8a8Ht_cTdcW0heWssbUiWM0l1-d7pCu-nsmf1wTxX3zLAvGGiDuIhd/exec';
+
+  // 1. 撮影ログを先にGASへ送信
+  const logResponse = await fetch(gasUrl, {
+    method: 'POST',
+    body: JSON.stringify({ action: "logCapture", userName: userName, fileName: fileName })
+  });
+  if (!logResponse.ok) throw new Error("ログ保存に失敗しました");
+
+  // 2. 画像本体をCloud Runへ送信
+  const response = await fetch(cloudRunUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ base64Data: base64data, fileName: fileName })
+  });
+  if (!response.ok) throw new Error("画像送信失敗: " + await response.text());
+}
+
+// 【ボタンの紐付け】
+sendBtn.addEventListener('click', async () => {
+  sendBtn.disabled = true;
+  const originalText = sendBtn.textContent;
+  sendBtn.textContent = "送信中...";
+
+  try {
+    // ここでまとめて実行
+    await uploadDirectly(canvas);
+
+    sendBtn.textContent = "送信完了";
+    sendBtn.style.backgroundColor = "#28a745";
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    retryBtn.click();
+  } catch (e) {
+    alert("エラー: " + e.message);
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = originalText;
+    sendBtn.style.backgroundColor = "";
+  }
+});
+  
+
+  // 【追加】ページロード時にカードを表示
+window.addEventListener('load', () => {
+  renderCards(mockData); // カード表示だけは最初に行う
+  // ログイン状態ならカメラを起動する
+  if (sessionStorage.getItem('isLoggedIn') === 'true') {
+    showPage('page-camera');
+    document.getElementById('bottom-nav').style.display = 'flex';
+  } else {
+    showPage('page-login');
+    document.getElementById('bottom-nav').style.display = 'none';
+  }
+    });
+  
+// カード描画関数（これで統一）
+function renderCards(dataList) {
+  const container = document.getElementById('card-container');
+  container.innerHTML = ""; // クリア
+
+  dataList.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div>
+        <h3>${item.name}</h3>
+        <p>${item.company}</p>
+      </div>
+      <button class="detail-btn" onclick="openDetail(${item.id})">詳細</button>
+    `;
+    container.appendChild(card);
+  });
+}
+
+ // 【追加】詳細表示用関数
+    function openDetail(id) {
+      const item = mockData.find(d => d.id === id);
+      alert(`詳細表示: ${item.name} - ${item.company}`);
+    } 
+
+
+  </script>
+</body>
+</html>
