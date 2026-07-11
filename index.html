@@ -62,7 +62,7 @@ input, button {
 /* 4. コントロールボタンをナビの上に移動 */
 #controls {
   position: absolute;
-  bottom: 80px; /* ナビの高さ60px + 余白20px */
+  bottom: 70px; /* ナビの高さ60px + 余白20px */
   width: 100%;
   display: flex;
   justify-content: center;
@@ -397,6 +397,10 @@ function detectLoop() {
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
+    // 前回のフレームとの面積差が極端なら無視（ブレ対策）
+    if (Math.abs(area - lastArea) > (area * 0.5)) {
+      lastArea = area;
+      continue;
     let approx = new cv.Mat();
     cv.approxPolyDP(cnt, approx, 0.06 * cv.arcLength(cnt, true), true);
 
@@ -406,6 +410,8 @@ function detectLoop() {
 
     if (approx.rows === 4 && area > minArea && area < maxArea && isGoodAspectRatio) {
       found = true;
+      lastArea = area;
+      break; // 1つ見つかれば十分
     }
     approx.delete();
   }
@@ -415,7 +421,7 @@ function detectLoop() {
   // ★ここで自動撮影判定
   if (found) {
     captureCounter++;
-    if (captureCounter >= 3) {
+    if (captureCounter >= 5) {
       captureCounter = 0;
       captureBtn.click();
     }
