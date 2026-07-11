@@ -372,6 +372,8 @@ async function startCamera() {
 }
 
 // 2. ループ処理
+let lastArea = 0; // ファイルの先頭近くに配置してください
+
 function detectLoop() {
   if (!isDetecting) return;
   if (video.style.display === 'none') return;
@@ -397,10 +399,13 @@ function detectLoop() {
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
-    // 前回のフレームとの面積差が極端なら無視（ブレ対策）
+    
+    // ブレ対策：急激な変化は無視
     if (Math.abs(area - lastArea) > (area * 0.5)) {
       lastArea = area;
       continue;
+    }
+
     let approx = new cv.Mat();
     cv.approxPolyDP(cnt, approx, 0.06 * cv.arcLength(cnt, true), true);
 
@@ -411,14 +416,14 @@ function detectLoop() {
     if (approx.rows === 4 && area > minArea && area < maxArea && isGoodAspectRatio) {
       found = true;
       lastArea = area;
-      break; // 1つ見つかれば十分
+      approx.delete(); // ここで削除
+      break; 
     }
     approx.delete();
   }
   
   guideFrame.className = found ? 'guide-detected' : 'guide-default';
 
-  // ★ここで自動撮影判定
   if (found) {
     captureCounter++;
     if (captureCounter >= 5) {
