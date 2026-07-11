@@ -22,13 +22,14 @@ input, button {
 #camera-container {
   position: relative;
   width: 100vw;
-  height: 100vh;
+  height: 100%;
   background: #000;
   overflow: hidden;
   /* 子要素を中央寄せにする準備 */
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* 上寄せに変更 */
+  padding-top: 10px;
 }
   #video {
   /* 画面全体を埋めるように配置 */
@@ -38,13 +39,20 @@ input, button {
   object-fit: cover;
   z-index: 1;
 }
+
+ #video, #outputCanvas {
+    width: 90vw;       /* 画面幅の90%に抑える */
+    height: auto;      /* アスペクト比を維持 */
+    max-height: 65vh;  /* ナビとボタンを避けるため高さを制限 */
+    object-fit: contain;
+}
+  
+/* ガイド枠の調整 */
 #guide-frame {
-  position: relative; /* containerの中央配置に追従させる */
-  z-index: 2;
-  width: 80vw;
-  height: calc(80vw * 55 / 91);
-  border: 2px solid rgba(255, 255, 0, 0.8);
-  pointer-events: none;
+    width: 90vw;
+    height: calc(90vw * 55 / 91);
+    position: absolute;
+    z-index: 2;
 }
 /* 通常時 */
 .guide-default { border: 2px solid rgba(255, 255, 0, 0.8); }
@@ -57,12 +65,13 @@ input, button {
     
 #controls {
   position: absolute;
-  bottom: 50px;
+  bottom: 20px;
   width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 20;
+  pointer-events: auto; /* ボタンはクリックできるようにする */
 }
     
  #status-message {
