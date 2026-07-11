@@ -21,27 +21,26 @@ input, button {
 /* 1. ページ全体を制御 */
 #page-camera {
   height: 100vh;
-  position: relative;
+  display: flex;
+  flex-direction: column;
   background: #000;
 }
   
+/* 2. カメラエリアを画面の中央に配置 */
 #camera-container {
-  position: relative;
+  flex: 1; /* 画面の残りスペースをすべて使う */
   width: 100%;
-  height: 66.6vh; /* 画面の2/3 */
-  background: #000;
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
   overflow: hidden;
 }
-  
   #video {
   /* 画面全体を埋めるように配置 */
   position: absolute;
   object-fit: cover;
-  z-index: 1;
+
 }
 
   #outputCanvas {
@@ -52,18 +51,18 @@ input, button {
   image-rendering: -webkit-optimize-contrast;
 }
   
-/* 3. カメラ映像（枠の横幅95%に合わせて表示） */
+/* 3. カメラ映像：比率を保ったままエリアに収める */
 #video, #outputCanvas {
   width: 95vw;
   height: auto;
-  max-height: 66.6vh;
+  max-height: 90%; /* コンテナからはみ出ないように */
   object-fit: contain;
   z-index: 1;
 }
   
-/* 4. ガイドフレーム（中央配置・85%） */
+/* 4. ガイドフレーム：映像の上に重ねる */
 #guide-frame {
-  position: absolute; /* containerの中で中央配置 */
+  position: absolute;
   width: 85vw;
   height: calc(85vw * 55 / 91);
   border: 2px solid rgba(255, 255, 0, 0.8);
@@ -79,13 +78,13 @@ input, button {
   /* 背景を暗くせず、枠だけ赤くする */
 }
     
-/* カメラの撮影ボタンをナビの上に押し上げる */
+/* 5. コントロールボタン：常にナビのすぐ上に配置 */
 #controls {
-  position: absolute;
-  bottom: calc(70px + env(safe-area-inset-bottom) + 20px); /* ナビ高さ + 安全領域 + 余白 */
-  width: 100%;
+  height: 120px; /* ボタンエリアの高さを固定確保 */
   display: flex;
   justify-content: center;
+  align-items: center;
+  background: #000;
   z-index: 20;
 }
     
@@ -122,13 +121,14 @@ input, button {
   margin-bottom: 20px;
 }
 
-/* 既存の bottom-nav を修正 */
+/* 6. ナビ：一番下に固定 */
 #bottom-nav {
   position: fixed;
   bottom: 0;
+  left: 0;
   width: 100%;
-  height: 70px; /* 少し高くして余裕を持たせる */
-  padding-bottom: env(safe-area-inset-bottom); /* iOSのホームバー対策 */
+  height: 70px;
+  padding-bottom: env(safe-area-inset-bottom);
   background: #333;
   display: flex;
   justify-content: space-around;
