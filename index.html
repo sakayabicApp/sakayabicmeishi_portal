@@ -4,123 +4,201 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <style>
-
-/* =========================================
-   共通・基盤設定
-   ========================================= */
-body {
-  margin: 0; padding: 0; background: #000; overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-input, button { font-family: inherit; }
-
-/* ページ切り替え用基本クラス */
-.page { 
-  display: none;        /* デフォルトは非表示 */
-  height: 100dvh;       /* iOS Safari対応の動的単位 */
-  flex-direction: column; 
-  background: #fff; 
+ body {
+  margin: 0;
+  padding: 0;
+  background: #000;
   overflow: hidden;
+  /* 日本語アプリの定番・美しいフォントスタック */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  -webkit-font-smoothing: antialiased; /* 文字をより滑らかに表示 */
+   letter-spacing: 0.02em; /* 文字間を少し広げると高級感が出ます */
+  line-height: 1.6;      /* 行間を広げると可読性が上がります */
 }
-
-/* =========================================
-   カメラページ専用レイアウト
-   ========================================= */
-#page-camera { background: #000; display: none; }
-
+ /* ログインボタンや入力欄のフォントも合わせる */
+input, button {
+  font-family: inherit; /* bodyで設定したフォントを引き継ぐ */
+}  
+  
 #camera-container {
-  flex: 1;              /* 画面中央のスペースを柔軟に確保 */
   position: relative;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  overflow: hidden;
+  /* 子要素を中央寄せにする準備 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+  #video {
+  /* 画面全体を埋めるように配置 */
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+#guide-frame {
+  position: relative; /* containerの中央配置に追従させる */
+  z-index: 2;
+  width: 80vw;
+  height: calc(80vw * 55 / 91);
+  border: 2px solid rgba(255, 255, 0, 0.8);
+  pointer-events: none;
+}
+/* 通常時 */
+.guide-default { border: 2px solid rgba(255, 255, 0, 0.8); }
+
+/* 認識成功時 */
+.guide-detected { 
+  border: 4px solid #ff0000 !important; 
+  /* 背景を暗くせず、枠だけ赤くする */
+}
+    
+#controls {
+  position: absolute;
+  bottom: 50px;
   width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden;
-}
-
-#video {
-  width: 100%; 
-  height: 100%;
-  object-fit: cover;    /* 左右の余白を消して画面全体を埋める */
-  z-index: 1;
-}
-
-#guide-frame {
-  position: absolute;
-  width: 85vw;
-  height: calc(85vw * 55 / 91);
-  border: 2px solid rgba(255, 255, 0, 0.8);
-  z-index: 2;
-  pointer-events: none;
-}
-
-#status-message {
-  position: absolute; top: 10vh; width: 100%;
-  text-align: center; color: white; font-size: 1.2rem;
-  z-index: 5; pointer-events: none; text-shadow: 0 0 5px rgba(0,0,0,0.8);
-}
-
-/* 撮影コントロールエリア */
-#controls {
-  height: 120px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #000;
   z-index: 20;
 }
+    
+ #status-message {
+  position: absolute;
+  top: 10vh; /* 画面の上から10%の位置 */
+  width: 100%;
+  text-align: center;
+  color: white;
+  font-size: 1.2rem;
+  z-index: 5; /* 枠やボタンよりも前面にする */
+  pointer-events: none; /* タップを阻害しないようにする */
+  text-shadow: 0 0 5px rgba(0,0,0,0.8);
+}   
+.page { height: 100vh; overflow-y: auto; }
+    
+ #page-search {
+  padding: 20px;
+  /* 検索窓を固定したい場合はこれ */
+  position: sticky;
+  top: 0;
+  background-color: #f5f5f5; /* 背景色（黒系なら） */
+  z-index: 10;
+}   
 
-/* =========================================
-   ナビゲーションバー（最下部固定）
-   ========================================= */
+    #searchInput {
+  width: 100%;        /* 親要素の幅いっぱいに */
+  height: 50px;       /* 高さを倍（標準が約25px前後とすると50pxでかなり大きく見えます） */
+  padding: 10px;      /* 内側の余白 */
+  font-size: 18px;    /* 文字も大きくすると入力しやすい */
+  border: 1px solid #ccc;
+  border-radius: 8px; /* 角を少し丸くすると今風です */
+  box-sizing: border-box; /* 重要：パディングを含めてwidth: 100%にする */
+  margin-bottom: 20px;
+}
+
 #bottom-nav {
   position: fixed;
-  bottom: 0; width: 100%;
-  height: 70px;
+  bottom: 0;
+  width: 100%;
+  height: 60px;
   background: #333;
   display: flex;
   justify-content: space-around;
   align-items: center;
-  z-index: 1000;
-  padding-bottom: env(safe-area-inset-bottom); /* iPhoneのホームバー対策 */
+  z-index: 100;
 }
 
 #bottom-nav button {
-  background: none; border: none; color: white;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  font-size: 12px; width: 50%; height: 100%;
-  border-radius: 0; box-shadow: none; margin: 0;
+  background: none;
+  color: white;
+  border: none;
+  font-size: 16px;
+  width: auto; /* 丸ボタンではなく文字ボタンにする */
+  height: auto;
 }
-
-/* =========================================
-   各種ボタン・コンポーネント
-   ========================================= */
 button {
-  width: 80px; height: 80px; border-radius: 50%;
-  border: none; cursor: pointer;
-  display: flex; justify-content: center; align-items: center;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-  transition: transform 0.2s;
+  width: 80px;      /* 幅を指定 */
+  height: 80px;     /* 高さを幅と同じにする */
+  border-radius: 50%; /* ここで完全な丸に */
+  border: none;
+  font-size: 14px;
+  margin: 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3); /* 少し影をつけると立体的になります */
+  transition: transform 0.2s; /* 押した時の反応 */
 }
-button:active { transform: scale(0.95); }
 
-#capture-btn { background-color: #007bff; color: white; }
-#sendBtn { background: green; color: white; }
+/* 押した時に少し沈むエフェクト */
+button:active {
+  transform: scale(0.95);
+}    
+#capture-btn { 
+  display: block;/* 常に表示させておく */
+  background-color: #007bff; /* 青色 */
+  color: white; 
+} 
+    
+#actionBtns { display: none; }   /* 初期状態は非表示 */
+    #sendBtn { 
+  background: green; 
+  color: white; 
+}
 #retryBtn { background: red; color: white; }
-
-/* =========================================
-   その他ページ（ログイン・検索）
-   ========================================= */
-#page-login { display: flex; justify-content: center; align-items: center; padding: 20px; }
-.login-box { width: 100%; max-width: 400px; text-align: center; }
-
-#page-search { padding: 20px; background-color: #f5f5f5; }
-#searchInput {
-  width: 100%; height: 50px; padding: 10px;
-  border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;
+    
+    #outputCanvas {
+  display: none;
+  width: 80vw;    /* 端末画面幅の80%で表示 */
+  height: auto;   /* アスペクト比を維持 */
+  margin: 20px auto;
+  border: 5px solid #fff;
+  /* 画像が拡大表示される際にボケないようにする設定 */
+  image-rendering: -webkit-optimize-contrast;
 }
+.card {
+  background: white;
+  padding: 16px;
+  margin-bottom: 15px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card h3 { margin: 0; font-size: 18px; }
+.card p { margin: 5px 0; color: #666; font-size: 14px; }
+
+.detail-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+ #page-login {
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* 縦方向の中央 */
+  align-items: center;     /* 横方向の中央 */
+  height: 100vh;           /* 画面全体の高さ */
+  padding: 20px;
+  background: #fff;
+}
+
+/* 入力欄とボタンの親要素を整える */
+.login-box {
+  width: 100%;
+  max-width: 400px; /* スマホでも広がりすぎないように制限 */
+  text-align: center;
+} 
 </style>
 
 
