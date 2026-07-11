@@ -40,6 +40,15 @@ input, button {
   z-index: 1;
 }
 
+      #outputCanvas {
+  display: none;
+  height: auto;   /* アスペクト比を維持 */
+  margin: 20px auto;
+  border: 5px solid #fff;
+  /* 画像が拡大表示される際にボケないようにする設定 */
+  image-rendering: -webkit-optimize-contrast;
+}
+  
  #video, #outputCanvas {
     width: 90vw;       /* 画面幅の90%に抑える */
     height: auto;      /* アスペクト比を維持 */
@@ -159,15 +168,7 @@ button:active {
 }
 #retryBtn { background: red; color: white; }
     
-    #outputCanvas {
-  display: none;
-  width: 80vw;    /* 端末画面幅の80%で表示 */
-  height: auto;   /* アスペクト比を維持 */
-  margin: 20px auto;
-  border: 5px solid #fff;
-  /* 画像が拡大表示される際にボケないようにする設定 */
-  image-rendering: -webkit-optimize-contrast;
-}
+
 .card {
   background: white;
   padding: 16px;
