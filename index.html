@@ -2,7 +2,6 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
 <style>
  body {
   margin: 0;
@@ -20,32 +19,36 @@ input, button {
   font-family: inherit; /* bodyで設定したフォントを引き継ぐ */
 }  
   
+/* 1. コンテナの高さ計算を修正（ナビの60pxを引く） */
+/* 1. コンテナ：flexboxで全体を中央揃えに保つ */
 #camera-container {
   position: relative;
   width: 100vw;
-  height: 100vh;
+  height: calc(100vh - 60px); 
   background: #000;
   overflow: hidden;
-  /* 子要素を中央寄せにする準備 */
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: center; /* 垂直中央揃え */
 }
-  #video {
-  /* 画面全体を埋めるように配置 */
+/* 2. ビデオの表示を調整 */
+#video {
   position: absolute;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: 80%;
+  object-fit: cover; /* 画面全体を埋める */
   z-index: 1;
 }
+/* 3. ガイド枠：親（container）の中央配置に追従させる */
 #guide-frame {
-  position: relative; /* containerの中央配置に追従させる */
+  position: absolute; /* 親を基準に中央に配置するため */
   z-index: 2;
   width: 80vw;
   height: calc(80vw * 55 / 91);
   border: 2px solid rgba(255, 255, 0, 0.8);
   pointer-events: none;
+  /* 親の flex 設定と合わせることで自動的に中央に来る */
 }
 /* 通常時 */
 .guide-default { border: 2px solid rgba(255, 255, 0, 0.8); }
@@ -56,9 +59,10 @@ input, button {
   /* 背景を暗くせず、枠だけ赤くする */
 }
     
+/* 4. コントロールボタンをナビの上に移動 */
 #controls {
   position: absolute;
-  bottom: 50px;
+  bottom: 80px; /* ナビの高さ60px + 余白20px */
   width: 100%;
   display: flex;
   justify-content: center;
@@ -199,53 +203,51 @@ button:active {
   max-width: 400px; /* スマホでも広がりすぎないように制限 */
   text-align: center;
 } 
-</style>
-
-
+  
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
 </head>
 <body>
-
 <div id="page-login" class="page">
   <div class="login-box">
     <h2>酒ゃビック名刺管理システム</h2>
-    <input type="text" id="loginId" placeholder="ID">
-    <input type="password" id="loginPass" placeholder="パスワード">
-    <button id="loginBtn">ログイン</button>
+    <input type="text" id="loginId" placeholder="ID" style="width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;">
+    <input type="password" id="loginPass" placeholder="パスワード" style="width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;">
+    <button id="loginBtn" style="width: 100%; height: 50px; background: #007bff; color: white; border: none; border-radius: 8px; margin-top: 20px; font-size: 16px;">ログイン</button>
   </div>
 </div>
-
-<div id="page-camera" class="page" style="display:none;">
-  <div id="camera-container">
-    <video id="video" playsinline autoplay></video>
-    <div id="guide-frame"></div>
-    <div id="status-message">カメラを名刺に向けてください</div>
-    <canvas id="outputCanvas"></canvas>
-  </div>
-  <div id="controls">
+  
+<div id="page-camera" class="page">
+<div id="camera-container">
+  <video id="video" playsinline autoplay></video>
+  <div id="guide-frame"></div>
+<div id="status-message">カメラを名刺に向けてください</div>
+  <canvas id="outputCanvas"></canvas>
+    <div id="controls">
     <button id="capture-btn">撮影</button>
     <div id="actionBtns" style="display:none;">
       <button id="sendBtn">送信</button>
-      <button id="retryBtn">再撮</button>
+      <button id="retryBtn">取り直し</button>
     </div>
   </div>
 </div>
-
-<div id="page-search" class="page" style="display:none; padding:20px;">
-  <input type="text" id="searchInput" placeholder="会社名や氏名で検索...">
-  <div id="card-container"></div>
 </div>
+  
+<div id="page-search" class="page" style="display:none; padding: 20px; background-color: #f4f7f6; min-height: 100vh; color: #333;">
+  
+  <div class="search-header" style="position: sticky; top: 0; padding-bottom: 20px; background-color: #f4f7f6; z-index: 10;">
+    <input type="text" id="searchInput" placeholder="会社名や氏名で検索..." 
+           style="width: 100%; height: 50px; padding: 15px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; font-size: 16px;">
+  </div>
 
+  <div id="card-container">
+    </div>
+</div>
+  
 <nav id="bottom-nav">
-  <button onclick="showPage('page-camera')">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-    <span>撮影</span>
-  </button>
-  <button onclick="showPage('page-search')">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-    <span>検索</span>
-  </button>
+  <button onclick="showPage('page-camera')">撮影</button>
+  <button onclick="showPage('page-search')">検索</button>
 </nav>
-
   
 <script>  
 const video = document.getElementById('video');
@@ -308,8 +310,9 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   
 function showPage(pageId) {
   // 全ページを隠す
- document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-  document.getElementById(pageId).style.display = 'flex';
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  // 指定ページを表示
+  document.getElementById(pageId).style.display = 'block';
   
   // 【ここがポイント】撮影ページに移動したときだけカメラを起動する
   if (pageId === 'page-camera') {
@@ -519,7 +522,7 @@ async function uploadDirectly(canvas) {
   const base64data = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
   const fileName = `card_${Date.now()}.jpg`; // ファイル名をここで確定させる
   const userName = sessionStorage.getItem('userName');
-  const cloudRunUrl = 'https://upload-meishi-function-769951420007.asia-northeast2.run.app/';
+  const cloudRunUrl = 'https://upload-meishi-function-769951420007.asia-northeast2.run.app';
   const gasUrl = 'https://script.google.com/macros/s/AKfycbyya3RzVXc9pdWUCNhBaJN-F7_ShidH16FVFuL5VMh1CFLDifyAnUBkM-Z987FKb8o0/exec';
 
   // 1. 撮影ログを先にGASへ送信
@@ -574,9 +577,6 @@ window.addEventListener('load', () => {
     document.getElementById('bottom-nav').style.display = 'none';
   }
     });
-window.addEventListener('resize', adjustViewportHeight);
-adjustViewportHeight();
-  
   
 // カード描画関数（これで統一）
 function renderCards(dataList) {
@@ -602,12 +602,6 @@ function renderCards(dataList) {
       const item = mockData.find(d => d.id === id);
       alert(`詳細表示: ${item.name} - ${item.company}`);
     } 
-
-  // iOS Safari対策：画面の高さを動的に設定
-function adjustViewportHeight() {
-  let vh = window.innerHeight * 0.01;
-  document.documentElement.style.setProperty('--vh', `${vh}px`);
-}
 
 
   </script>
