@@ -517,7 +517,7 @@ async function uploadDirectly(canvas) {
   const base64data = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
   const fileName = `card_${Date.now()}.jpg`; // ファイル名をここで確定させる
   const userName = sessionStorage.getItem('userName');
-  const cloudRunUrl = '';
+  const cloudRunUrl = 'https://upload-meishi-function-769951420007.asia-northeast2.run.app/';
   const gasUrl = 'https://script.google.com/macros/s/AKfycbyya3RzVXc9pdWUCNhBaJN-F7_ShidH16FVFuL5VMh1CFLDifyAnUBkM-Z987FKb8o0/exec';
 
   // 1. 撮影ログを先にGASへ送信
