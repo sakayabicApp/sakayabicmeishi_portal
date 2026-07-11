@@ -378,11 +378,22 @@ function detectLoop() {
   if (!isDetecting) return;
   if (video.style.display === 'none') return;
 
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = 320; tempCanvas.height = 240;
-  tempCanvas.getContext('2d').drawImage(video, 0, 0, 320, 240);
-
-  let src = cv.imread(tempCanvas);
+  // 1. ビデオ全体を一度読み込む
+  let fullMat = cv.imread(video);
+  
+  // 2. ガイド枠が中央にあるので、その周辺だけを切り出す (ROI)
+  // fullMat.cols と rows は映像の解像度です。
+  // ここでは画面の中央、横幅の60%、高さの60%のエリアを切り出します
+  let width = fullMat.cols;
+  let height = fullMat.rows;
+  let roiRect = new cv.Rect(
+    Math.floor(width * 0.2),  // 開始X (左から20%)
+    Math.floor(height * 0.2), // 開始Y (上から20%)
+    Math.floor(width * 0.6),  // 切り出す幅 (全体の60%)
+    Math.floor(height * 0.6)  // 切り出す高さ (全体の60%)
+  );
+  
+  let src = fullMat.roi(roiRect); // これで中心部分だけが src になる
   let gray = new cv.Mat();
   let canny = new cv.Mat();
   let contours = new cv.MatVector();
@@ -434,7 +445,7 @@ function detectLoop() {
     captureCounter = 0;
   }
 
-  src.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete();
+  src.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete();fullMat.delete();roi.delete(); // これも忘れずに
   setTimeout(() => requestAnimationFrame(detectLoop), 200);
 }
 
