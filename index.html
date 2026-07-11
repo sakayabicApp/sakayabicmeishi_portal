@@ -223,13 +223,15 @@ button:active {
   <div id="guide-frame"></div>
 <div id="status-message">カメラを名刺に向けてください</div>
   <canvas id="outputCanvas"></canvas>
-    <div id="controls">
-    <button id="capture-btn">撮影</button>
-    <div id="actionBtns" style="display:none;">
-      <button id="sendBtn">送信</button>
-      <button id="retryBtn">取り直し</button>
-    </div>
+<div id="controls">
+  <button id="capture-btn">撮影</button>
+
+  <div id="actionBtns" style="display:none; flex-direction: row; gap: 10px;">
+    <button id="sendBtn">送信</button>
+    <button id="backCaptureBtn" style="background: orange;">裏面撮影</button>
+    <button id="retryBtn" style="background: red;">取り直し</button>
   </div>
+</div>
 </div>
 </div>
   
