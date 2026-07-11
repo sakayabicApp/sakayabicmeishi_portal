@@ -272,7 +272,7 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   loginBtn.style.backgroundColor = "#ccc"; // 色を変えるとより「押せない」ことが伝わります
   
   // ★ここをGASのデプロイURLに書き換えてください
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbwhwoaGExBpQc8a8Ht_cTdcW0heWssbUiWM0l1-d7pCu-nsmf1wTxX3zLAvGGiDuIhd/exec"; 
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbyya3RzVXc9pdWUCNhBaJN-F7_ShidH16FVFuL5VMh1CFLDifyAnUBkM-Z987FKb8o0/exec"; 
 
   try {
     const response = await fetch(GAS_URL, {
@@ -518,7 +518,7 @@ async function uploadDirectly(canvas) {
   const fileName = `card_${Date.now()}.jpg`; // ファイル名をここで確定させる
   const userName = sessionStorage.getItem('userName');
   const cloudRunUrl = '';
-  const gasUrl = 'https://script.google.com/macros/s/AKfycbwhwoaGExBpQc8a8Ht_cTdcW0heWssbUiWM0l1-d7pCu-nsmf1wTxX3zLAvGGiDuIhd/exec';
+  const gasUrl = 'https://script.google.com/macros/s/AKfycbyya3RzVXc9pdWUCNhBaJN-F7_ShidH16FVFuL5VMh1CFLDifyAnUBkM-Z987FKb8o0/exec';
 
   // 1. 撮影ログを先にGASへ送信
   const logResponse = await fetch(gasUrl, {
