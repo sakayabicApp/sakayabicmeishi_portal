@@ -79,16 +79,14 @@ input, button {
   /* 背景を暗くせず、枠だけ赤くする */
 }
     
+/* カメラの撮影ボタンをナビの上に押し上げる */
 #controls {
-position: absolute;
-  top: 66.6vh; /* カメラエリアの直下から開始 */
-  bottom: 60px; /* メニューバーの高さ分空ける */
+  position: absolute;
+  bottom: calc(70px + env(safe-area-inset-bottom) + 20px); /* ナビ高さ + 安全領域 + 余白 */
   width: 100%;
   display: flex;
   justify-content: center;
-  align-items: center;
   z-index: 20;
-  pointer-events: auto; /* ボタンはクリックできるようにする */
 }
     
  #status-message {
@@ -124,12 +122,13 @@ position: absolute;
   margin-bottom: 20px;
 }
 
-/* 6. ナビゲーション（最下部固定） */
+/* 既存の bottom-nav を修正 */
 #bottom-nav {
   position: fixed;
   bottom: 0;
   width: 100%;
-  height: 70px;
+  height: 70px; /* 少し高くして余裕を持たせる */
+  padding-bottom: env(safe-area-inset-bottom); /* iOSのホームバー対策 */
   background: #333;
   display: flex;
   justify-content: space-around;
@@ -271,14 +270,16 @@ button:active {
   
 <nav id="bottom-nav">
   <button onclick="showPage('page-camera')">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-    <span>撮影</span>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+    <span style="margin-top:4px;">撮影</span>
   </button>
   <button onclick="showPage('page-search')">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-    <span>検索</span>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    <span style="margin-top:4px;">検索</span>
   </button>
 </nav>
+
+  
 <script>  
 const video = document.getElementById('video');
 const captureBtn = document.getElementById('capture-btn');
@@ -607,6 +608,9 @@ window.addEventListener('load', () => {
     document.getElementById('bottom-nav').style.display = 'none';
   }
     });
+window.addEventListener('resize', adjustViewportHeight);
+adjustViewportHeight();
+  
   
 // カード描画関数（これで統一）
 function renderCards(dataList) {
@@ -632,6 +636,12 @@ function renderCards(dataList) {
       const item = mockData.find(d => d.id === id);
       alert(`詳細表示: ${item.name} - ${item.company}`);
     } 
+
+  // iOS Safari対策：画面の高さを動的に設定
+function adjustViewportHeight() {
+  let vh = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+}
 
 
   </script>
