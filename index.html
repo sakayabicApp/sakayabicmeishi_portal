@@ -3,279 +3,125 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
- body {
-  margin: 0;
-  padding: 0;
-  background: #000;
-  overflow: hidden;
-  /* 日本語アプリの定番・美しいフォントスタック */
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  -webkit-font-smoothing: antialiased; /* 文字をより滑らかに表示 */
-   letter-spacing: 0.02em; /* 文字間を少し広げると高級感が出ます */
-  line-height: 1.6;      /* 行間を広げると可読性が上がります */
-}
- /* ログインボタンや入力欄のフォントも合わせる */
-input, button {
-  font-family: inherit; /* bodyで設定したフォントを引き継ぐ */
-}  
-/* 1. ページ全体を制御 */
-#page-camera {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: #000;
-}
+  :root { --nav-height: 70px; }
   
-/* 2. カメラエリアを画面の中央に配置 */
-#camera-container {
-  flex: 1; /* 画面の残りスペースをすべて使う */
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  overflow: hidden;
-}
-  #video {
-  /* 画面全体を埋めるように配置 */
-  position: absolute;
-  object-fit: cover;
+  body {
+    margin: 0; padding: 0; background: #000; overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
 
-}
+  .page { height: 100dvh; display: flex; flex-direction: column; background: #000; }
 
-  #outputCanvas {
-  display: none;
-  margin: 20px auto;
-  border: 5px solid #fff;
-  /* 画像が拡大表示される際にボケないようにする設定 */
-  image-rendering: -webkit-optimize-contrast;
-}
+  /* --- カメラページ最適化 --- */
+  #page-camera { position: relative; }
   
-/* 3. カメラ映像：比率を保ったままエリアに収める */
-#video, #outputCanvas {
-  width: 95vw;
-  height: auto;
-  max-height: 90%; /* コンテナからはみ出ないように */
-  object-fit: contain;
-  z-index: 1;
-}
-  
-/* 4. ガイドフレーム：映像の上に重ねる */
-#guide-frame {
-  position: absolute;
-  width: 85vw;
-  height: calc(85vw * 55 / 91);
-  border: 2px solid rgba(255, 255, 0, 0.8);
-  z-index: 2;
-  pointer-events: none;
-}
-/* 通常時 */
-.guide-default { border: 2px solid rgba(255, 255, 0, 0.8); }
+  #camera-container {
+    flex: 1; /* 残りのスペースを全て使い切る */
+    width: 100%;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
 
-/* 認識成功時 */
-.guide-detected { 
-  border: 4px solid #ff0000 !important; 
-  /* 背景を暗くせず、枠だけ赤くする */
-}
-    
-/* 5. コントロールボタン：常にナビのすぐ上に配置 */
-#controls {
-  height: 120px; /* ボタンエリアの高さを固定確保 */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #000;
-  z-index: 20;
-}
-    
- #status-message {
-  position: absolute;
-  top: 10vh; /* 画面の上から10%の位置 */
-  width: 100%;
-  text-align: center;
-  color: white;
-  font-size: 1.2rem;
-  z-index: 5; /* 枠やボタンよりも前面にする */
-  pointer-events: none; /* タップを阻害しないようにする */
-  text-shadow: 0 0 5px rgba(0,0,0,0.8);
-}   
-.page { height: 100vh; overflow-y: auto; }
-    
- #page-search {
-  padding: 20px;
-  /* 検索窓を固定したい場合はこれ */
-  position: sticky;
-  top: 0;
-  background-color: #f5f5f5; /* 背景色（黒系なら） */
-  z-index: 10;
-}   
+  #video, #outputCanvas {
+    width: 100%; height: 100%;
+    object-fit: cover; /* 画面全体を埋める */
+    z-index: 1;
+  }
 
-    #searchInput {
-  width: 100%;        /* 親要素の幅いっぱいに */
-  height: 50px;       /* 高さを倍（標準が約25px前後とすると50pxでかなり大きく見えます） */
-  padding: 10px;      /* 内側の余白 */
-  font-size: 18px;    /* 文字も大きくすると入力しやすい */
-  border: 1px solid #ccc;
-  border-radius: 8px; /* 角を少し丸くすると今風です */
-  box-sizing: border-box; /* 重要：パディングを含めてwidth: 100%にする */
-  margin-bottom: 20px;
-}
+  #guide-frame {
+    position: absolute;
+    width: 85vw;
+    height: calc(85vw * 55 / 91);
+    border: 2px solid rgba(255, 255, 0, 0.8);
+    z-index: 2;
+    pointer-events: none;
+  }
 
-/* 6. ナビ：一番下に固定 */
-#bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 70px;
-  padding-bottom: env(safe-area-inset-bottom);
-  background: #333;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  z-index: 100;
-}
-  
-#bottom-nav button {
-  background: none;
-  color: white;
-  border: none;
-  display: flex;
-  flex-direction: column; /* 縦並び */
-  align-items: center;    /* 横中央揃え */
-  justify-content: center;
-  font-size: 12px;        /* テキストサイズ */
-  width: 80px;            /* 幅を確保 */
-  height: 60px;           /* ナビの高さに合わせる */
-  padding: 5px;
-}
+  #controls {
+    height: 100px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #000;
+    z-index: 20;
+    flex-shrink: 0; /* 圧縮されないようにする */
+  }
 
-#bottom-nav button svg {
-  margin-bottom: 4px;     /* アイコンと文字の間隔 */
-  stroke: white;          /* アイコンの色 */
-}
-  
-button {
-  width: 80px;      /* 幅を指定 */
-  height: 80px;     /* 高さを幅と同じにする */
-  border-radius: 50%; /* ここで完全な丸に */
-  border: none;
-  font-size: 14px;
-  margin: 10px;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3); /* 少し影をつけると立体的になります */
-  transition: transform 0.2s; /* 押した時の反応 */
-}
+  /* --- ナビゲーションバー --- */
+  #bottom-nav {
+    position: fixed;
+    bottom: 0; width: 100%;
+    height: var(--nav-height);
+    padding-bottom: env(safe-area-inset-bottom);
+    background: #333;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 100;
+  }
 
-/* 押した時に少し沈むエフェクト */
-button:active {
-  transform: scale(0.95);
-}    
-#capture-btn { 
-  display: block;/* 常に表示させておく */
-  background-color: #007bff; /* 青色 */
-  color: white; 
-} 
-    
-#actionBtns { display: none; }   /* 初期状態は非表示 */
-    #sendBtn { 
-  background: green; 
-  color: white; 
-}
-#retryBtn { background: red; color: white; }
-    
+  #bottom-nav button {
+    background: none; border: none; color: white;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-size: 12px; width: 80px; height: 100%;
+  }
 
-.card {
-  background: white;
-  padding: 16px;
-  margin-bottom: 15px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card h3 { margin: 0; font-size: 18px; }
-.card p { margin: 5px 0; color: #666; font-size: 14px; }
-
-.detail-btn {
-  background: #007bff;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 20px;
-  cursor: pointer;
-}
-
- #page-login {
-  display: flex;
-  flex-direction: column;
-  justify-content: center; /* 縦方向の中央 */
-  align-items: center;     /* 横方向の中央 */
-  height: 100vh;           /* 画面全体の高さ */
-  padding: 20px;
-  background: #fff;
-}
-
-/* 入力欄とボタンの親要素を整える */
-.login-box {
-  width: 100%;
-  max-width: 400px; /* スマホでも広がりすぎないように制限 */
-  text-align: center;
-} 
-  
-  </style>
-  <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
+  /* --- その他ボタン --- */
+  button {
+    width: 80px; height: 80px; border-radius: 50%;
+    border: none; cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    transition: transform 0.2s;
+  }
+  button:active { transform: scale(0.95); }
+  #capture-btn { background-color: #007bff; color: white; }
+</style>
 </head>
 <body>
+
 <div id="page-login" class="page">
   <div class="login-box">
     <h2>酒ゃビック名刺管理システム</h2>
-    <input type="text" id="loginId" placeholder="ID" style="width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;">
-    <input type="password" id="loginPass" placeholder="パスワード" style="width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;">
-    <button id="loginBtn" style="width: 100%; height: 50px; background: #007bff; color: white; border: none; border-radius: 8px; margin-top: 20px; font-size: 16px;">ログイン</button>
+    <input type="text" id="loginId" placeholder="ID">
+    <input type="password" id="loginPass" placeholder="パスワード">
+    <button id="loginBtn">ログイン</button>
   </div>
 </div>
-  
-<div id="page-camera" class="page">
-<div id="camera-container">
-  <video id="video" playsinline autoplay></video>
-  <div id="guide-frame"></div>
-<div id="status-message">カメラを名刺に向けてください</div>
-  <canvas id="outputCanvas"></canvas>
-    <div id="controls">
+
+<div id="page-camera" class="page" style="display:none;">
+  <div id="camera-container">
+    <video id="video" playsinline autoplay></video>
+    <div id="guide-frame"></div>
+    <div id="status-message">カメラを名刺に向けてください</div>
+    <canvas id="outputCanvas"></canvas>
+  </div>
+  <div id="controls">
     <button id="capture-btn">撮影</button>
     <div id="actionBtns" style="display:none;">
       <button id="sendBtn">送信</button>
-      <button id="retryBtn">取り直し</button>
+      <button id="retryBtn">再撮</button>
     </div>
   </div>
 </div>
-</div>
-  
-<div id="page-search" class="page" style="display:none; padding: 20px; background-color: #f4f7f6; min-height: 100vh; color: #333;">
-  
-  <div class="search-header" style="position: sticky; top: 0; padding-bottom: 20px; background-color: #f4f7f6; z-index: 10;">
-    <input type="text" id="searchInput" placeholder="会社名や氏名で検索..." 
-           style="width: 100%; height: 50px; padding: 15px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; font-size: 16px;">
-  </div>
 
-  <div id="card-container">
-    </div>
+<div id="page-search" class="page" style="display:none; padding:20px;">
+  <input type="text" id="searchInput" placeholder="会社名や氏名で検索...">
+  <div id="card-container"></div>
 </div>
-  
+
 <nav id="bottom-nav">
   <button onclick="showPage('page-camera')">
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-    <span style="margin-top:4px;">撮影</span>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+    <span>撮影</span>
   </button>
   <button onclick="showPage('page-search')">
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-    <span style="margin-top:4px;">検索</span>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    <span>検索</span>
   </button>
 </nav>
 
@@ -341,9 +187,8 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   
 function showPage(pageId) {
   // 全ページを隠す
-  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-  // 指定ページを表示
-  document.getElementById(pageId).style.display = 'block';
+ document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  document.getElementById(pageId).style.display = 'flex';
   
   // 【ここがポイント】撮影ページに移動したときだけカメラを起動する
   if (pageId === 'page-camera') {
