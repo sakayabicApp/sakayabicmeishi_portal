@@ -392,6 +392,11 @@ let lastArea = 0; // ファイルの先頭近くに配置してください
 
 function detectLoop() {
   if (!isDetecting) return;
+  // ★追加：videoがまだ準備できていないなら何もしない
+  if (!video || video.readyState !== 4) {
+    setTimeout(requestAnimationFrame(detectLoop), 200);
+    return;
+  }
   if (video.style.display === 'none') return;
 
   let fullMat = cv.imread(video);
@@ -602,27 +607,38 @@ function resetPreview() {
   document.getElementById('previewBack').src = "";
 }
 // 【送信機能本体】
-// 【送信機能】まとめて送信するように変更
+// 【修正版】画像を1枚ずつ直列で送信する関数
 async function uploadAllImages() {
-  const cloudRunUrl = 'https://upload-meishi-function-769951420007.asia-northeast2.run.app';
   const userName = sessionStorage.getItem('userName');
+  const cloudRunUrl = 'https://upload-meishi-function-769951420007.asia-northeast2.run.app';
 
-  // 送信用のデータ構造
-  const payload = {
-    id: globalCardId, // 表面・裏面共通のID
-    userName: userName,
-    frontBase64: capturedImages.front.split(',')[1],
-    backBase64: capturedImages.back ? capturedImages.back.split(',')[1] : null
-  };
+  // 1. 表面を送信
+  if (capturedImages.front) {
+    const frontPayload = {
+      base64Data: capturedImages.front.split(',')[1],
+      fileName: `card_${globalCardId}_front.jpg`
+    };
+    const res1 = await fetch(cloudRunUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(frontPayload)
+    });
+    if (!res1.ok) throw new Error("表面送信失敗: " + await res1.text());
+  }
 
-  // Cloud Runへ一括送信
-  const response = await fetch(cloudRunUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) throw new Error("画像送信失敗: " + await response.text());
+  // 2. 裏面を送信（あれば）
+  if (capturedImages.back) {
+    const backPayload = {
+      base64Data: capturedImages.back.split(',')[1],
+      fileName: `card_${globalCardId}_back.jpg`
+    };
+    const res2 = await fetch(cloudRunUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(backPayload)
+    });
+    if (!res2.ok) throw new Error("裏面送信失敗: " + await res2.text());
+  }
   
   return true;
 }
