@@ -396,6 +396,9 @@ function detectLoop() {
 
   // 1. ビデオ全体を一度読み込む
   let fullMat = cv.imread(video);
+let roi = fullMat.roi(roiRect); // 変数名を明示
+let src = roi; // srcとして使用
+
   
   // 2. ガイド枠が中央にあるので、その周辺だけを切り出す (ROI)
   // fullMat.cols と rows は映像の解像度です。
@@ -467,9 +470,6 @@ function detectLoop() {
 
 // 3. 撮影処理
 captureBtn.addEventListener('click', async () => {
-let globalCardId = null; // 撮影セッションID
-let isFrontSide = true;  // 現在の面
-let capturedImages = { front: null, back: null }; // 画像保持用
   
 // IDがまだなければ作成（これがファイル名のキーになる）
   if (!globalCardId) globalCardId = Date.now();  
@@ -529,7 +529,7 @@ if (bestContour) {
     isDetecting = true;
   }
 
-  src.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete();
+  src.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete();roi.delete(); // 両方解放
 });
 
 
