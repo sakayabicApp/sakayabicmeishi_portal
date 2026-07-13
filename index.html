@@ -224,8 +224,8 @@ button:active {
     <div id="status-message">カメラを名刺に向けてください</div>
     
     <div id="previewContainer" style="display:flex; justify-content:center; gap:10px; margin: 10px 0;">
-      <img id="previewFront" style="width:40%; border: 2px solid #ccc; display:none;">
-      <img id="previewBack" style="width:40%; border: 2px solid #ccc; display:none;">
+      <img id="previewFront" style="width:90%; border: 2px solid #ccc; display:none;">
+      <img id="previewBack" style="width:90%; border: 2px solid #ccc; display:none;">
     </div>
 
     <canvas id="outputCanvas" style="display:none;"></canvas>
@@ -233,11 +233,12 @@ button:active {
     <div id="controls">
       <button id="capture-btn">撮影</button>
 
-      <div id="actionBtns" style="display:none; flex-direction: row; gap: 10px;">
-        <button id="sendBtn">送信</button>
-        <button id="backCaptureBtn" style="background: orange;">裏面撮影</button>
-        <button id="retryBtn" style="background: red;">取り直し</button>
-      </div>
+      <div id="actionBtns" style="display:none; flex-direction: row; gap: 10px; flex-wrap: wrap;">
+  <button id="sendBtn" style="background: green;">送信</button>
+  <button id="backCaptureBtn" style="background: orange;">裏面撮影</button>
+  <button id="retryBackBtn" style="background: #ff8c00;">裏面撮り直し</button>
+  <button id="retryAllBtn" style="background: red;">最初から撮り直し</button>
+</div>
     </div>
   </div>
 </div>
@@ -549,7 +550,21 @@ if (bestContour) {
   isDetecting = true;
   detectLoop();
 });
+// 裏面だけ撮り直す
+retryBackBtn.addEventListener('click', () => {
+  isFrontSide = false;
+  capturedImages.back = null; // 裏面データをクリア
+  showCaptureUI();
+});
 
+ // 最初から撮り直す（表面・裏面データ全消去）
+retryAllBtn.addEventListener('click', () => {
+  globalCardId = null;
+  isFrontSide = true;
+  capturedImages = { front: null, back: null };
+  resetPreview();
+  showCaptureUI();
+}); 
 
     
   // 撮影成功時の表示切り替え
@@ -598,7 +613,22 @@ function warpPerspective(src, contour) {
   cv.imshow('outputCanvas', normalized);
   normalized.delete(); dst.delete(); M.delete(); srcTri.delete(); dstTri.delete(); approx.delete();
 }
-
+function updateActionUI() {
+  const isBothCaptured = capturedImages.front && capturedImages.back;
+  
+  // 表面だけ撮れているとき
+  if (capturedImages.front && !capturedImages.back) {
+    document.getElementById('backCaptureBtn').style.display = 'block';
+    document.getElementById('retryBackBtn').style.display = 'none';
+    document.getElementById('retryAllBtn').style.display = 'block'; // 表面の撮り直しをここで行う
+  } 
+  // 両方撮れているとき
+  else if (isBothCaptured) {
+    document.getElementById('backCaptureBtn').style.display = 'none';
+    document.getElementById('retryBackBtn').style.display = 'block';
+    document.getElementById('retryAllBtn').style.display = 'block';
+  }
+}
   // リセット処理に以下を追加
 function resetPreview() {
   document.getElementById('previewFront').style.display = 'none';
@@ -677,7 +707,14 @@ sendBtn.addEventListener('click', async () => {
 
   // 【追加】ページロード時にカードを表示
 window.addEventListener('load', () => {
-  renderCards(mockData); // カード表示だけは最初に行う
+  const loginTime = sessionStorage.getItem('loginTime');
+  const now = new Date().getTime();
+  
+  // 1時間経過していたら強制ログアウト
+  if (loginTime && (now - loginTime > 3600000)) {
+    sessionStorage.clear();
+    showPage('page-login');
+  }else {  renderCards(mockData); // カード表示だけは最初に行う
   // ログイン状態ならカメラを起動する
   if (sessionStorage.getItem('isLoggedIn') === 'true') {
     showPage('page-camera');
