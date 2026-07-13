@@ -293,11 +293,13 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
     });
     const result = await response.json();
 
+   // ログインボタンの成功時の処理を修正
     if (result.success) {
       sessionStorage.setItem('isLoggedIn', 'true');
+      sessionStorage.setItem('userName', result.userName); // 追加
       showPage('page-camera');
       document.getElementById('bottom-nav').style.display = 'flex';
-    } else {
+    }else {
       alert("IDまたはパスワードが違います");
       // 失敗した時だけボタンを戻す
       loginBtn.disabled = false;
@@ -494,8 +496,20 @@ let capturedImages = { front: null, back: null }; // 画像保持用
     approx.delete();
   }
 
-// IDがまだなければ作成（これがファイル名のキーになる）
-  if (!globalCardId) globalCardId = Date.now();
+  if (bestContour) {
+    warpPerspective(src, bestContour);
+    // 【重要】ここでグローバル変数に保存する
+    capturedImages[isFrontSide ? 'front' : 'back'] = canvas.toDataURL('image/jpeg', 0.8);
+    
+    video.style.display = 'none';
+    canvas.style.display = 'block';
+    guideFrame.style.display = 'none';
+    showActionUI();
+  } else {
+    alert("認識できませんでした。");
+    isDetecting = true;
+  }
+
   src.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete();
 });
 
