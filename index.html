@@ -259,8 +259,12 @@ const guideFrame = document.getElementById('guide-frame');
 const actionBtns = document.getElementById('actionBtns');
 const sendBtn = document.getElementById('sendBtn');
 const retryBtn = document.getElementById('retryBtn');
+const backCaptureBtn = document.getElementById('backCaptureBtn');
 
 let isDetecting = true;
+let globalCardId = null; 
+let isFrontSide = true; 
+let capturedImages = { front: null, back: null };
 let captureCounter = 0; // ここに宣言が必要
 
   // モックデータ
@@ -358,6 +362,7 @@ function closeDetail() {
   
 // 1. カメラ起動
 async function startCamera() {
+ 
   const constraints = {
     video: {
       width: { ideal: 1920 },
@@ -453,6 +458,13 @@ function detectLoop() {
 
 // 3. 撮影処理
 captureBtn.addEventListener('click', async () => {
+let globalCardId = null; // 撮影セッションID
+let isFrontSide = true;  // 現在の面
+let capturedImages = { front: null, back: null }; // 画像保持用
+  
+// IDがまだなければ作成（これがファイル名のキーになる）
+  if (!globalCardId) globalCardId = Date.now();  
+  
   isDetecting = false;
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = video.videoWidth; tempCanvas.height = video.videoHeight;
@@ -482,22 +494,13 @@ captureBtn.addEventListener('click', async () => {
     approx.delete();
   }
 
-  if (bestContour) {
-    warpPerspective(src, bestContour);
-    video.style.display = 'none';
-    canvas.style.display = 'block';
-    captureBtn.style.display = 'none';
-    actionBtns.style.display = 'flex';
-    guideFrame.style.display = 'none';
-  } else {
-    alert("認識できませんでした。");
-    isDetecting = true;
-    captureCounter = 0; // カウンターリセット
-    detectLoop();
-  }
+// IDがまだなければ作成（これがファイル名のキーになる）
+  if (!globalCardId) globalCardId = Date.now();
   src.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete();
 });
 
+
+// --- ボタンイベント ---  
 // 【修正1】retryBtnの不要なコードを削除
     retryBtn.addEventListener('click', () => {
       video.style.display = 'block';
@@ -510,6 +513,31 @@ captureBtn.addEventListener('click', async () => {
       detectLoop();
     });
 
+  backCaptureBtn.addEventListener('click', () => {
+  isFrontSide = false;
+  showCaptureUI();
+  isDetecting = true;
+  detectLoop();
+});
+
+
+    
+  // 撮影成功時の表示切り替え
+// --- UI制御関数 ---
+function showActionUI() {
+  captureBtn.style.display = 'none';
+  actionBtns.style.display = 'flex';
+  document.getElementById('backCaptureBtn').style.display = isFrontSide ? 'block' : 'none';
+}
+
+function showCaptureUI() {
+  captureBtn.style.display = 'block';
+  actionBtns.style.display = 'none';
+  video.style.display = 'block';
+  canvas.style.display = 'none';
+  guideFrame.style.display = 'block';
+}
+  
 // 5. warpPerspective (省略なし)
 function warpPerspective(src, contour) {
   let perimeter = cv.arcLength(contour, true);
@@ -542,51 +570,61 @@ function warpPerspective(src, contour) {
 }
 
 // 【送信機能本体】
-async function uploadDirectly(canvas) {
-  const base64data = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
-  const fileName = `card_${Date.now()}.jpg`; // ファイル名をここで確定させる
-  const userName = sessionStorage.getItem('userName');
+// 【送信機能】まとめて送信するように変更
+async function uploadAllImages() {
   const cloudRunUrl = 'https://upload-meishi-function-769951420007.asia-northeast2.run.app';
-  const gasUrl = 'https://script.google.com/macros/s/AKfycbyya3RzVXc9pdWUCNhBaJN-F7_ShidH16FVFuL5VMh1CFLDifyAnUBkM-Z987FKb8o0/exec';
+  const userName = sessionStorage.getItem('userName');
 
-  // 1. 撮影ログを先にGASへ送信
-  const logResponse = await fetch(gasUrl, {
-    method: 'POST',
-    body: JSON.stringify({ action: "logCapture", userName: userName, fileName: fileName })
-  });
-  if (!logResponse.ok) throw new Error("ログ保存に失敗しました");
+  // 送信用のデータ構造
+  const payload = {
+    id: globalCardId, // 表面・裏面共通のID
+    userName: userName,
+    frontBase64: capturedImages.front.split(',')[1],
+    backBase64: capturedImages.back ? capturedImages.back.split(',')[1] : null
+  };
 
-  // 2. 画像本体をCloud Runへ送信
+  // Cloud Runへ一括送信
   const response = await fetch(cloudRunUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ base64Data: base64data, fileName: fileName })
+    body: JSON.stringify(payload)
   });
+
   if (!response.ok) throw new Error("画像送信失敗: " + await response.text());
+  
+  return true;
 }
 
-// 【ボタンの紐付け】
+// 【送信ボタンの処理】
 sendBtn.addEventListener('click', async () => {
+  if (!capturedImages.front) {
+    alert("表面が撮影されていません");
+    return;
+  }
+
   sendBtn.disabled = true;
   const originalText = sendBtn.textContent;
   sendBtn.textContent = "送信中...";
 
   try {
-    // ここでまとめて実行
-    await uploadDirectly(canvas);
+    await uploadAllImages();
 
-    sendBtn.textContent = "送信完了";
-    sendBtn.style.backgroundColor = "#28a745";
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    retryBtn.click();
+    alert("送信完了しました");
+    
+    // リセットして次の撮影へ
+    globalCardId = null;
+    isFrontSide = true;
+    capturedImages = { front: null, back: null };
+    
+    showCaptureUI(); // 最初の画面に戻す
   } catch (e) {
     alert("エラー: " + e.message);
   } finally {
     sendBtn.disabled = false;
     sendBtn.textContent = originalText;
-    sendBtn.style.backgroundColor = "";
   }
 });
+
   
 
   // 【追加】ページロード時にカードを表示
