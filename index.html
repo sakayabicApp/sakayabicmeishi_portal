@@ -148,10 +148,14 @@ button:active {
   color: white; 
 } 
     
-#actionBtns { display: none; }   /* 初期状態は非表示 */
+#actionBtns { display: none;  position: relative;
+    z-index: 100; /* ボタンを確実に一番上に */
+    margin-top: 20px;   
+            }   /* 初期状態は非表示 */
     #sendBtn { 
   background: green; 
   color: white; 
+ 
 }
 #retryBtn { background: red; color: white; }
     
@@ -223,10 +227,10 @@ button:active {
     <div id="guide-frame"></div>
     <div id="status-message">カメラを名刺に向けてください</div>
     
-    <div id="previewContainer" style="display:flex; justify-content:center; gap:10px; margin: 10px 0;">
-      <img id="previewFront" style="width:90%; border: 2px solid #ccc; display:none;">
-      <img id="previewBack" style="width:90%; border: 2px solid #ccc; display:none;">
-    </div>
+    <div id="previewContainer" style="display:flex; flex-direction: column; align-items:center; gap:10px; margin: 10px 0;position: relative;z-index: 1; /* 画像は後ろ */">
+    <img id="previewFront" style="width:80%; max-width:300px; border: 2px solid #ccc; display:none;">
+    <img id="previewBack" style="width:80%; max-width:300px; border: 2px solid #ccc; display:none;">
+</div>
 
     <canvas id="outputCanvas" style="display:none;"></canvas>
     
@@ -235,9 +239,12 @@ button:active {
 
       <div id="actionBtns" style="display:none; flex-direction: row; gap: 10px; flex-wrap: wrap;">
   <button id="sendBtn" style="background: green;">送信</button>
-  <button id="backCaptureBtn" style="background: orange;">裏面撮影</button>
-  <button id="retryBackBtn" style="background: #ff8c00;">裏面撮り直し</button>
-  <button id="retryAllBtn" style="background: red;">最初から撮り直し</button>
+  <button id="backCaptureBtn" style="background: orange;color: white; 
+ ">裏面撮影</button>
+  <button id="retryBackBtn" style="background: #ff8c00;color: white; 
+ ">裏面撮り直し</button>
+  <button id="retryAllBtn" style="background: red;color: white; 
+ ">最初から撮り直し</button>
 </div>
     </div>
   </div>
