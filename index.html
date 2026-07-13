@@ -505,7 +505,7 @@ if (bestContour) {
     warpPerspective(src, bestContour);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
     
-    // 面に応じて画像をセット
+   // 面に応じて画像をセット
     if (isFrontSide) {
         capturedImages.front = dataUrl;
         document.getElementById('previewFront').src = dataUrl;
@@ -516,11 +516,14 @@ if (bestContour) {
         document.getElementById('previewBack').style.display = 'block';
     }
     
-    // カメラを隠してプレビューとUIを表示
+    // カメラを隠してプレビューを表示
     video.style.display = 'none';
-    canvas.style.display = 'none'; // プレビューで見せるのでcanvasは隠す
+    canvas.style.display = 'none';
     guideFrame.style.display = 'none';
-    showActionUI();
+    
+    // ▼ ここを修正
+    showActionUI();      // ボタンのコンテナを表示
+    updateActionUI();    // ★各ボタン（裏面撮影/撮り直し）の表示/非表示を制御
 }else {
     alert("認識できませんでした。");
     isDetecting = true;
@@ -572,8 +575,7 @@ retryAllBtn.addEventListener('click', () => {
 function showActionUI() {
   captureBtn.style.display = 'none';
   actionBtns.style.display = 'flex';
-  document.getElementById('backCaptureBtn').style.display = isFrontSide ? 'block' : 'none';
-}
+ }
 
 function showCaptureUI() {
   captureBtn.style.display = 'block';
@@ -613,22 +615,7 @@ function warpPerspective(src, contour) {
   cv.imshow('outputCanvas', normalized);
   normalized.delete(); dst.delete(); M.delete(); srcTri.delete(); dstTri.delete(); approx.delete();
 }
-function updateActionUI() {
-  const isBothCaptured = capturedImages.front && capturedImages.back;
-  
-  // 表面だけ撮れているとき
-  if (capturedImages.front && !capturedImages.back) {
-    document.getElementById('backCaptureBtn').style.display = 'block';
-    document.getElementById('retryBackBtn').style.display = 'none';
-    document.getElementById('retryAllBtn').style.display = 'block'; // 表面の撮り直しをここで行う
-  } 
-  // 両方撮れているとき
-  else if (isBothCaptured) {
-    document.getElementById('backCaptureBtn').style.display = 'none';
-    document.getElementById('retryBackBtn').style.display = 'block';
-    document.getElementById('retryAllBtn').style.display = 'block';
-  }
-}
+
   // リセット処理に以下を追加
 function resetPreview() {
   document.getElementById('previewFront').style.display = 'none';
