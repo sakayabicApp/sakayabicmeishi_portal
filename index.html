@@ -394,51 +394,41 @@ function detectLoop() {
   if (!isDetecting) return;
   if (video.style.display === 'none') return;
 
-  // 1. ビデオ全体を一度読み込む
   let fullMat = cv.imread(video);
-let roi = fullMat.roi(roiRect); // 変数名を明示
-let src = roi; // srcとして使用
-
   
-  // 2. ガイド枠が中央にあるので、その周辺だけを切り出す (ROI)
-  // fullMat.cols と rows は映像の解像度です。
-  // ここでは画面の中央、横幅の60%、高さの60%のエリアを切り出します
+  // ROI（関心領域）の定義
   let width = fullMat.cols;
   let height = fullMat.rows;
   let roiRect = new cv.Rect(
-    Math.floor(width * 0.2),  // 開始X (左から20%)
-    Math.floor(height * 0.2), // 開始Y (上から20%)
-    Math.floor(width * 0.6),  // 切り出す幅 (全体の60%)
-    Math.floor(height * 0.6)  // 切り出す高さ (全体の60%)
+    Math.floor(width * 0.2),
+    Math.floor(height * 0.2),
+    Math.floor(width * 0.6),
+    Math.floor(height * 0.6)
   );
   
-  let src = fullMat.roi(roiRect); // これで中心部分だけが src になる
+  let roiMat = fullMat.roi(roiRect); // roiMatとして定義
   let gray = new cv.Mat();
   let canny = new cv.Mat();
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
 
-  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+  cv.cvtColor(roiMat, gray, cv.COLOR_RGBA2GRAY);
   cv.Canny(gray, canny, 50, 150);
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let found = false;
-  let minArea = (video.videoWidth * video.videoHeight) * 0.03;
-  let maxArea = (video.videoWidth * video.videoHeight) * 0.60;
+  let minArea = (width * height) * 0.03; // ビデオ解像度ベースで計算
+  let maxArea = (width * height) * 0.60;
 
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
-    
-    // ブレ対策：急激な変化は無視
     if (Math.abs(area - lastArea) > (area * 0.5)) {
       lastArea = area;
       continue;
     }
-
     let approx = new cv.Mat();
     cv.approxPolyDP(cnt, approx, 0.06 * cv.arcLength(cnt, true), true);
-
     let rect = cv.boundingRect(cnt);
     let aspectRatio = rect.width / rect.height;
     let isGoodAspectRatio = aspectRatio > 1.3 && aspectRatio < 2.0;
@@ -446,7 +436,7 @@ let src = roi; // srcとして使用
     if (approx.rows === 4 && area > minArea && area < maxArea && isGoodAspectRatio) {
       found = true;
       lastArea = area;
-      approx.delete(); // ここで削除
+      approx.delete();
       break; 
     }
     approx.delete();
@@ -464,7 +454,8 @@ let src = roi; // srcとして使用
     captureCounter = 0;
   }
 
-  src.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete();fullMat.delete();roi.delete(); // これも忘れずに
+  // 全て解放
+  roiMat.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
   setTimeout(() => requestAnimationFrame(detectLoop), 200);
 }
 
