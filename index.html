@@ -720,6 +720,32 @@ window.addEventListener('load', () => {
         }
         
 });
+ // --- ボタンのイベントリスナー登録を追加 ---
+document.getElementById('retryBackBtn').addEventListener('click', () => {
+  isFrontSide = false;
+  capturedImages.back = null; 
+  resetPreview(); // プレビューをクリア
+  showCaptureUI();
+  isDetecting = true;
+  detectLoop();
+});
+
+document.getElementById('retryAllBtn').addEventListener('click', () => {
+  globalCardId = null;
+  isFrontSide = true;
+  capturedImages = { front: null, back: null };
+  resetPreview(); // プレビューをクリア
+  showCaptureUI();
+  isDetecting = true;
+  detectLoop();
+});
+
+document.getElementById('backCaptureBtn').addEventListener('click', () => {
+  isFrontSide = false;
+  showCaptureUI();
+  isDetecting = true;
+  detectLoop();
+});
   
 // カード描画関数（これで統一）
 function renderCards(dataList) {
