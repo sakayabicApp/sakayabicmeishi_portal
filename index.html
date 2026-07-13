@@ -218,21 +218,28 @@ button:active {
 </div>
   
 <div id="page-camera" class="page">
-<div id="camera-container">
-  <video id="video" playsinline autoplay></video>
-  <div id="guide-frame"></div>
-<div id="status-message">カメラを名刺に向けてください</div>
-  <canvas id="outputCanvas"></canvas>
-<div id="controls">
-  <button id="capture-btn">撮影</button>
+  <div id="camera-container">
+    <video id="video" playsinline autoplay></video>
+    <div id="guide-frame"></div>
+    <div id="status-message">カメラを名刺に向けてください</div>
+    
+    <div id="previewContainer" style="display:flex; justify-content:center; gap:10px; margin: 10px 0;">
+      <img id="previewFront" style="width:40%; border: 2px solid #ccc; display:none;">
+      <img id="previewBack" style="width:40%; border: 2px solid #ccc; display:none;">
+    </div>
 
-  <div id="actionBtns" style="display:none; flex-direction: row; gap: 10px;">
-    <button id="sendBtn">送信</button>
-    <button id="backCaptureBtn" style="background: orange;">裏面撮影</button>
-    <button id="retryBtn" style="background: red;">取り直し</button>
+    <canvas id="outputCanvas" style="display:none;"></canvas>
+    
+    <div id="controls">
+      <button id="capture-btn">撮影</button>
+
+      <div id="actionBtns" style="display:none; flex-direction: row; gap: 10px;">
+        <button id="sendBtn">送信</button>
+        <button id="backCaptureBtn" style="background: orange;">裏面撮影</button>
+        <button id="retryBtn" style="background: red;">取り直し</button>
+      </div>
+    </div>
   </div>
-</div>
-</div>
 </div>
   
 <div id="page-search" class="page" style="display:none; padding: 20px; background-color: #f4f7f6; min-height: 100vh; color: #333;">
@@ -496,16 +503,28 @@ let capturedImages = { front: null, back: null }; // 画像保持用
     approx.delete();
   }
 
-  if (bestContour) {
+  // 撮影成功時の処理
+if (bestContour) {
     warpPerspective(src, bestContour);
-    // 【重要】ここでグローバル変数に保存する
-    capturedImages[isFrontSide ? 'front' : 'back'] = canvas.toDataURL('image/jpeg', 0.8);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
     
+    // 面に応じて画像をセット
+    if (isFrontSide) {
+        capturedImages.front = dataUrl;
+        document.getElementById('previewFront').src = dataUrl;
+        document.getElementById('previewFront').style.display = 'block';
+    } else {
+        capturedImages.back = dataUrl;
+        document.getElementById('previewBack').src = dataUrl;
+        document.getElementById('previewBack').style.display = 'block';
+    }
+    
+    // カメラを隠してプレビューとUIを表示
     video.style.display = 'none';
-    canvas.style.display = 'block';
+    canvas.style.display = 'none'; // プレビューで見せるのでcanvasは隠す
     guideFrame.style.display = 'none';
     showActionUI();
-  } else {
+}else {
     alert("認識できませんでした。");
     isDetecting = true;
   }
@@ -525,6 +544,7 @@ let capturedImages = { front: null, back: null }; // 画像保持用
       isDetecting = true;
       captureCounter = 0;
       detectLoop();
+      resetPreview();
     });
 
   backCaptureBtn.addEventListener('click', () => {
@@ -583,6 +603,13 @@ function warpPerspective(src, contour) {
   normalized.delete(); dst.delete(); M.delete(); srcTri.delete(); dstTri.delete(); approx.delete();
 }
 
+  // リセット処理に以下を追加
+function resetPreview() {
+  document.getElementById('previewFront').style.display = 'none';
+  document.getElementById('previewBack').style.display = 'none';
+  document.getElementById('previewFront').src = "";
+  document.getElementById('previewBack').src = "";
+}
 // 【送信機能本体】
 // 【送信機能】まとめて送信するように変更
 async function uploadAllImages() {
@@ -629,7 +656,7 @@ sendBtn.addEventListener('click', async () => {
     globalCardId = null;
     isFrontSide = true;
     capturedImages = { front: null, back: null };
-    
+    resetPreview(); // ★ここに追加
     showCaptureUI(); // 最初の画面に戻す
   } catch (e) {
     alert("エラー: " + e.message);
