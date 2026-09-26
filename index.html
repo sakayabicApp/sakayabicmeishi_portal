@@ -364,6 +364,13 @@ function detectLoop() {
   let fullMat = cv.imread(video);
   let width = fullMat.cols;
   let height = fullMat.rows;
+
+  let totalArea = width * height;
+
+  // ★修正ポイント: 画面全体の 20% 未満の四角は完全に無視する（1〜2cmの四角を排除）
+  let minArea = totalArea * 0.20; 
+  let maxArea = totalArea * 0.85;
+  
   let roiRect = new cv.Rect(
     Math.floor(width * 0.2),
     Math.floor(height * 0.2),
@@ -391,24 +398,23 @@ for (let i = 0; i < contours.size(); ++i) {
   let cnt = contours.get(i);
   let area = cv.contourArea(cnt);
 
-  // 面積が小さすぎる、または大きすぎる場合はスキップ
-  if (area < minArea || area > maxArea) continue;
+  // ★指定した最小面積(20%)より小さいものは即スキップ
+    if (area < minArea || area > maxArea) continue;
 
   let approx = new cv.Mat();
-  cv.approxPolyDP(cnt, approx, 0.06 * cv.arcLength(cnt, true), true);
-  let rect = cv.boundingRect(cnt);
-  let aspectRatio = rect.width / rect.height;
-  let isGoodAspectRatio = aspectRatio > 1.3 && aspectRatio < 2.0;
+    cv.approxPolyDP(cnt, approx, 0.05 * cv.arcLength(cnt, true), true);
+    
+    let rect = cv.boundingRect(cnt);
+    let aspectRatio = rect.width / rect.height;
 
-  // 4角形 かつ 面積条件を満たす場合のみ検知
-  if (approx.rows === 4 && isGoodAspectRatio) {
-    found = true;
-    lastArea = area;
+    // ★名刺らしい比率（1.3〜1.9）かつ 4角形の場合のみ検知
+    if (approx.rows === 4 && (aspectRatio >= 1.3 && aspectRatio <= 1.9)) {
+      found = true;
+      approx.delete();
+      break; 
+    }
     approx.delete();
-    break; 
   }
-  approx.delete();
-}
   
   guideFrame.className = found ? 'guide-detected' : 'guide-default';
 
@@ -448,15 +454,15 @@ captureBtn.addEventListener('click', async () => {
 
   // captureBtn のクリックイベント内
 let bestContour = null, maxArea = 0;
-// カメラ画面全体の10%を最小面積閾値とする
-const minCardArea = (video.videoWidth * video.videoHeight) * 0.10; 
+// ★撮影画像全体の 15% 以上を必須条件に設定
+  const minRequiredArea = (src.cols * src.rows) * 0.15;
 
 for (let i = 0; i < contours.size(); ++i) {
   let cnt = contours.get(i);
   let area = cv.contourArea(cnt);
 
-  // 指定サイズより小さい四角は無視する
-  if (area < minCardArea) continue; 
+  // ★15%未満の小さい四角（1〜2cmのノイズ）は無視
+    if (area < minRequiredArea) continue;
 
   let approx = new cv.Mat();
   cv.approxPolyDP(cnt, approx, 0.04 * cv.arcLength(cnt, true), true);
