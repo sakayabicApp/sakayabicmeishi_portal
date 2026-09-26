@@ -48,12 +48,19 @@ input, button {
   pointer-events: none;
 }
 
-.guide-default { border: 2px solid rgba(255, 255, 0, 0.8); }
-
-.guide-detected { 
-  border: 4px solid #ff0000 !important; 
+/* 通常時のガイド枠 */
+.guide-default {
+  border: 3px dashed #ffffff;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); /* 枠外を暗くする */
+  transition: border-color 0.2s ease;
 }
-    
+
+/* 名刺検知時のガイド枠（緑色に変化） */
+.guide-detected {
+  border: 4px solid #28a745 !important;
+  box-shadow: 0 0 15px #28a745, 0 0 0 9999px rgba(0, 0, 0, 0.5);
+  transition: border-color 0.2s ease;
+}
 #controls {
   position: absolute;
   bottom: 70px;
@@ -352,8 +359,8 @@ async function startCamera() {
   } catch (err) { alert("カメラアクセスを許可してください"); }
 }
 
-let lastArea = 0;
 
+let lastArea = 0;
 function detectLoop() {
   if (!isDetecting) return;
   if (!video || video.readyState !== 4) {
@@ -366,6 +373,7 @@ function detectLoop() {
   let width = fullMat.cols;
   let height = fullMat.rows;
 
+  // ROI（関心領域）を設定
   let roiRect = new cv.Rect(
     Math.floor(width * 0.1),
     Math.floor(height * 0.1),
@@ -384,15 +392,16 @@ function detectLoop() {
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let found = false;
-  // ROI画像領域に対する最小・最大面積比率（小さいノイズを排除）
-  let minArea = (roiMat.cols * roiMat.rows) * 0.20; 
-  let maxArea = (roiMat.cols * roiMat.rows) * 0.85;
+  // ★感度調整: 1~2cmのノイズを弾きつつ、少し引きで撮影しても拾える「12%」に調整
+  let roiArea = roiMat.cols * roiMat.rows;
+  let minArea = roiArea * 0.12; 
+  let maxArea = roiArea * 0.90;
 
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
 
-    // 小さすぎる四角はスキップ
+    // 小さすぎるノイズ（12%未満）はスキップ
     if (area < minArea || area > maxArea) continue;
 
     let approx = new cv.Mat();
@@ -401,8 +410,8 @@ function detectLoop() {
     let rect = cv.boundingRect(cnt);
     let aspectRatio = rect.width / rect.height;
 
-    // 名刺らしい比率（1.3〜1.9）かつ 4角形の場合のみ検知
-    if (approx.rows === 4 && (aspectRatio >= 1.3 && aspectRatio <= 1.9)) {
+    // 名刺らしい比率（1.2〜2.0）かつ 4角形の場合
+    if (approx.rows === 4 && (aspectRatio >= 1.2 && aspectRatio <= 2.0)) {
       found = true;
       approx.delete();
       break; 
@@ -410,8 +419,12 @@ function detectLoop() {
     approx.delete();
   }
   
-  guideFrame.className = found ? 'guide-detected' : 'guide-default';
+  // ★フレーム色の変更: 検知できたらクラスを切り替えてCSSで色を変える
+  if (guideFrame) {
+    guideFrame.className = found ? 'guide-detected' : 'guide-default';
+  }
 
+  // 自動カウントダウン・シャッター（5フレーム連続検知で撮影）
   if (found) {
     captureCounter++;
     if (captureCounter >= 5) {
@@ -423,7 +436,11 @@ function detectLoop() {
   }
 
   roiMat.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
-  setTimeout(() => requestAnimationFrame(detectLoop), 200);
+  
+  // 次のフレームを要求
+  if (isDetecting) {
+    setTimeout(() => requestAnimationFrame(detectLoop), 150);
+  }
 }
 
 captureBtn.addEventListener('click', async () => {
@@ -449,8 +466,8 @@ captureBtn.addEventListener('click', async () => {
 
   let bestContour = null;
   let maxArea = 0;
-  // 撮影画像全体の 15% 以上を必須条件に設定
-  const minRequiredArea = (src.cols * src.rows) * 0.15;
+  // ★撮影時も感度を10%程度まで落として拾いやすく調整
+  const minRequiredArea = (src.cols * src.rows) * 0.10;
 
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
@@ -488,9 +505,15 @@ captureBtn.addEventListener('click', async () => {
     
     showActionUI();
   } else {
+    // ★修正: alert() によるカメラ停止を防ぎ、スムーズに再開させる
     alert("認識できませんでした。名刺を枠内に大きく収めて撮影してください。");
+    
+    // カメラとUIの表示を再リセットしてから判定ループを安全に再開
+    showCaptureUI();
     isDetecting = true;
-    detectLoop();
+    setTimeout(() => {
+      detectLoop();
+    }, 300);
   }
 
   src.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete();
