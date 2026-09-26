@@ -381,31 +381,34 @@ function detectLoop() {
   cv.Canny(gray, canny, 50, 150);
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-  let found = false;
-  let minArea = (width * height) * 0.03;
-  let maxArea = (width * height) * 0.60;
+// detectLoop 内の面積判定箇所
+let found = false;
+// カメラ画面の10%未満、または60%以上の大きさの四角は除外する
+let minArea = (width * height) * 0.10; // ★0.03から0.10に変更して小さい四角をカット
+let maxArea = (width * height) * 0.60;
 
-  for (let i = 0; i < contours.size(); ++i) {
-    let cnt = contours.get(i);
-    let area = cv.contourArea(cnt);
-    if (Math.abs(area - lastArea) > (area * 0.5)) {
-      lastArea = area;
-      continue;
-    }
-    let approx = new cv.Mat();
-    cv.approxPolyDP(cnt, approx, 0.06 * cv.arcLength(cnt, true), true);
-    let rect = cv.boundingRect(cnt);
-    let aspectRatio = rect.width / rect.height;
-    let isGoodAspectRatio = aspectRatio > 1.3 && aspectRatio < 2.0;
+for (let i = 0; i < contours.size(); ++i) {
+  let cnt = contours.get(i);
+  let area = cv.contourArea(cnt);
 
-    if (approx.rows === 4 && area > minArea && area < maxArea && isGoodAspectRatio) {
-      found = true;
-      lastArea = area;
-      approx.delete();
-      break; 
-    }
+  // 面積が小さすぎる、または大きすぎる場合はスキップ
+  if (area < minArea || area > maxArea) continue;
+
+  let approx = new cv.Mat();
+  cv.approxPolyDP(cnt, approx, 0.06 * cv.arcLength(cnt, true), true);
+  let rect = cv.boundingRect(cnt);
+  let aspectRatio = rect.width / rect.height;
+  let isGoodAspectRatio = aspectRatio > 1.3 && aspectRatio < 2.0;
+
+  // 4角形 かつ 面積条件を満たす場合のみ検知
+  if (approx.rows === 4 && isGoodAspectRatio) {
+    found = true;
+    lastArea = area;
     approx.delete();
+    break; 
   }
+  approx.delete();
+}
   
   guideFrame.className = found ? 'guide-detected' : 'guide-default';
 
@@ -443,17 +446,27 @@ captureBtn.addEventListener('click', async () => {
   cv.Canny(blur, canny, 20, 80);
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-  let bestContour = null, maxArea = 0;
-  for (let i = 0; i < contours.size(); ++i) {
-    let cnt = contours.get(i);
-    let approx = new cv.Mat();
-    cv.approxPolyDP(cnt, approx, 0.04 * cv.arcLength(cnt, true), true);
-    if (approx.rows === 4 && cv.contourArea(cnt) > maxArea) {
-      maxArea = cv.contourArea(cnt);
-      bestContour = cnt;
-    }
-    approx.delete();
+  // captureBtn のクリックイベント内
+let bestContour = null, maxArea = 0;
+// カメラ画面全体の10%を最小面積閾値とする
+const minCardArea = (video.videoWidth * video.videoHeight) * 0.10; 
+
+for (let i = 0; i < contours.size(); ++i) {
+  let cnt = contours.get(i);
+  let area = cv.contourArea(cnt);
+
+  // 指定サイズより小さい四角は無視する
+  if (area < minCardArea) continue; 
+
+  let approx = new cv.Mat();
+  cv.approxPolyDP(cnt, approx, 0.04 * cv.arcLength(cnt, true), true);
+  
+  if (approx.rows === 4 && area > maxArea) {
+    maxArea = area;
+    bestContour = cnt;
   }
+  approx.delete();
+}
 
   if (bestContour) {
     warpPerspective(src, bestContour);
@@ -524,11 +537,14 @@ function showActionUI() {
   }
 }
 
+// カメラ撮影用のUIに戻す関数を修正
 function showCaptureUI() {
   captureBtn.style.display = 'block';
   actionBtns.style.display = 'none';
+  
+  // ビデオ要素を再表示し、撮影済みのキャンバスを非表示にする
   video.style.display = 'block';
-  canvas.style.display = 'none';
+  canvas.style.display = 'none'; 
   guideFrame.style.display = 'block';
 }
   
