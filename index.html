@@ -44,8 +44,9 @@ input, button {
   z-index: 2;
   width: 80vw;
   height: calc(80vw * 55 / 91);
-  border: 2px solid rgba(255, 255, 0, 0.8);
+  /* border指定を削除し、クラス（.guide-default等）側で色・太さを管理 */
   pointer-events: none;
+  box-sizing: border-box;
 }
 
 /* 通常時のガイド枠 */
@@ -417,8 +418,9 @@ function detectLoop() {
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
 
+  // ★白地名刺・黒地名刺の両方に対応するためCanny閾値を少し調整
   cv.cvtColor(roiMat, gray, cv.COLOR_RGBA2GRAY);
-  cv.Canny(gray, canny, 50, 150);
+  cv.Canny(gray, canny, 30, 100); 
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let found = false;
@@ -448,14 +450,14 @@ function detectLoop() {
     approx.delete();
   }
   
-  // ★フレーム色を確実に変える（直接スタイルを制御）
+  // ★CSSクラスの切り替えでガイド枠の色を緑にする
   if (guideFrame) {
     if (found) {
-      guideFrame.style.borderColor = '#28a745'; // 緑色
-      guideFrame.style.boxShadow = '0 0 12px #28a745, 0 0 0 9999px rgba(0, 0, 0, 0.5)';
+      guideFrame.classList.remove('guide-default');
+      guideFrame.classList.add('guide-detected');
     } else {
-      guideFrame.style.borderColor = '#ffffff'; // 白色
-      guideFrame.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5)';
+      guideFrame.classList.remove('guide-detected');
+      guideFrame.classList.add('guide-default');
     }
   }
 
@@ -591,12 +593,20 @@ function showActionUI() {
   }
 }
 
+// UIの表示切り替え（裏面撮影時もここを通ることで画面が綺麗に再起動する）
 function showCaptureUI() {
   captureBtn.style.display = 'block';
   actionBtns.style.display = 'none';
+  
+  // ★前回の切り抜きキャンバスや非表示になっていたカメラ・枠を確実に再セット
+  canvas.style.display = 'none';
   video.style.display = 'block';
-  canvas.style.display = 'none'; 
-  guideFrame.style.display = 'block';
+  
+  if (guideFrame) {
+    guideFrame.style.display = 'block';
+    guideFrame.classList.remove('guide-detected');
+    guideFrame.classList.add('guide-default');
+  }
 }
   
 function warpPerspective(src, contour) {
