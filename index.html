@@ -361,6 +361,39 @@ async function startCamera() {
 
 
 let lastArea = 0;
+
+let lastArea = 0;
+
+// ★簡易メッセージ表示用の関数（alertでカメラを止めないため）
+function showNotification(msg) {
+  let toast = document.getElementById('camera-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'camera-toast';
+    toast.style.cssText = `
+      position: absolute;
+      top: 20%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 9999;
+      pointer-events: none;
+      text-align: center;
+      transition: opacity 0.3s;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  setTimeout(() => {
+    toast.style.opacity = '0';
+  }, 2500);
+}
+
 function detectLoop() {
   if (!isDetecting) return;
   if (!video || video.readyState !== 4) {
@@ -373,7 +406,6 @@ function detectLoop() {
   let width = fullMat.cols;
   let height = fullMat.rows;
 
-  // ROI（関心領域）を設定
   let roiRect = new cv.Rect(
     Math.floor(width * 0.1),
     Math.floor(height * 0.1),
@@ -392,16 +424,15 @@ function detectLoop() {
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let found = false;
-  // ★感度調整: 1~2cmのノイズを弾きつつ、少し引きで撮影しても拾える「12%」に調整
+  // ★より広い範囲で検知できるように閾値を「8%」まで少し緩和
   let roiArea = roiMat.cols * roiMat.rows;
-  let minArea = roiArea * 0.12; 
-  let maxArea = roiArea * 0.90;
+  let minArea = roiArea * 0.08; 
+  let maxArea = roiArea * 0.95;
 
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
 
-    // 小さすぎるノイズ（12%未満）はスキップ
     if (area < minArea || area > maxArea) continue;
 
     let approx = new cv.Mat();
@@ -410,8 +441,8 @@ function detectLoop() {
     let rect = cv.boundingRect(cnt);
     let aspectRatio = rect.width / rect.height;
 
-    // 名刺らしい比率（1.2〜2.0）かつ 4角形の場合
-    if (approx.rows === 4 && (aspectRatio >= 1.2 && aspectRatio <= 2.0)) {
+    // 比率も少し広めに（1.1〜2.2）
+    if (approx.rows === 4 && (aspectRatio >= 1.1 && aspectRatio <= 2.2)) {
       found = true;
       approx.delete();
       break; 
@@ -419,15 +450,21 @@ function detectLoop() {
     approx.delete();
   }
   
-  // ★フレーム色の変更: 検知できたらクラスを切り替えてCSSで色を変える
+  // ★フレーム色を確実に変える（直接スタイルを制御）
   if (guideFrame) {
-    guideFrame.className = found ? 'guide-detected' : 'guide-default';
+    if (found) {
+      guideFrame.style.borderColor = '#28a745'; // 緑色
+      guideFrame.style.boxShadow = '0 0 12px #28a745, 0 0 0 9999px rgba(0, 0, 0, 0.5)';
+    } else {
+      guideFrame.style.borderColor = '#ffffff'; // 白色
+      guideFrame.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5)';
+    }
   }
 
-  // 自動カウントダウン・シャッター（5フレーム連続検知で撮影）
+  // 自動撮影カウントダウン（4フレーム連続で撮影）
   if (found) {
     captureCounter++;
-    if (captureCounter >= 5) {
+    if (captureCounter >= 4) {
       captureCounter = 0;
       captureBtn.click();
     }
@@ -437,7 +474,6 @@ function detectLoop() {
 
   roiMat.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
   
-  // 次のフレームを要求
   if (isDetecting) {
     setTimeout(() => requestAnimationFrame(detectLoop), 150);
   }
@@ -446,7 +482,8 @@ function detectLoop() {
 captureBtn.addEventListener('click', async () => {
   if (!globalCardId) globalCardId = Date.now();  
   
-  isDetecting = false;
+  isDetecting = false; // 一旦検知ループをストップ
+  
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = video.videoWidth; 
   tempCanvas.height = video.videoHeight;
@@ -466,8 +503,7 @@ captureBtn.addEventListener('click', async () => {
 
   let bestContour = null;
   let maxArea = 0;
-  // ★撮影時も感度を10%程度まで落として拾いやすく調整
-  const minRequiredArea = (src.cols * src.rows) * 0.10;
+  const minRequiredArea = (src.cols * src.rows) * 0.08;
 
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
@@ -505,20 +541,18 @@ captureBtn.addEventListener('click', async () => {
     
     showActionUI();
   } else {
-    // ★修正: alert() によるカメラ停止を防ぎ、スムーズに再開させる
-    alert("認識できませんでした。名刺を枠内に大きく収めて撮影してください。");
+    // ★alertではなく画面内メッセージで通知してカメラをフリーズさせない
+    showNotification("名刺が認識できませんでした。枠内に収めて再お試しください。");
     
-    // カメラとUIの表示を再リセットしてから判定ループを安全に再開
+    // UIを撮影モードに復帰させてループを安全に再開
     showCaptureUI();
     isDetecting = true;
-    setTimeout(() => {
-      detectLoop();
-    }, 300);
+    requestAnimationFrame(detectLoop);
   }
 
   src.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete();
 });
-
+  
 backCaptureBtn.addEventListener('click', () => {
   isFrontSide = false;
   showCaptureUI();
