@@ -2,299 +2,435 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>酒ゃビック名刺管理システム</title>
-<style>
- body {
-  margin: 0;
-  padding: 0;
-  background: #000;
-  overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  -webkit-font-smoothing: antialiased;
-  letter-spacing: 0.02em;
-  line-height: 1.6;
-}
-input, button {
-  font-family: inherit;
-}  
-  
-#camera-container {
-  position: relative;
-  width: 100vw;
-  height: calc(100vh - 60px); 
-  background: #000;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg-dark: #0f172a;
+      --bg-card: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --radius-lg: 20px;
+      --radius-md: 12px;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+    }
 
-#video {
-  position: absolute;
-  width: 100%;
-  height: 80%;
-  object-fit: cover;
-  z-index: 1;
-}
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-#guide-frame {
-  position: absolute;
-  z-index: 2;
-  width: 80vw;
-  height: calc(80vw * 55 / 91);
-  pointer-events: none;
-  box-sizing: border-box;
-}
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+    }
 
-/* 通常時のガイド枠 */
-.guide-default {
-  border: 3px dashed #ffffff;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); /* 枠外を暗くする */
-  transition: border-color 0.2s ease;
-}
+    input, button {
+      font-family: inherit;
+      outline: none;
+    }
 
-/* 名刺検知時のガイド枠（緑色に変化） */
-.guide-detected {
-  border: 4px solid #28a745 !important;
-  box-shadow: 0 0 15px #28a745, 0 0 0 9999px rgba(0, 0, 0, 0.5);
-  transition: border-color 0.2s ease;
-}
+    .page {
+      height: 100vh;
+      width: 100vw;
+      overflow-y: auto;
+      display: none;
+      box-sizing: border-box;
+    }
 
-/* 横向き警告用オーバーレイ */
-#orientation-warning {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.92);
-  color: #ffffff;
-  z-index: 9999;
-  display: none;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-}
+    /* ログイン */
+    #page-login {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
 
-.warning-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  animation: rotate-phone 2s infinite ease-in-out;
-}
+    .login-box {
+      width: 100%;
+      max-width: 380px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      padding: 36px 28px;
+      border-radius: var(--radius-lg);
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+      text-align: center;
+    }
 
-@keyframes rotate-phone {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(-90deg); }
-}
+    .login-box h2 {
+      margin: 0 0 8px 0;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
 
-#controls {
-  position: absolute;
-  bottom: 70px;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 20;
-}
-    
-#status-message {
-  position: absolute;
-  top: 10vh;
-  width: 100%;
-  text-align: center;
-  color: white;
-  font-size: 1.2rem;
-  z-index: 5;
-  pointer-events: none;
-  text-shadow: 0 0 5px rgba(0,0,0,0.8);
-}   
-.page { height: 100vh; overflow-y: auto; }
-    
-#page-search {
-  padding: 20px;
-  position: sticky;
-  top: 0;
-  background-color: #f5f5f5;
-  z-index: 10;
-}   
+    .login-box p.subtitle {
+      margin: 0 0 24px 0;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
 
-#searchInput {
-  width: 100%;
-  height: 50px;
-  padding: 10px;
-  font-size: 18px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-sizing: border-box;
-  margin-bottom: 20px;
-}
+    .input-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
 
-#bottom-nav {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  height: 60px;
-  background: #333;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  z-index: 100;
-}
+    .input-group input {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 15px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      background: #f8fafc;
+      transition: all 0.2s;
+    }
 
-#bottom-nav button {
-  background: none;
-  color: white;
-  border: none;
-  font-size: 16px;
-  width: auto;
-  height: auto;
-}
-button {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  border: none;
-  font-size: 14px;
-  margin: 10px;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-  transition: transform 0.2s;
-}
+    .input-group input:focus {
+      border-color: var(--primary);
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+    }
 
-button:active {
-  transform: scale(0.95);
-}    
-#capture-btn { 
-  display: block;
-  background-color: #007bff;
-  color: white; 
-} 
-    
-#actionBtns { 
-  display: none;
-  position: relative;
-  z-index: 100;
-  margin-top: 20px;   
-}   
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+      transition: all 0.2s ease;
+    }
 
-#sendBtn { 
-  background: green; 
-  color: white; 
-}
+    /* カメラ画面 */
+    #camera-container {
+      position: relative;
+      width: 100vw;
+      height: calc(100vh - 65px);
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 20px;
+      overflow: hidden;
+    }
 
-#outputCanvas {
-  display: none;
-  width: 80vw;
-  height: auto;
-  margin: 20px auto;
-  border: 5px solid #fff;
-  image-rendering: -webkit-optimize-contrast;
-}
+    #video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+    }
 
-.card {
-  background: white;
-  padding: 16px;
-  margin-bottom: 15px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+    /* ガイドフレーム（初期表示CSS修正） */
+    #guide-frame {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      width: 82vw;
+      max-width: 380px;
+      height: calc(82vw * 55 / 91);
+      max-height: calc(380px * 55 / 91);
+      border-radius: 12px;
+      pointer-events: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
 
-.card h3 { margin: 0; font-size: 18px; }
-.card p { margin: 5px 0; color: #666; font-size: 14px; }
+    .guide-default {
+      border: 3px dashed rgba(255, 255, 255, 0.9) !important;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    }
 
-.detail-btn {
-  background: #007bff;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 20px;
-  cursor: pointer;
-}
+    .guide-detected {
+      border: 4px solid #10b981 !important;
+      box-shadow: 0 0 20px #10b981, 0 0 0 9999px rgba(0, 0, 0, 0.5) !important;
+      animation: pulse-border 1.2s infinite;
+    }
 
-#page-login {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  padding: 20px;
-  background: #fff;
-}
+    @keyframes pulse-border {
+      0% { box-shadow: 0 0 10px #10b981, 0 0 0 9999px rgba(0, 0, 0, 0.5); }
+      50% { box-shadow: 0 0 25px #10b981, 0 0 0 9999px rgba(0, 0, 0, 0.5); }
+      100% { box-shadow: 0 0 10px #10b981, 0 0 0 9999px rgba(0, 0, 0, 0.5); }
+    }
 
-.login-box {
-  width: 100%;
-  max-width: 400px;
-  text-align: center;
-} 
+    #status-message {
+      position: relative;
+      z-index: 12;
+      margin-top: 25px;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(8px);
+      color: #fff;
+      padding: 8px 20px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    #previewContainer {
+      position: relative;
+      z-index: 12;
+      display: flex;
+      gap: 12px;
+      margin-top: auto;
+      margin-bottom: 10px;
+    }
+
+    .preview-card {
+      width: 110px;
+      height: 66px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 2px solid #fff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      display: none;
+    }
+
+    #controls {
+      position: relative;
+      z-index: 20;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    #capture-btn {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 4px solid rgba(255, 255, 255, 0.4);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #capture-btn::after {
+      content: '';
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+
+    #actionBtns {
+      display: none;
+      gap: 10px;
+      width: 100%;
+      max-width: 400px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      flex: 1;
+      min-width: 110px;
+      height: 48px;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #sendBtn { background: var(--success); }
+    #backCaptureBtn { background: var(--warning); }
+    #retryBackBtn { background: #d97706; }
+    #retryAllBtn { background: var(--danger); }
+
+    /* 検索ページ */
+    #page-search {
+      background-color: #f8fafc;
+      padding: 20px 16px 80px 16px;
+      min-height: 100vh;
+    }
+
+    .search-header {
+      position: sticky;
+      top: 0;
+      padding: 10px 0 16px 0;
+      background-color: #f8fafc;
+      z-index: 10;
+    }
+
+    #searchInput {
+      width: 100%;
+      height: 48px;
+      padding: 0 18px;
+      font-size: 15px;
+      border: 1px solid #e2e8f0;
+      border-radius: 24px;
+      background: #ffffff;
+    }
+
+    .card {
+      background: var(--bg-card);
+      padding: 18px 20px;
+      margin-bottom: 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid #f1f5f9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card h3 { margin: 0 0 4px 0; font-size: 16px; font-weight: 600; }
+    .card p { margin: 0; color: var(--text-muted); font-size: 13px; }
+
+    .detail-btn {
+      background: #f1f5f9;
+      color: var(--primary);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* ボトムナビ */
+    #bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 65px;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 100;
+    }
+
+    #bottom-nav button {
+      background: none;
+      color: #94a3b8;
+      border: none;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    #bottom-nav button.active { color: #ffffff; }
+
+    /* 横向き警告 */
+    #orientation-warning {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(15, 23, 42, 0.96);
+      color: #ffffff;
+      z-index: 9999;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
 </head>
 <body>
 
-<!-- 横向き警告オーバーレイ -->
 <div id="orientation-warning">
-  <div class="warning-icon">📱</div>
-  <p style="font-size: 18px; font-weight: bold; margin: 0 0 8px 0;">画面を縦向きにしてください</p>
-  <p style="font-size: 14px; color: #ccc; margin: 0;">名刺撮影機能は縦向きのみ対応しています</p>
+  <div style="font-size: 48px; margin-bottom: 16px;">📱</div>
+  <p style="font-size: 20px; font-weight: 700; margin: 0 0 10px 0;">画面を縦向きにしてください</p>
+  <p style="font-size: 14px; color: #94a3b8; margin: 0;">本システムは縦向き表示専用です</p>
 </div>
 
 <div id="page-login" class="page">
   <div class="login-box">
-    <h2>酒ゃビック名刺管理システム</h2>
-    <input type="text" id="loginId" placeholder="ID" style="width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;">
-    <input type="password" id="loginPass" placeholder="パスワード" style="width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;">
-    <button id="loginBtn" style="width: 100%; height: 50px; background: #007bff; color: white; border: none; border-radius: 8px; margin-top: 20px; font-size: 16px;">ログイン</button>
+    <h2>酒ゃビック名刺管理</h2>
+    <p class="subtitle">アカウント情報を入力してログイン</p>
+    <div class="input-group">
+      <input type="text" id="loginId" placeholder="ユーザーID">
+    </div>
+    <div class="input-group">
+      <input type="password" id="loginPass" placeholder="パスワード">
+    </div>
+    <button id="loginBtn" class="btn-primary">ログイン</button>
   </div>
 </div>
   
 <div id="page-camera" class="page">
   <div id="camera-container">
+    <div id="status-message">名刺をガイド枠内に合わせてください</div>
     <video id="video" playsinline autoplay></video>
-    <div id="guide-frame"></div>
-    <div id="status-message">カメラを名刺に向けてください</div>
+    <div id="guide-frame" class="guide-default"></div>
     
-    <div id="previewContainer" style="display:flex; flex-direction: column; align-items:center; gap:10px; margin: 10px 0; position: relative; z-index: 1;">
-      <img id="previewFront" style="width:80%; max-width:300px; border: 2px solid #ccc; display:none;">
-      <img id="previewBack" style="width:80%; max-width:300px; border: 2px solid #ccc; display:none;">
+    <div id="previewContainer">
+      <img id="previewFront" class="preview-card" alt="表面">
+      <img id="previewBack" class="preview-card" alt="裏面">
     </div>
 
     <canvas id="outputCanvas" style="display:none;"></canvas>
     
     <div id="controls">
-      <button id="capture-btn">撮影</button>
+      <div id="capture-btn"></div>
 
-      <div id="actionBtns" style="display:none; flex-direction: row; gap: 10px; flex-wrap: wrap;">
-        <button id="sendBtn" style="background: green;">送信</button>
-        <button id="backCaptureBtn" style="background: orange; color: white;">裏面撮影</button>
-        <button id="retryBackBtn" style="background: #ff8c00; color: white;">裏面撮り直し</button>
-        <button id="retryAllBtn" style="background: red; color: white;">最初から撮り直し</button>
+      <div id="actionBtns">
+        <button id="sendBtn" class="action-btn">送信する</button>
+        <button id="backCaptureBtn" class="action-btn">裏面を撮影</button>
+        <button id="retryBackBtn" class="action-btn">裏面撮り直し</button>
+        <button id="retryAllBtn" class="action-btn">最初から直す</button>
       </div>
     </div>
   </div>
 </div>
   
-<div id="page-search" class="page" style="display:none; padding: 20px; background-color: #f4f7f6; min-height: 100vh; color: #333;">
-  <div class="search-header" style="position: sticky; top: 0; padding-bottom: 20px; background-color: #f4f7f6; z-index: 10;">
-    <input type="text" id="searchInput" placeholder="会社名や氏名で検索..." style="width: 100%; height: 50px; padding: 15px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; font-size: 16px;">
+<div id="page-search" class="page">
+  <div class="search-header">
+    <input type="text" id="searchInput" placeholder="会社名や氏名で検索...">
   </div>
-
   <div id="card-container"></div>
 </div>
   
 <nav id="bottom-nav">
-  <button onclick="showPage('page-camera')">撮影</button>
-  <button onclick="showPage('page-search')">検索</button>
+  <button id="nav-camera" class="active" onclick="showPage('page-camera')">
+    <span>📷</span> 撮影
+  </button>
+  <button id="nav-search" onclick="showPage('page-search')">
+    <span>🔍</span> 検索
+  </button>
 </nav>
-  
+
 <script>  
 const video = document.getElementById('video');
 const captureBtn = document.getElementById('capture-btn');
@@ -318,9 +454,6 @@ const mockData = [
   { id: 2, name: "佐藤 花子", company: "デザイン事務所", image: "url_to_image" }
 ];
 
-// ==========================================
-// 画面方向制御（縦向き固定・横向き警告）
-// ==========================================
 async function enforcePortraitOrientation() {
   if (screen.orientation && screen.orientation.lock) {
     try {
@@ -338,11 +471,10 @@ function checkOrientation() {
 
   if (isLandscape) {
     if (warningEl) warningEl.style.display = 'flex';
-    isDetecting = false; // 横向き時は検知停止
+    isDetecting = false;
   } else {
     if (warningEl) warningEl.style.display = 'none';
     
-    // 撮影ページ表示中かつ停止していた場合は検知を再開
     const cameraPage = document.getElementById('page-camera');
     if (cameraPage && cameraPage.style.display !== 'none' && !isDetecting && video.srcObject) {
       isDetecting = true;
@@ -354,9 +486,6 @@ function checkOrientation() {
 window.addEventListener('resize', checkOrientation);
 window.addEventListener('orientationchange', checkOrientation);
 
-// ==========================================
-// ログイン処理
-// ==========================================
 document.getElementById('loginBtn').addEventListener('click', async () => {
   const loginBtn = document.getElementById('loginBtn');
   const id = document.getElementById('loginId').value;
@@ -365,7 +494,7 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   loginBtn.disabled = true;
   const originalText = loginBtn.textContent;
   loginBtn.textContent = "ログイン処理中...";
-  loginBtn.style.backgroundColor = "#ccc";
+  loginBtn.style.opacity = "0.7";
   
   const GAS_URL = "https://script.google.com/macros/s/AKfycbyya3RzVXc9pdWUCNhBaJN-F7_ShidH16FVFuL5VMh1CFLDifyAnUBkM-Z987FKb8o0/exec"; 
 
@@ -389,14 +518,14 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
       alert("IDまたはパスワードが違います");
       loginBtn.disabled = false;
       loginBtn.textContent = originalText;
-      loginBtn.style.backgroundColor = "#007bff";
+      loginBtn.style.opacity = "1";
     }
   } catch (e) {
     console.error(e);
     alert("通信エラーが発生しました: " + e.message);
     loginBtn.disabled = false;
     loginBtn.textContent = originalText;
-    loginBtn.style.backgroundColor = "#007bff";
+    loginBtn.style.opacity = "1";
   }
 });
   
@@ -406,10 +535,13 @@ function showPage(pageId) {
   if (targetPage) {
     targetPage.style.display = 'block';
   } else {
-    console.error("指定されたページが存在しません:", pageId);
     return;
   }
-  
+
+  document.querySelectorAll('#bottom-nav button').forEach(btn => btn.classList.remove('active'));
+  if (pageId === 'page-camera') document.getElementById('nav-camera')?.classList.add('active');
+  if (pageId === 'page-search') document.getElementById('nav-search')?.classList.add('active');
+
   if (pageId === 'page-camera') {
     if (!video.srcObject) {
       startCamera();
@@ -439,8 +571,7 @@ async function startCamera() {
     video: {
       width: { ideal: 1920 },
       height: { ideal: 1080 },
-      facingMode: { ideal: "environment" },
-      advanced: [{ focusMode: "continuous" }]
+      facingMode: { ideal: "environment" }
     }
   };
   try {
@@ -455,36 +586,6 @@ async function startCamera() {
   } catch (err) { alert("カメラアクセスを許可してください"); }
 }
 
-function showNotification(msg) {
-  let toast = document.getElementById('camera-toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'camera-toast';
-    toast.style.cssText = `
-      position: absolute;
-      top: 20%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0, 0, 0, 0.8);
-      color: #fff;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      z-index: 9999;
-      pointer-events: none;
-      text-align: center;
-      transition: opacity 0.3s;
-    `;
-    document.body.appendChild(toast);
-  }
-  toast.textContent = msg;
-  toast.style.opacity = '1';
-  setTimeout(() => {
-    toast.style.opacity = '0';
-  }, 2500);
-}
-
-// ガイド枠（画面UI）の位置を実際の動画解像度に変換してROIを取得する補正関数
 function getGuideRoiInVideo() {
   const videoWidth = video.videoWidth;
   const videoHeight = video.videoHeight;
@@ -516,7 +617,7 @@ function getGuideRoiInVideo() {
   };
 }
 
-// リアルタイム輪郭検知ループ
+// 検出ロジックの判定条件を緩和し認識率を向上
 function detectLoop() {
   if (!isDetecting) return;
   if (!video || video.readyState !== 4) {
@@ -537,26 +638,22 @@ function detectLoop() {
 
   let gray = new cv.Mat();
   let blur = new cv.Mat();
-  let thresh = new cv.Mat();
   let canny = new cv.Mat();
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
 
-  // 1. グレースケール ＋ ぼかし
+  // 1. グレースケール ＋ ブラー
   cv.cvtColor(roiMat, gray, cv.COLOR_RGBA2GRAY);
   cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
 
-  // 2. 二値化（大津の閾値処理）
-  cv.threshold(blur, thresh, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
-
-  // 3. エッジ検出と最外郭輪郭抽出
-  cv.Canny(thresh, canny, 50, 150);
+  // 2. エッジ検出（閾値を緩和して検知しやすく設定）
+  cv.Canny(blur, canny, 30, 120);
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let found = false;
   let roiArea = roi.w * roi.h;
-  let minArea = roiArea * 0.10;
-  let maxAreaThreshold = roiArea * 0.95;
+  let minArea = roiArea * 0.05; // 最小面積を下げる
+  let maxAreaThreshold = roiArea * 0.98;
   let maxFoundArea = 0;
 
   for (let i = 0; i < contours.size(); ++i) {
@@ -566,13 +663,14 @@ function detectLoop() {
     if (area < minArea || area > maxAreaThreshold) continue;
 
     let approx = new cv.Mat();
-    cv.approxPolyDP(cnt, approx, 0.04 * cv.arcLength(cnt, true), true);
+    // 精度緩和: 0.04 -> 0.025 (角が丸かったり多少崩れていても4角形として認識)
+    cv.approxPolyDP(cnt, approx, 0.025 * cv.arcLength(cnt, true), true);
     
     let rect = cv.boundingRect(cnt);
     let aspectRatio = rect.width / rect.height;
 
-    // 条件：4角形 ＆ 名刺比率 ＆ 最大面積
-    if (approx.rows === 4 && (aspectRatio >= 1.3 && aspectRatio <= 1.9)) {
+    // 比率緩和: 1.1 ～ 2.2
+    if (approx.rows === 4 && (aspectRatio >= 1.1 && aspectRatio <= 2.2)) {
       if (area > maxFoundArea) {
         maxFoundArea = area;
         found = true;
@@ -593,21 +691,21 @@ function detectLoop() {
     detectedPoints = null;
   }
 
-  // ガイド枠の色切り替え
+  // ガイド枠クラスの切り替え（緑色/白点線）
   if (guideFrame) {
     if (found) {
-      guideFrame.classList.remove('guide-default');
-      guideFrame.classList.add('guide-detected');
+      guideFrame.className = 'guide-detected';
+      document.getElementById('status-message').textContent = '名刺を検知しました';
     } else {
-      guideFrame.classList.remove('guide-detected');
-      guideFrame.classList.add('guide-default');
+      guideFrame.className = 'guide-default';
+      document.getElementById('status-message').textContent = '名刺をガイド枠内に合わせてください';
     }
   }
 
-  // 4フレーム連続検知で自動撮影
+  // 3フレーム連続検知で自動撮影
   if (found) {
     captureCounter++;
-    if (captureCounter >= 4) {
+    if (captureCounter >= 3) {
       captureCounter = 0;
       captureBtn.click();
     }
@@ -616,73 +714,24 @@ function detectLoop() {
   }
 
   // メモリ解放
-  roiMat.delete(); gray.delete(); blur.delete(); thresh.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
+  roiMat.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
   
   if (isDetecting) {
     setTimeout(() => requestAnimationFrame(detectLoop), 150);
   }
 }
 
-// 静止画用フォールバック検索関数
-function findCardPointsFromMat(srcMat) {
-  let gray = new cv.Mat();
-  let blur = new cv.Mat();
-  let thresh = new cv.Mat();
-  let canny = new cv.Mat();
-  let contours = new cv.MatVector();
-  let hierarchy = new cv.Mat();
-
-  cv.cvtColor(srcMat, gray, cv.COLOR_RGBA2GRAY);
-  cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-  cv.threshold(blur, thresh, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
-
-  cv.Canny(thresh, canny, 30, 100);
-  cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-  let bestPoints = null;
-  let maxArea = 0;
-  const minRequiredArea = (srcMat.cols * srcMat.rows) * 0.08;
-
-  for (let i = 0; i < contours.size(); ++i) {
-    let cnt = contours.get(i);
-    let area = cv.contourArea(cnt);
-
-    if (area < minRequiredArea) continue;
-
-    let approx = new cv.Mat();
-    cv.approxPolyDP(cnt, approx, 0.04 * cv.arcLength(cnt, true), true);
-    
-    let rect = cv.boundingRect(cnt);
-    let aspectRatio = rect.width / rect.height;
-
-    if (approx.rows === 4 && (aspectRatio >= 1.2 && aspectRatio <= 2.0)) {
-      if (area > maxArea) {
-        maxArea = area;
-        bestPoints = [];
-        for (let j = 0; j < 4; j++) {
-          bestPoints.push({ 
-            x: approx.data32S[j * 2], 
-            y: approx.data32S[j * 2 + 1] 
-          });
-        }
-      }
-    }
-    approx.delete();
-  }
-
-  gray.delete(); blur.delete(); thresh.delete(); canny.delete(); contours.delete(); hierarchy.delete();
-  return bestPoints;
-}
-
 // 安定した4頂点ソート付き透視変換関数
 function warpPerspectiveFromPoints(src, points) {
+  // x + y が最小=左上(tl), 最大=右下(br)
+  // y - x が最小=右上(tr), 最大=左下(bl)
   let sum = points.map(p => p.x + p.y);
-  let diff = points.map(p => p.x - p.y);
+  let diff = points.map(p => p.y - p.x);
 
   let tl = points[sum.indexOf(Math.min(...sum))];
   let br = points[sum.indexOf(Math.max(...sum))];
-  let tr = points[diff.indexOf(Math.max(...diff))];
-  let bl = points[diff.indexOf(Math.min(...diff))];
+  let tr = points[diff.indexOf(Math.min(...diff))];
+  let bl = points[diff.indexOf(Math.max(...diff))];
 
   let dstWidth = 800, dstHeight = 500;
   canvas.width = dstWidth; 
@@ -721,22 +770,17 @@ captureBtn.addEventListener('click', async () => {
 
   let roi = getGuideRoiInVideo();
 
-  // 【ステップ1】 リアルタイム検知座標がある場合、ROIオフセットを加算
   if (detectedPoints && detectedPoints.length === 4 && roi) {
     finalPoints = detectedPoints.map(pt => ({
       x: pt.x + roi.x,
       y: pt.y + roi.y
     }));
-  } else {
-    // 【ステップ2】 画面全体からの再検知
-    finalPoints = findCardPointsFromMat(src);
   }
 
-  // 【ステップ3】 判定と切り出し
   if (finalPoints) {
     warpPerspectiveFromPoints(src, finalPoints);
   } else if (roi) {
-    // 補正失敗時：ガイド枠の位置を正確にトリミング
+    // 判定できない場合はガイド枠全体をクロップ
     canvas.width = roi.w;
     canvas.height = roi.h;
     const canvasCtx = canvas.getContext('2d');
@@ -803,15 +847,15 @@ function showActionUI() {
   
   if (capturedImages.back) {
     backCaptureBtn.style.display = 'none';
-    retryBackBtn.style.display = 'block';
+    retryBackBtn.style.display = 'flex';
   } else {
-    backCaptureBtn.style.display = 'block';
+    backCaptureBtn.style.display = 'flex';
     retryBackBtn.style.display = 'none';
   }
 }
 
 function showCaptureUI() {
-  captureBtn.style.display = 'block';
+  captureBtn.style.display = 'flex';
   actionBtns.style.display = 'none';
   
   canvas.style.display = 'none';
@@ -819,8 +863,7 @@ function showCaptureUI() {
   
   if (guideFrame) {
     guideFrame.style.display = 'block';
-    guideFrame.classList.remove('guide-detected');
-    guideFrame.classList.add('guide-default');
+    guideFrame.className = 'guide-default';
   }
 }
 
@@ -832,7 +875,6 @@ function resetPreview() {
 }
 
 async function uploadAllImages() {
-  const userName = sessionStorage.getItem('userName');
   const cloudRunUrl = 'https://upload-meishi-function-769951420007.asia-northeast2.run.app';
 
   if (capturedImages.front) {
