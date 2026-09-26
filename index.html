@@ -403,11 +403,12 @@ function detectLoop() {
   let width = fullMat.cols;
   let height = fullMat.rows;
 
+  // detectLoop 内の解析範囲を90%に広げる
   let roiRect = new cv.Rect(
-    Math.floor(width * 0.1),
-    Math.floor(height * 0.1),
-    Math.floor(width * 0.8),
-    Math.floor(height * 0.8)
+    Math.floor(width * 0.05),
+    Math.floor(height * 0.05),
+    Math.floor(width * 0.9),
+    Math.floor(height * 0.9)
   );
 
   let roiMat = fullMat.roi(roiRect);
@@ -614,10 +615,10 @@ captureBtn.addEventListener('click', async () => {
     warpPerspectiveFromPoints(src, finalPoints);
   } else {
     // ★補正失敗（未検知）：ガイド枠のサイズで直接トリミング
-    const cropX = Math.floor(video.videoWidth * 0.1);
-    const cropY = Math.floor(video.videoHeight * 0.1);
-    const cropWidth = Math.floor(video.videoWidth * 0.8);
-    const cropHeight = Math.floor(video.videoWidth * 0.8 * (55 / 91));
+    const cropX = Math.floor(video.videoWidth * 0.05);
+    const cropY = Math.floor(video.videoHeight * 0.05);
+    const cropWidth = Math.floor(video.videoWidth * 0.9);
+    const cropHeight = Math.floor(video.videoWidth * (55 / 91));
 
     canvas.width = cropWidth;
     canvas.height = cropHeight;
