@@ -275,7 +275,7 @@ let globalCardId = null;
 let isFrontSide = true; 
 let capturedImages = { front: null, back: null };
 let captureCounter = 0;
-let detectedPoints = null; // ★グローバルで保持（detectLoopとcaptureBtn間で共有）
+let detectedPoints = null;
 
 const mockData = [
   { id: 1, name: "山田 太郎", company: "株式会社サンプル", image: "url_to_image" },
@@ -297,6 +297,9 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   try {
     const response = await fetch(GAS_URL, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8' // GASのCORS事前リクエスト回避用
+      },
       body: JSON.stringify({ action: "login", id: id, pass: pass })
     });
     const result = await response.json();
@@ -305,7 +308,7 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
       sessionStorage.setItem('isLoggedIn', 'true');
       sessionStorage.setItem('userName', result.userName);
       sessionStorage.setItem('loginTime', new Date().getTime().toString());
-      showPage('page-camera');
+      showPage('page-camera'); // ← ページ指定は正常です
       document.getElementById('bottom-nav').style.display = 'flex';
     } else {
       alert("IDまたはパスワードが違います");
@@ -315,7 +318,7 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
     }
   } catch (e) {
     console.error(e);
-    alert("通信エラーが発生しました");
+    alert("通信エラーが発生しました: " + e.message);
     loginBtn.disabled = false;
     loginBtn.textContent = originalText;
     loginBtn.style.backgroundColor = "#007bff";
@@ -324,7 +327,13 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   
 function showPage(pageId) {
   document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-  document.getElementById(pageId).style.display = 'block';
+  const targetPage = document.getElementById(pageId);
+  if (targetPage) {
+    targetPage.style.display = 'block';
+  } else {
+    console.error("指定されたページが存在しません:", pageId);
+    return;
+  }
   
   if (pageId === 'page-camera') {
     if (!video.srcObject) {
@@ -403,7 +412,7 @@ function detectLoop() {
   let width = fullMat.cols;
   let height = fullMat.rows;
 
-  // detectLoop 内の解析範囲を90%に広げる
+  // 解析範囲：画面中央の90%領域（5%の余白）
   let roiRect = new cv.Rect(
     Math.floor(width * 0.05),
     Math.floor(height * 0.05),
@@ -500,7 +509,7 @@ function detectLoop() {
   }
 }
 
-// 手動撮影時のフォールバック用：静止画から輪郭を再検索する関数
+// 静止画用フォールバック検索関数
 function findCardPointsFromMat(srcMat) {
   let gray = new cv.Mat();
   let blur = new cv.Mat();
@@ -551,9 +560,8 @@ function findCardPointsFromMat(srcMat) {
   return bestPoints;
 }
 
-// 4頂点指定による透視変換関数
+// 透視変換関数
 function warpPerspectiveFromPoints(src, points) {
-  // 左上・右上・右下・左下に並べ替え
   points.sort((a, b) => a.y - b.y);
   let top = points.slice(0, 2).sort((a, b) => a.x - b.x);
   let bottom = points.slice(2, 4).sort((a, b) => a.x - b.x);
@@ -580,11 +588,11 @@ function warpPerspectiveFromPoints(src, points) {
   normalized.delete(); dst.delete(); M.delete(); srcTri.delete(); dstTri.delete();
 }
 
-// 撮影ボタン押下処理（フォールバック3段階）
+// 撮影ボタン押下処理
 captureBtn.addEventListener('click', async () => {
   if (!globalCardId) globalCardId = Date.now();  
   
-  isDetecting = false; // 検知ループを停止
+  isDetecting = false;
   
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = video.videoWidth; 
@@ -595,30 +603,29 @@ captureBtn.addEventListener('click', async () => {
   let src = cv.imread(tempCanvas);
   let finalPoints = null;
 
-  // 【ステップ1】 detectLoop でリアルタイム検知できていた座標があるか？
+  // 【ステップ1】 リアルタイム検知座標のオフセット補正（5%に変更）
   if (detectedPoints && detectedPoints.length === 4) {
-    let roiOffsetX = Math.floor(video.videoWidth * 0.1);
-    let roiOffsetY = Math.floor(video.videoHeight * 0.1);
+    let roiOffsetX = Math.floor(video.videoWidth * 0.05);
+    let roiOffsetY = Math.floor(video.videoHeight * 0.05);
 
     finalPoints = detectedPoints.map(pt => ({
       x: pt.x + roiOffsetX,
       y: pt.y + roiOffsetY
     }));
   } else {
-    // 【ステップ2】 無ければ撮影画像全体から「再度の補正（輪郭検索）」にチャレンジ！
+    // 【ステップ2】 画面全体からの再検知
     finalPoints = findCardPointsFromMat(src);
   }
 
-  // 判定とクロップ処理の分岐
+  // 【ステップ3】 判定と切り出し
   if (finalPoints) {
-    // ★補正成功：見つかった4頂点で歪み補正・切り出し
     warpPerspectiveFromPoints(src, finalPoints);
   } else {
-    // ★補正失敗（未検知）：ガイド枠のサイズで直接トリミング
+    // 補正失敗時：画面中央90%の領域でトリミング
     const cropX = Math.floor(video.videoWidth * 0.05);
     const cropY = Math.floor(video.videoHeight * 0.05);
     const cropWidth = Math.floor(video.videoWidth * 0.9);
-    const cropHeight = Math.floor(video.videoWidth * (55 / 91));
+    const cropHeight = Math.floor(cropWidth * (55 / 91));
 
     canvas.width = cropWidth;
     canvas.height = cropHeight;
@@ -631,7 +638,6 @@ captureBtn.addEventListener('click', async () => {
     );
   }
 
-  // プレビュー反映
   const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
   
   if (isFrontSide) {
@@ -644,14 +650,12 @@ captureBtn.addEventListener('click', async () => {
     document.getElementById('previewBack').style.display = 'block';
   }
   
-  // 表示切替
   video.style.display = 'none';
   canvas.style.display = 'none';
   if (guideFrame) guideFrame.style.display = 'none';
   
   showActionUI();
 
-  // 後処理
   src.delete();
   detectedPoints = null;
 });
@@ -819,5 +823,5 @@ function openDetail(id) {
   alert(`詳細表示: ${item.name} - ${item.company}`);
 } 
 </script>
-</body>
+<body>
 </html>
