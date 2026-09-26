@@ -1,26 +1,24 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>酒ゃビック名刺管理システム</title>
 <style>
  body {
   margin: 0;
   padding: 0;
   background: #000;
   overflow: hidden;
-  /* 日本語アプリの定番・美しいォントスタック */
-  /* font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";*/
-  -webkit-font-smoothing: antialiased; /* 文字をより滑らかに表示 */
-   letter-spacing: 0.02em; /* 文字間を少し広げると高級感が出ます */
-  line-height: 1.6;      /* 行間を広げると可読性が上がります */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
 }
- /* ログインボタンや入力欄のフォントも合わせる */
 input, button {
-  font-family: inherit; /* bodyで設定したフォントを引き継ぐ */
+  font-family: inherit;
 }  
   
-/* 1. コンテナの高さ計算を修正（ナビの60pxを引く） */
-/* 1. コンテナ：flexboxで全体を中央揃えに保つ */
 #camera-container {
   position: relative;
   width: 100vw;
@@ -30,39 +28,35 @@ input, button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center; /* 垂直中央揃え */
+  justify-content: center;
 }
-/* 2. ビデオの表示を調整 */
+
 #video {
   position: absolute;
   width: 100%;
   height: 80%;
-  object-fit: cover; /* 画面全体を埋める */
+  object-fit: cover;
   z-index: 1;
 }
-/* 3. ガイド枠：親（container）の中央配置に追従させる */
+
 #guide-frame {
-  position: absolute; /* 親を基準に中央に配置するため */
+  position: absolute;
   z-index: 2;
   width: 80vw;
   height: calc(80vw * 55 / 91);
   border: 2px solid rgba(255, 255, 0, 0.8);
   pointer-events: none;
-  /* 親の flex 設定と合わせることで自動的に中央に来る */
 }
-/* 通常時 */
+
 .guide-default { border: 2px solid rgba(255, 255, 0, 0.8); }
 
-/* 認識成功時 */
 .guide-detected { 
   border: 4px solid #ff0000 !important; 
-  /* 背景を暗くせず、枠だけ赤くする */
 }
     
-/* 4. コントロールボタンをナビの上に移動 */
 #controls {
   position: absolute;
-  bottom: 70px; /* ナビの高さ60px + 余白20px */
+  bottom: 70px;
   width: 100%;
   display: flex;
   justify-content: center;
@@ -70,36 +64,35 @@ input, button {
   z-index: 20;
 }
     
- #status-message {
+#status-message {
   position: absolute;
-  top: 10vh; /* 画面の上から10%の位置 */
+  top: 10vh;
   width: 100%;
   text-align: center;
   color: white;
   font-size: 1.2rem;
-  z-index: 5; /* 枠やボタンよりも前面にする */
-  pointer-events: none; /* タップを阻害しないようにする */
+  z-index: 5;
+  pointer-events: none;
   text-shadow: 0 0 5px rgba(0,0,0,0.8);
 }   
 .page { height: 100vh; overflow-y: auto; }
     
- #page-search {
+#page-search {
   padding: 20px;
-  /* 検索窓を固定したい場合はこれ */
   position: sticky;
   top: 0;
-  background-color: #f5f5f5; /* 背景色（黒系なら） */
+  background-color: #f5f5f5;
   z-index: 10;
 }   
 
-    #searchInput {
-  width: 100%;        /* 親要素の幅いっぱいに */
-  height: 50px;       /* 高さを倍（標準が約25px前後とすると50pxでかなり大きく見えます） */
-  padding: 10px;      /* 内側の余白 */
-  font-size: 18px;    /* 文字も大きくすると入力しやすい */
+#searchInput {
+  width: 100%;
+  height: 50px;
+  padding: 10px;
+  font-size: 18px;
   border: 1px solid #ccc;
-  border-radius: 8px; /* 角を少し丸くすると今風です */
-  box-sizing: border-box; /* 重要：パディングを含めてwidth: 100%にする */
+  border-radius: 8px;
+  box-sizing: border-box;
   margin-bottom: 20px;
 }
 
@@ -120,13 +113,13 @@ input, button {
   color: white;
   border: none;
   font-size: 16px;
-  width: auto; /* 丸ボタンではなく文字ボタンにする */
+  width: auto;
   height: auto;
 }
 button {
-  width: 80px;      /* 幅を指定 */
-  height: 80px;     /* 高さを幅と同じにする */
-  border-radius: 50%; /* ここで完全な丸に */
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
   border: none;
   font-size: 14px;
   margin: 10px;
@@ -134,40 +127,40 @@ button {
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3); /* 少し影をつけると立体的になります */
-  transition: transform 0.2s; /* 押した時の反応 */
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  transition: transform 0.2s;
 }
 
-/* 押した時に少し沈むエフェクト */
 button:active {
   transform: scale(0.95);
 }    
 #capture-btn { 
-  display: block;/* 常に表示させておく */
-  background-color: #007bff; /* 青色 */
+  display: block;
+  background-color: #007bff;
   color: white; 
 } 
     
-#actionBtns { display: none;  position: relative;
-    z-index: 100; /* ボタンを確実に一番上に */
-    margin-top: 20px;   
-            }   /* 初期状態は非表示 */
-    #sendBtn { 
+#actionBtns { 
+  display: none;
+  position: relative;
+  z-index: 100;
+  margin-top: 20px;   
+}   
+
+#sendBtn { 
   background: green; 
   color: white; 
- 
 }
-#retryBtn { background: red; color: white; }
-    
-    #outputCanvas {
+
+#outputCanvas {
   display: none;
-  width: 80vw;    /* 端末画面幅の80%で表示 */
-  height: auto;   /* アスペクト比を維持 */
+  width: 80vw;
+  height: auto;
   margin: 20px auto;
   border: 5px solid #fff;
-  /* 画像が拡大表示される際にボケないようにする設定 */
   image-rendering: -webkit-optimize-contrast;
 }
+
 .card {
   background: white;
   padding: 16px;
@@ -191,23 +184,21 @@ button:active {
   cursor: pointer;
 }
 
- #page-login {
+#page-login {
   display: flex;
   flex-direction: column;
-  justify-content: center; /* 縦方向の中央 */
-  align-items: center;     /* 横方向の中央 */
-  height: 100vh;           /* 画面全体の高さ */
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
   padding: 20px;
   background: #fff;
 }
 
-/* 入力欄とボタンの親要素を整える */
 .login-box {
   width: 100%;
-  max-width: 400px; /* スマホでも広がりすぎないように制限 */
+  max-width: 400px;
   text-align: center;
 } 
-  
   </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
 </head>
@@ -227,10 +218,10 @@ button:active {
     <div id="guide-frame"></div>
     <div id="status-message">カメラを名刺に向けてください</div>
     
-    <div id="previewContainer" style="display:flex; flex-direction: column; align-items:center; gap:10px; margin: 10px 0;position: relative;z-index: 1; /* 画像は後ろ */">
-    <img id="previewFront" style="width:80%; max-width:300px; border: 2px solid #ccc; display:none;">
-    <img id="previewBack" style="width:80%; max-width:300px; border: 2px solid #ccc; display:none;">
-</div>
+    <div id="previewContainer" style="display:flex; flex-direction: column; align-items:center; gap:10px; margin: 10px 0; position: relative; z-index: 1;">
+      <img id="previewFront" style="width:80%; max-width:300px; border: 2px solid #ccc; display:none;">
+      <img id="previewBack" style="width:80%; max-width:300px; border: 2px solid #ccc; display:none;">
+    </div>
 
     <canvas id="outputCanvas" style="display:none;"></canvas>
     
@@ -238,27 +229,21 @@ button:active {
       <button id="capture-btn">撮影</button>
 
       <div id="actionBtns" style="display:none; flex-direction: row; gap: 10px; flex-wrap: wrap;">
-  <button id="sendBtn" style="background: green;">送信</button>
-  <button id="backCaptureBtn" style="background: orange;color: white; 
- ">裏面撮影</button>
-  <button id="retryBackBtn" style="background: #ff8c00;color: white; 
- ">裏面撮り直し</button>
-  <button id="retryAllBtn" style="background: red;color: white; 
- ">最初から撮り直し</button>
-</div>
+        <button id="sendBtn" style="background: green;">送信</button>
+        <button id="backCaptureBtn" style="background: orange; color: white;">裏面撮影</button>
+        <button id="retryBackBtn" style="background: #ff8c00; color: white;">裏面撮り直し</button>
+        <button id="retryAllBtn" style="background: red; color: white;">最初から撮り直し</button>
+      </div>
     </div>
   </div>
 </div>
   
 <div id="page-search" class="page" style="display:none; padding: 20px; background-color: #f4f7f6; min-height: 100vh; color: #333;">
-  
   <div class="search-header" style="position: sticky; top: 0; padding-bottom: 20px; background-color: #f4f7f6; z-index: 10;">
-    <input type="text" id="searchInput" placeholder="会社名や氏名で検索..." 
-           style="width: 100%; height: 50px; padding: 15px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; font-size: 16px;">
+    <input type="text" id="searchInput" placeholder="会社名や氏名で検索..." style="width: 100%; height: 50px; padding: 15px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; font-size: 16px;">
   </div>
 
-  <div id="card-container">
-    </div>
+  <div id="card-container"></div>
 </div>
   
 <nav id="bottom-nav">
@@ -273,50 +258,47 @@ const canvas = document.getElementById('outputCanvas');
 const guideFrame = document.getElementById('guide-frame');
 const actionBtns = document.getElementById('actionBtns');
 const sendBtn = document.getElementById('sendBtn');
-const retryBtn = document.getElementById('retryBtn');
 const backCaptureBtn = document.getElementById('backCaptureBtn');
+const retryBackBtn = document.getElementById('retryBackBtn');
+const retryAllBtn = document.getElementById('retryAllBtn');
 
 let isDetecting = true;
 let globalCardId = null; 
 let isFrontSide = true; 
 let capturedImages = { front: null, back: null };
-let captureCounter = 0; // ここに宣言が必要
+let captureCounter = 0;
 
-  // モックデータ
 const mockData = [
   { id: 1, name: "山田 太郎", company: "株式会社サンプル", image: "url_to_image" },
   { id: 2, name: "佐藤 花子", company: "デザイン事務所", image: "url_to_image" }
 ];
 
 document.getElementById('loginBtn').addEventListener('click', async () => {
+  const loginBtn = document.getElementById('loginBtn');
   const id = document.getElementById('loginId').value;
   const pass = document.getElementById('loginPass').value;
-  // --- 1. 二度押し防止の開始 ---
+  
   loginBtn.disabled = true;
   const originalText = loginBtn.textContent;
   loginBtn.textContent = "ログイン処理中...";
-  loginBtn.style.backgroundColor = "#ccc"; // 色を変えるとより「押せない」ことが伝わります
+  loginBtn.style.backgroundColor = "#ccc";
   
-  // ★ここをGASのデプロイURLに書き換えてください
   const GAS_URL = "https://script.google.com/macros/s/AKfycbyya3RzVXc9pdWUCNhBaJN-F7_ShidH16FVFuL5VMh1CFLDifyAnUBkM-Z987FKb8o0/exec"; 
 
   try {
     const response = await fetch(GAS_URL, {
       method: 'POST',
-      // モードをno-corsにするとエラーが取れない場合があるので、通常はデフォルト（cors）でGAS側を適切に設定します
       body: JSON.stringify({ action: "login", id: id, pass: pass })
     });
     const result = await response.json();
 
-   // ログインボタンの成功時の処理を修正
     if (result.success) {
       sessionStorage.setItem('isLoggedIn', 'true');
-      sessionStorage.setItem('userName', result.userName); // 追加
+      sessionStorage.setItem('userName', result.userName);
       showPage('page-camera');
       document.getElementById('bottom-nav').style.display = 'flex';
-    }else {
+    } else {
       alert("IDまたはパスワードが違います");
-      // 失敗した時だけボタンを戻す
       loginBtn.disabled = false;
       loginBtn.textContent = originalText;
       loginBtn.style.backgroundColor = "#007bff";
@@ -324,7 +306,6 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   } catch (e) {
     console.error(e);
     alert("通信エラーが発生しました");
-    // エラー時もボタンを戻す
     loginBtn.disabled = false;
     loginBtn.textContent = originalText;
     loginBtn.style.backgroundColor = "#007bff";
@@ -332,54 +313,29 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
 });
   
 function showPage(pageId) {
-  // 全ページを隠す
   document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-  // 指定ページを表示
   document.getElementById(pageId).style.display = 'block';
   
-  // 【ここがポイント】撮影ページに移動したときだけカメラを起動する
   if (pageId === 'page-camera') {
-    // すでにカメラが起動していなければ起動する
     if (!video.srcObject) {
       startCamera();
     }
     isDetecting = true;
     detectLoop();
   } else {
-    // 撮影ページ以外はカメラを止める
     isDetecting = false;
-    // 必要であればここでカメラストリームを停止させる処理を入れることも可能
   }
 }
 
-
-// 検索窓のイベントを修正
 document.getElementById('searchInput').addEventListener('input', (e) => {
   const query = e.target.value.toLowerCase();
-  
-  // 検索条件で絞り込み
   const filtered = mockData.filter(item => 
     item.name.toLowerCase().includes(query) || item.company.toLowerCase().includes(query)
   );
-
-  // 絞り込まれた結果をカードとして再描画
   renderCards(filtered);
 });
 
-
-function showDetail(item) {
-  document.getElementById('detailView').style.display = 'block';
-  document.getElementById('detailContent').innerHTML = `<h3>${item.name}</h3><p>${item.company}</p>`;
-}
-
-function closeDetail() {
-  document.getElementById('detailView').style.display = 'none';
-}
-  
-  
-// 1. カメラ起動
 async function startCamera() {
- 
   const constraints = {
     video: {
       width: { ideal: 1920 },
@@ -395,21 +351,17 @@ async function startCamera() {
   } catch (err) { alert("カメラアクセスを許可してください"); }
 }
 
-// 2. ループ処理
-let lastArea = 0; // ファイルの先頭近くに配置してください
+let lastArea = 0;
 
 function detectLoop() {
   if (!isDetecting) return;
-  // ★追加：videoがまだ準備できていないなら何もしない
   if (!video || video.readyState !== 4) {
-    setTimeout(requestAnimationFrame(detectLoop), 200);
+    setTimeout(() => requestAnimationFrame(detectLoop), 200);
     return;
   }
   if (video.style.display === 'none') return;
 
   let fullMat = cv.imread(video);
-  
-  // ROI（関心領域）の定義
   let width = fullMat.cols;
   let height = fullMat.rows;
   let roiRect = new cv.Rect(
@@ -419,7 +371,7 @@ function detectLoop() {
     Math.floor(height * 0.6)
   );
   
-  let roiMat = fullMat.roi(roiRect); // roiMatとして定義
+  let roiMat = fullMat.roi(roiRect);
   let gray = new cv.Mat();
   let canny = new cv.Mat();
   let contours = new cv.MatVector();
@@ -430,7 +382,7 @@ function detectLoop() {
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let found = false;
-  let minArea = (width * height) * 0.03; // ビデオ解像度ベースで計算
+  let minArea = (width * height) * 0.03;
   let maxArea = (width * height) * 0.60;
 
   for (let i = 0; i < contours.size(); ++i) {
@@ -467,15 +419,11 @@ function detectLoop() {
     captureCounter = 0;
   }
 
-  // 全て解放
   roiMat.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
   setTimeout(() => requestAnimationFrame(detectLoop), 200);
 }
 
-// 3. 撮影処理
 captureBtn.addEventListener('click', async () => {
-  
-// IDがまだなければ作成（これがファイル名のキーになる）
   if (!globalCardId) globalCardId = Date.now();  
   
   isDetecting = false;
@@ -507,82 +455,74 @@ captureBtn.addEventListener('click', async () => {
     approx.delete();
   }
 
-  // 撮影成功時の処理
-if (bestContour) {
+  if (bestContour) {
     warpPerspective(src, bestContour);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
     
-   // 面に応じて画像をセット
     if (isFrontSide) {
-        capturedImages.front = dataUrl;
-        document.getElementById('previewFront').src = dataUrl;
-        document.getElementById('previewFront').style.display = 'block';
+      capturedImages.front = dataUrl;
+      document.getElementById('previewFront').src = dataUrl;
+      document.getElementById('previewFront').style.display = 'block';
     } else {
-        capturedImages.back = dataUrl;
-        document.getElementById('previewBack').src = dataUrl;
-        document.getElementById('previewBack').style.display = 'block';
+      capturedImages.back = dataUrl;
+      document.getElementById('previewBack').src = dataUrl;
+      document.getElementById('previewBack').style.display = 'block';
     }
     
-    // カメラを隠してプレビューを表示
     video.style.display = 'none';
     canvas.style.display = 'none';
     guideFrame.style.display = 'none';
     
-    // ▼ ここを修正
-    showActionUI();      // ボタンのコンテナを表示
-    updateActionUI();    // ★各ボタン（裏面撮影/撮り直し）の表示/非表示を制御
-}else {
+    showActionUI();
+  } else {
     alert("認識できませんでした。");
     isDetecting = true;
+    detectLoop();
   }
 
-  src.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete();roi.delete(); // 両方解放
+  src.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete();
 });
 
-
-// --- ボタンイベント ---  
-// 【修正1】retryBtnの不要なコードを削除
-    retryBtn.addEventListener('click', () => {
-      video.style.display = 'block';
-      canvas.style.display = 'none';
-      captureBtn.style.display = 'block';
-      actionBtns.style.display = 'none';
-      guideFrame.style.display = 'block';
-      isDetecting = true;
-      captureCounter = 0;
-      detectLoop();
-      resetPreview();
-    });
-
-  backCaptureBtn.addEventListener('click', () => {
+backCaptureBtn.addEventListener('click', () => {
   isFrontSide = false;
   showCaptureUI();
   isDetecting = true;
   detectLoop();
 });
-// 裏面だけ撮り直す
+
 retryBackBtn.addEventListener('click', () => {
   isFrontSide = false;
-  capturedImages.back = null; // 裏面データをクリア
+  capturedImages.back = null;
+  document.getElementById('previewBack').src = "";
+  document.getElementById('previewBack').style.display = 'none';
   showCaptureUI();
+  isDetecting = true;
+  detectLoop();
 });
 
- // 最初から撮り直す（表面・裏面データ全消去）
 retryAllBtn.addEventListener('click', () => {
   globalCardId = null;
   isFrontSide = true;
   capturedImages = { front: null, back: null };
   resetPreview();
   showCaptureUI();
+  isDetecting = true;
+  detectLoop();
 }); 
 
-    
-  // 撮影成功時の表示切り替え
-// --- UI制御関数 ---
 function showActionUI() {
   captureBtn.style.display = 'none';
   actionBtns.style.display = 'flex';
- }
+  
+  // 裏面撮影済みの場合は裏面撮影ボタンを隠すなどの動的切り替え
+  if (capturedImages.back) {
+    backCaptureBtn.style.display = 'none';
+    retryBackBtn.style.display = 'block';
+  } else {
+    backCaptureBtn.style.display = 'block';
+    retryBackBtn.style.display = 'none';
+  }
+}
 
 function showCaptureUI() {
   captureBtn.style.display = 'block';
@@ -592,7 +532,6 @@ function showCaptureUI() {
   guideFrame.style.display = 'block';
 }
   
-// 5. warpPerspective (省略なし)
 function warpPerspective(src, contour) {
   let perimeter = cv.arcLength(contour, true);
   let approx = new cv.Mat();
@@ -623,20 +562,17 @@ function warpPerspective(src, contour) {
   normalized.delete(); dst.delete(); M.delete(); srcTri.delete(); dstTri.delete(); approx.delete();
 }
 
-  // リセット処理に以下を追加
 function resetPreview() {
   document.getElementById('previewFront').style.display = 'none';
   document.getElementById('previewBack').style.display = 'none';
   document.getElementById('previewFront').src = "";
   document.getElementById('previewBack').src = "";
 }
-// 【送信機能本体】
-// 【修正版】画像を1枚ずつ直列で送信する関数
+
 async function uploadAllImages() {
   const userName = sessionStorage.getItem('userName');
   const cloudRunUrl = 'https://upload-meishi-function-769951420007.asia-northeast2.run.app';
 
-  // 1. 表面を送信
   if (capturedImages.front) {
     const frontPayload = {
       base64Data: capturedImages.front.split(',')[1],
@@ -650,7 +586,6 @@ async function uploadAllImages() {
     if (!res1.ok) throw new Error("表面送信失敗: " + await res1.text());
   }
 
-  // 2. 裏面を送信（あれば）
   if (capturedImages.back) {
     const backPayload = {
       base64Data: capturedImages.back.split(',')[1],
@@ -667,7 +602,6 @@ async function uploadAllImages() {
   return true;
 }
 
-// 【送信ボタンの処理】
 sendBtn.addEventListener('click', async () => {
   if (!capturedImages.front) {
     alert("表面が撮影されていません");
@@ -680,15 +614,13 @@ sendBtn.addEventListener('click', async () => {
 
   try {
     await uploadAllImages();
-
     alert("送信完了しました");
     
-    // リセットして次の撮影へ
     globalCardId = null;
     isFrontSide = true;
     capturedImages = { front: null, back: null };
-    resetPreview(); // ★ここに追加
-    showCaptureUI(); // 最初の画面に戻す
+    resetPreview();
+    showCaptureUI();
   } catch (e) {
     alert("エラー: " + e.message);
   } finally {
@@ -697,60 +629,28 @@ sendBtn.addEventListener('click', async () => {
   }
 });
 
-  
-
-  // 【追加】ページロード時にカードを表示
 window.addEventListener('load', () => {
   const loginTime = sessionStorage.getItem('loginTime');
   const now = new Date().getTime();
   
-  // 1時間経過していたら強制ログアウト
   if (loginTime && (now - loginTime > 3600000)) {
     sessionStorage.clear();
     showPage('page-login');
-  }else {  renderCards(mockData); // カード表示だけは最初に行う
-  // ログイン状態ならカメラを起動する
-  if (sessionStorage.getItem('isLoggedIn') === 'true') {
-    showPage('page-camera');
-    document.getElementById('bottom-nav').style.display = 'flex';
-  } else {
-    showPage('page-login');
-    document.getElementById('bottom-nav').style.display = 'none';
+  } else {  
+    renderCards(mockData);
+    if (sessionStorage.getItem('isLoggedIn') === 'true') {
+      showPage('page-camera');
+      document.getElementById('bottom-nav').style.display = 'flex';
+    } else {
+      showPage('page-login');
+      document.getElementById('bottom-nav').style.display = 'none';
+    }
   }
-        }
-        
-});
- // --- ボタンのイベントリスナー登録を追加 ---
-document.getElementById('retryBackBtn').addEventListener('click', () => {
-  isFrontSide = false;
-  capturedImages.back = null; 
-  resetPreview(); // プレビューをクリア
-  showCaptureUI();
-  isDetecting = true;
-  detectLoop();
 });
 
-document.getElementById('retryAllBtn').addEventListener('click', () => {
-  globalCardId = null;
-  isFrontSide = true;
-  capturedImages = { front: null, back: null };
-  resetPreview(); // プレビューをクリア
-  showCaptureUI();
-  isDetecting = true;
-  detectLoop();
-});
-
-document.getElementById('backCaptureBtn').addEventListener('click', () => {
-  isFrontSide = false;
-  showCaptureUI();
-  isDetecting = true;
-  detectLoop();
-});
-  
-// カード描画関数（これで統一）
 function renderCards(dataList) {
   const container = document.getElementById('card-container');
-  container.innerHTML = ""; // クリア
+  container.innerHTML = "";
 
   dataList.forEach(item => {
     const card = document.createElement('div');
@@ -766,13 +666,10 @@ function renderCards(dataList) {
   });
 }
 
- // 【追加】詳細表示用関数
-    function openDetail(id) {
-      const item = mockData.find(d => d.id === id);
-      alert(`詳細表示: ${item.name} - ${item.company}`);
-    } 
-
-
-  </script>
+function openDetail(id) {
+  const item = mockData.find(d => d.id === id);
+  alert(`詳細表示: ${item.name} - ${item.company}`);
+} 
+</script>
 </body>
 </html>
