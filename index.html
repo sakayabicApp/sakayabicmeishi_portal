@@ -44,7 +44,6 @@ input, button {
   z-index: 2;
   width: 80vw;
   height: calc(80vw * 55 / 91);
-  /* border指定を削除し、クラス（.guide-default等）側で色・太さを管理 */
   pointer-events: none;
   box-sizing: border-box;
 }
@@ -62,6 +61,35 @@ input, button {
   box-shadow: 0 0 15px #28a745, 0 0 0 9999px rgba(0, 0, 0, 0.5);
   transition: border-color 0.2s ease;
 }
+
+/* 横向き警告用オーバーレイ */
+#orientation-warning {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.92);
+  color: #ffffff;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.warning-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  animation: rotate-phone 2s infinite ease-in-out;
+}
+
+@keyframes rotate-phone {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-90deg); }
+}
+
 #controls {
   position: absolute;
   bottom: 70px;
@@ -211,6 +239,14 @@ button:active {
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
 </head>
 <body>
+
+<!-- 横向き警告オーバーレイ -->
+<div id="orientation-warning">
+  <div class="warning-icon">📱</div>
+  <p style="font-size: 18px; font-weight: bold; margin: 0 0 8px 0;">画面を縦向きにしてください</p>
+  <p style="font-size: 14px; color: #ccc; margin: 0;">名刺撮影機能は縦向きのみ対応しています</p>
+</div>
+
 <div id="page-login" class="page">
   <div class="login-box">
     <h2>酒ゃビック名刺管理システム</h2>
@@ -282,6 +318,45 @@ const mockData = [
   { id: 2, name: "佐藤 花子", company: "デザイン事務所", image: "url_to_image" }
 ];
 
+// ==========================================
+// 画面方向制御（縦向き固定・横向き警告）
+// ==========================================
+async function enforcePortraitOrientation() {
+  if (screen.orientation && screen.orientation.lock) {
+    try {
+      await screen.orientation.lock('portrait');
+    } catch (e) {
+      console.log("screen.orientation.lock 非対応:", e);
+    }
+  }
+  checkOrientation();
+}
+
+function checkOrientation() {
+  const warningEl = document.getElementById('orientation-warning');
+  const isLandscape = window.innerWidth > window.innerHeight;
+
+  if (isLandscape) {
+    if (warningEl) warningEl.style.display = 'flex';
+    isDetecting = false; // 横向き時は検知停止
+  } else {
+    if (warningEl) warningEl.style.display = 'none';
+    
+    // 撮影ページ表示中かつ停止していた場合は検知を再開
+    const cameraPage = document.getElementById('page-camera');
+    if (cameraPage && cameraPage.style.display !== 'none' && !isDetecting && video.srcObject) {
+      isDetecting = true;
+      detectLoop();
+    }
+  }
+}
+
+window.addEventListener('resize', checkOrientation);
+window.addEventListener('orientationchange', checkOrientation);
+
+// ==========================================
+// ログイン処理
+// ==========================================
 document.getElementById('loginBtn').addEventListener('click', async () => {
   const loginBtn = document.getElementById('loginBtn');
   const id = document.getElementById('loginId').value;
@@ -298,7 +373,7 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
     const response = await fetch(GAS_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'text/plain;charset=utf-8' // GASのCORS事前リクエスト回避用
+        'Content-Type': 'text/plain;charset=utf-8'
       },
       body: JSON.stringify({ action: "login", id: id, pass: pass })
     });
@@ -308,7 +383,7 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
       sessionStorage.setItem('isLoggedIn', 'true');
       sessionStorage.setItem('userName', result.userName);
       sessionStorage.setItem('loginTime', new Date().getTime().toString());
-      showPage('page-camera'); // ← ページ指定は正常です
+      showPage('page-camera');
       document.getElementById('bottom-nav').style.display = 'flex';
     } else {
       alert("IDまたはパスワードが違います");
@@ -339,8 +414,11 @@ function showPage(pageId) {
     if (!video.srcObject) {
       startCamera();
     }
-    isDetecting = true;
-    detectLoop();
+    checkOrientation();
+    if (window.innerWidth <= window.innerHeight) {
+      isDetecting = true;
+      detectLoop();
+    }
   } else {
     isDetecting = false;
   }
@@ -355,6 +433,8 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
 });
 
 async function startCamera() {
+  await enforcePortraitOrientation();
+
   const constraints = {
     video: {
       width: { ideal: 1920 },
@@ -366,7 +446,12 @@ async function startCamera() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
-    video.onloadedmetadata = () => detectLoop();
+    video.onloadedmetadata = () => {
+      checkOrientation();
+      if (window.innerWidth <= window.innerHeight) {
+        detectLoop();
+      }
+    };
   } catch (err) { alert("カメラアクセスを許可してください"); }
 }
 
@@ -399,6 +484,38 @@ function showNotification(msg) {
   }, 2500);
 }
 
+// ガイド枠（画面UI）の位置を実際の動画解像度に変換してROIを取得する補正関数
+function getGuideRoiInVideo() {
+  const videoWidth = video.videoWidth;
+  const videoHeight = video.videoHeight;
+  
+  if (!videoWidth || !videoHeight) return null;
+
+  if (guideFrame) {
+    const videoRect = video.getBoundingClientRect();
+    const guideRect = guideFrame.getBoundingClientRect();
+
+    if (videoRect.width > 0 && videoRect.height > 0) {
+      const scaleX = videoWidth / videoRect.width;
+      const scaleY = videoHeight / videoRect.height;
+
+      const roiX = Math.max(0, Math.floor((guideRect.left - videoRect.left) * scaleX));
+      const roiY = Math.max(0, Math.floor((guideRect.top - videoRect.top) * scaleY));
+      const roiW = Math.min(videoWidth - roiX, Math.floor(guideRect.width * scaleX));
+      const roiH = Math.min(videoHeight - roiY, Math.floor(guideRect.height * scaleY));
+
+      return { x: roiX, y: roiY, w: roiW, h: roiH };
+    }
+  }
+
+  return {
+    x: Math.floor(videoWidth * 0.05),
+    y: Math.floor(videoHeight * 0.05),
+    w: Math.floor(videoWidth * 0.9),
+    h: Math.floor(videoHeight * 0.9)
+  };
+}
+
 // リアルタイム輪郭検知ループ
 function detectLoop() {
   if (!isDetecting) return;
@@ -408,19 +525,16 @@ function detectLoop() {
   }
   if (video.style.display === 'none') return;
   
+  let roi = getGuideRoiInVideo();
+  if (!roi || roi.w <= 0 || roi.h <= 0) {
+    setTimeout(() => requestAnimationFrame(detectLoop), 200);
+    return;
+  }
+
   let fullMat = cv.imread(video);
-  let width = fullMat.cols;
-  let height = fullMat.rows;
-
-  // 解析範囲：画面中央の90%領域（5%の余白）
-  let roiRect = new cv.Rect(
-    Math.floor(width * 0.05),
-    Math.floor(height * 0.05),
-    Math.floor(width * 0.9),
-    Math.floor(height * 0.9)
-  );
-
+  let roiRect = new cv.Rect(roi.x, roi.y, roi.w, roi.h);
   let roiMat = fullMat.roi(roiRect);
+
   let gray = new cv.Mat();
   let blur = new cv.Mat();
   let thresh = new cv.Mat();
@@ -440,7 +554,7 @@ function detectLoop() {
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let found = false;
-  let roiArea = roiMat.cols * roiMat.rows;
+  let roiArea = roi.w * roi.h;
   let minArea = roiArea * 0.10;
   let maxAreaThreshold = roiArea * 0.95;
   let maxFoundArea = 0;
@@ -560,20 +674,22 @@ function findCardPointsFromMat(srcMat) {
   return bestPoints;
 }
 
-// 透視変換関数
+// 安定した4頂点ソート付き透視変換関数
 function warpPerspectiveFromPoints(src, points) {
-  points.sort((a, b) => a.y - b.y);
-  let top = points.slice(0, 2).sort((a, b) => a.x - b.x);
-  let bottom = points.slice(2, 4).sort((a, b) => a.x - b.x);
-  let sortedPoints = [top[0], top[1], bottom[1], bottom[0]];
+  let sum = points.map(p => p.x + p.y);
+  let diff = points.map(p => p.x - p.y);
+
+  let tl = points[sum.indexOf(Math.min(...sum))];
+  let br = points[sum.indexOf(Math.max(...sum))];
+  let tr = points[diff.indexOf(Math.max(...diff))];
+  let bl = points[diff.indexOf(Math.min(...diff))];
 
   let dstWidth = 800, dstHeight = 500;
   canvas.width = dstWidth; 
   canvas.height = dstHeight;
   
   let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-    sortedPoints[0].x, sortedPoints[0].y, sortedPoints[1].x, sortedPoints[1].y,
-    sortedPoints[2].x, sortedPoints[2].y, sortedPoints[3].x, sortedPoints[3].y
+    tl.x, tl.y, tr.x, tr.y, br.x, br.y, bl.x, bl.y
   ]);
   let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, dstWidth, 0, dstWidth, dstHeight, 0, dstHeight]);
   let M = cv.getPerspectiveTransform(srcTri, dstTri);
@@ -603,14 +719,13 @@ captureBtn.addEventListener('click', async () => {
   let src = cv.imread(tempCanvas);
   let finalPoints = null;
 
-  // 【ステップ1】 リアルタイム検知座標のオフセット補正（5%に変更）
-  if (detectedPoints && detectedPoints.length === 4) {
-    let roiOffsetX = Math.floor(video.videoWidth * 0.05);
-    let roiOffsetY = Math.floor(video.videoHeight * 0.05);
+  let roi = getGuideRoiInVideo();
 
+  // 【ステップ1】 リアルタイム検知座標がある場合、ROIオフセットを加算
+  if (detectedPoints && detectedPoints.length === 4 && roi) {
     finalPoints = detectedPoints.map(pt => ({
-      x: pt.x + roiOffsetX,
-      y: pt.y + roiOffsetY
+      x: pt.x + roi.x,
+      y: pt.y + roi.y
     }));
   } else {
     // 【ステップ2】 画面全体からの再検知
@@ -620,21 +735,16 @@ captureBtn.addEventListener('click', async () => {
   // 【ステップ3】 判定と切り出し
   if (finalPoints) {
     warpPerspectiveFromPoints(src, finalPoints);
-  } else {
-    // 補正失敗時：画面中央90%の領域でトリミング
-    const cropX = Math.floor(video.videoWidth * 0.05);
-    const cropY = Math.floor(video.videoHeight * 0.05);
-    const cropWidth = Math.floor(video.videoWidth * 0.9);
-    const cropHeight = Math.floor(cropWidth * (55 / 91));
-
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
+  } else if (roi) {
+    // 補正失敗時：ガイド枠の位置を正確にトリミング
+    canvas.width = roi.w;
+    canvas.height = roi.h;
     const canvasCtx = canvas.getContext('2d');
 
     canvasCtx.drawImage(
       tempCanvas,
-      cropX, cropY, cropWidth, cropHeight,
-      0, 0, cropWidth, cropHeight
+      roi.x, roi.y, roi.w, roi.h,
+      0, 0, roi.w, roi.h
     );
   }
 
@@ -823,5 +933,5 @@ function openDetail(id) {
   alert(`詳細表示: ${item.name} - ${item.company}`);
 } 
 </script>
-<body>
+</body>
 </html>
