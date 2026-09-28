@@ -545,7 +545,6 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
       id: id,
       pass: pass
     };
-
     const response = await fetch(GAS_URL, {
       method: 'POST',
       headers: {
@@ -614,7 +613,6 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
 
 async function startCamera() {
   await enforcePortraitOrientation();
-
   const constraints = {
     video: {
       width: { ideal: 1920 },
@@ -647,12 +645,10 @@ function getGuideRoiInVideo() {
     if (videoRect.width > 0 && videoRect.height > 0) {
       const scaleX = videoWidth / videoRect.width;
       const scaleY = videoHeight / videoRect.height;
-
       const roiX = Math.max(0, Math.floor((guideRect.left - videoRect.left) * scaleX));
       const roiY = Math.max(0, Math.floor((guideRect.top - videoRect.top) * scaleY));
       const roiW = Math.min(videoWidth - roiX, Math.floor(guideRect.width * scaleX));
       const roiH = Math.min(videoHeight - roiY, Math.floor(guideRect.height * scaleY));
-
       return { x: roiX, y: roiY, w: roiW, h: roiH };
     }
   }
