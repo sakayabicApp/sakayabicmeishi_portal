@@ -644,8 +644,8 @@ function getGuideRoiInVideo() {
 // 静止判定用の状態保持変数
 let prevPoints = null;
 let stableCounter = 0;
-const STABLE_REQUIRED_FRAMES = 5;
-const STABLE_THRESHOLD_PX = 15;
+const STABLE_REQUIRED_FRAMES = 3;
+const STABLE_THRESHOLD_PX = 25;
 
 function getDistance(p1, p2) {
   return Math.hypot(p1.x - p2.x, p1.y - p2.y);
@@ -686,13 +686,13 @@ function detectLoop() {
 
   cv.cvtColor(roiMat, gray, cv.COLOR_RGBA2GRAY);
   cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-  cv.Canny(blur, canny, 35, 110);
+  cv.Canny(blur, canny, 20, 80);
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let found = false;
   let roiArea = roi.w * roi.h;
-  let minArea = roiArea * 0.12; 
-  let maxAreaThreshold = roiArea * 0.95;
+  let minArea = roiArea * 0.05; 
+  let maxAreaThreshold = roiArea * 0.98;
   let maxFoundArea = 0;
   let currentDetected = null;
 
@@ -700,21 +700,24 @@ function detectLoop() {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
 
-    if (area < minArea || area > maxAreaThreshold) continue;
+    if (area < minArea || area > maxAreaThreshold) {
+      cnt.delete();
+      continue;
+    }
 
     let approx = new cv.Mat();
-    cv.approxPolyDP(cnt, approx, 0.025 * cv.arcLength(cnt, true), true);
+    cv.approxPolyDP(cnt, approx, 0.03 * cv.arcLength(cnt, true), true);
     
     let rect = cv.boundingRect(cnt);
     let aspectRatio = rect.width / rect.height;
 
     if (approx.rows === 4 && 
-       ((aspectRatio >= 1.2 && aspectRatio <= 2.0) || (aspectRatio >= 0.5 && aspectRatio <= 0.8))) {
+       ((aspectRatio >= 1.1 && aspectRatio <= 2.2) || (aspectRatio >= 0.5 && aspectRatio <= 0.8))) {
       
       let rectArea = rect.width * rect.height;
       let extent = area / rectArea;
 
-      if (extent > 0.65 && area > maxFoundArea) {
+      if (extent > 0.55 && area > maxFoundArea) {
         maxFoundArea = area;
         found = true;
         
@@ -728,10 +731,10 @@ function detectLoop() {
       }
     }
     approx.delete();
+    cnt.delete();
   }
-
-  const statusEl = document.getElementById('status-message');
-
+const statusEl = document.getElementById('status-message');
+  
   if (found && currentDetected) {
     detectedPoints = currentDetected;
 
