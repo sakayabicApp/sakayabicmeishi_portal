@@ -199,24 +199,46 @@
       font-weight: 500;
     }
 
-    #previewContainer {
-      position: relative;
-      z-index: 12;
-      display: flex;
-      gap: 12px;
-      margin-top: auto;
-      margin-bottom: 10px;
-    }
+    /* ガイド枠と同じ位置・大きさに重ねて大きく表示するプレビュー */
+#guidePreview {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 15;
+  width: 82vw;
+  max-width: 380px;
+  height: calc(82vw * 55 / 91);
+  max-height: calc(380px * 55 / 91);
+  border-radius: 12px;
+  object-fit: contain;
+  background: #000;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+}
 
-    .preview-card {
-      width: 110px;
-      height: 66px;
-      border-radius: 8px;
-      object-fit: cover;
-      border: 2px solid #fff;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      display: none;
-    }
+    /* 下部プレビューコンテナ（裏面撮影時などに縦並び表示） */
+#previewContainer {
+  position: relative;
+  z-index: 12;
+  display: flex;
+  flex-direction: column; /* 横並びから縦並びに変更 */
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  margin-bottom: 10px;
+}
+
+    /* 下部の小さめカード表示（視認性を確保できるサイズ感に調整） */
+.preview-card {
+  width: 140px;
+  height: 84px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: #000;
+  border: 2px solid #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  display: none;
+}
 
     #controls {
       position: relative;
@@ -405,6 +427,8 @@
     <div id="status-message">名刺をガイド枠内に合わせてください</div>
     <video id="video" playsinline autoplay></video>
     <div id="guide-frame" class="guide-default"></div>
+<!-- 【追加】表面撮影直後にガイド枠位置へ大きく表示するプレビュー -->
+    <img id="guidePreview" style="display: none;" />
     
     <div id="previewContainer">
       <img id="previewFront" class="preview-card" alt="表面">
@@ -851,14 +875,32 @@ captureBtn.addEventListener('click', async () => {
 
   const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
   
-  if (isFrontSide) {
+ if (isFrontSide) {
     capturedImages.front = dataUrl;
-    document.getElementById('previewFront').src = dataUrl;
-    document.getElementById('previewFront').style.display = 'block';
+    
+    // ガイド枠内に大きくプレビュー表示
+    const guidePreview = document.getElementById('guidePreview');
+    if (guidePreview) {
+      guidePreview.src = dataUrl;
+      guidePreview.style.display = 'block';
+    }
+
+    // 下部プレビュー（表面）にデータを準備（まだ非表示）
+    const previewFront = document.getElementById('previewFront');
+    if (previewFront) {
+      previewFront.src = dataUrl;
+      previewFront.style.display = 'none';
+    }
+
   } else {
     capturedImages.back = dataUrl;
-    document.getElementById('previewBack').src = dataUrl;
-    document.getElementById('previewBack').style.display = 'block';
+
+    // 裏面撮影完了時は下部の裏面プレビューを表示
+    const previewBack = document.getElementById('previewBack');
+    if (previewBack) {
+      previewBack.src = dataUrl;
+      previewBack.style.display = 'block';
+    }
   }
   
   video.style.display = 'none';
@@ -871,13 +913,30 @@ captureBtn.addEventListener('click', async () => {
   detectedPoints = null;
 });
 
+// ② 「裏面を撮影」ボタン押下時
 backCaptureBtn.addEventListener('click', () => {
   isFrontSide = false;
+
+  // 1. 中央の大きなプレビューを消す
+  const guidePreview = document.getElementById('guidePreview');
+  if (guidePreview) {
+    guidePreview.style.display = 'none';
+    guidePreview.src = "";
+  }
+
+  // 2. 下部に退避させていた表面プレビューを可視化（縦並びの1段目）
+  const previewFront = document.getElementById('previewFront');
+  if (previewFront && capturedImages.front) {
+    previewFront.style.display = 'block';
+  }
+
   showCaptureUI();
   isDetecting = true;
   detectLoop();
 });
+  
 
+  
 retryBackBtn.addEventListener('click', () => {
   isFrontSide = false;
   capturedImages.back = null;
@@ -924,11 +983,19 @@ function showCaptureUI() {
   }
 }
 
+ 
+// ③ プレビューリセット関数
 function resetPreview() {
-  document.getElementById('previewFront').style.display = 'none';
-  document.getElementById('previewBack').style.display = 'none';
-  document.getElementById('previewFront').src = "";
-  document.getElementById('previewBack').src = "";
+  const guidePreview = document.getElementById('guidePreview');
+  if (guidePreview) {
+    guidePreview.style.display = 'none';
+    guidePreview.src = "";
+  }
+
+  const pFront = document.getElementById('previewFront');
+  const pBack = document.getElementById('previewBack');
+  if (pFront) { pFront.style.display = 'none'; pFront.src = ""; }
+  if (pBack) { pBack.style.display = 'none'; pBack.src = ""; }
 }
 
 async function uploadAllImages() {
