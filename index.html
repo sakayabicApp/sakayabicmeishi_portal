@@ -708,14 +708,15 @@ function detectLoop() {
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
 
+  // 1. ノイズ除去とエッジ検出（閾値を下げて薄い影・輪郭も拾う）
   cv.cvtColor(roiMat, gray, cv.COLOR_RGBA2GRAY);
   cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-  cv.Canny(blur, canny, 20, 80);
+  cv.Canny(blur, canny, 30, 100);
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let found = false;
   let roiArea = roi.w * roi.h;
-  let minArea = roiArea * 0.05; 
+  let minArea = roiArea * 0.10; // ガイド枠の10%以上の大きさがあれば対象
   let maxAreaThreshold = roiArea * 0.98;
   let maxFoundArea = 0;
   let currentDetected = null;
@@ -730,48 +731,43 @@ function detectLoop() {
     }
 
     let approx = new cv.Mat();
-    cv.approxPolyDP(cnt, approx, 0.03 * cv.arcLength(cnt, true), true);
+    // 近似精度を0.04に広げて多少の角の丸みや手振れを許容
+    cv.approxPolyDP(cnt, approx, 0.04 * cv.arcLength(cnt, true), true);
     
     let rect = cv.boundingRect(cnt);
     let aspectRatio = rect.width / rect.height;
 
-    if (approx.rows === 4 && 
-       ((aspectRatio >= 1.1 && aspectRatio <= 2.2) || (aspectRatio >= 0.5 && aspectRatio <= 0.8))) {
-      
-      let rectArea = rect.width * rect.height;
-      let extent = area / rectArea;
-
-      if (extent > 0.55 && area > maxFoundArea) {
+    // 4角形〜6角形程度まで許容（ノイズで角が増えるケースに対応）
+    if (approx.rows >= 4 && approx.rows <= 6) {
+      if (area > maxFoundArea) {
         maxFoundArea = area;
         found = true;
         
-        currentDetected = [];
-        for (let j = 0; j < 4; j++) {
-          currentDetected.push({ 
-            x: approx.data32S[j * 2], 
-            y: approx.data32S[j * 2 + 1] 
-          });
-        }
+        // 4点に補正して取得
+        currentDetected = getBounding4Points(approx, rect);
       }
     }
     approx.delete();
     cnt.delete();
   }
-const statusEl = document.getElementById('status-message');
-  
+
+  const guideFrame = document.getElementById('guide-frame');
+  const statusEl = document.getElementById('status-message');
+
   if (found && currentDetected) {
     detectedPoints = currentDetected;
 
+    // 静止判定
     if (prevPoints && isPointsStable(currentDetected, prevPoints, STABLE_THRESHOLD_PX)) {
       stableCounter++;
     } else {
       stableCounter = 1;
     }
-    
     prevPoints = currentDetected;
 
+    // 【色変更処理】フレームのクラスを更新
     if (stableCounter >= STABLE_REQUIRED_FRAMES) {
-      if (guideFrame) guideFrame.className = 'guide-stable';
+      if (guideFrame) guideFrame.className = 'guide-stable'; // 黄色（撮影直前）
       if (statusEl) statusEl.textContent = '撮影中...動かさないでください';
       
       stableCounter = 0;
@@ -785,14 +781,15 @@ const statusEl = document.getElementById('status-message');
       return;
 
     } else if (stableCounter > 1) {
-      if (guideFrame) guideFrame.className = 'guide-stable';
+      if (guideFrame) guideFrame.className = 'guide-stable'; // 黄色
       if (statusEl) statusEl.textContent = 'そのまま静止してください...';
     } else {
-      if (guideFrame) guideFrame.className = 'guide-detected';
+      if (guideFrame) guideFrame.className = 'guide-detected'; // 緑色（検出完了）
       if (statusEl) statusEl.textContent = '名刺を検知しました';
     }
 
   } else {
+    // 検出できなかった場合はデフォルト（白点線）に戻す
     detectedPoints = null;
     prevPoints = null;
     stableCounter = 0;
@@ -807,33 +804,69 @@ const statusEl = document.getElementById('status-message');
   }
 }
 
-function warpPerspectiveFromPoints(src, points) {
-  let sum = points.map(p => p.x + p.y);
-  let diff = points.map(p => p.y - p.x);
+// 頂点が4つでない場合もバウンディングボックスから4点を安全に抽出する補助関数
+function getBounding4Points(approx, rect) {
+  if (approx.rows === 4) {
+    let pts = [];
+    for (let j = 0; j < 4; j++) {
+      pts.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
+    }
+    return orderPoints(pts);
+  } else {
+    // 4点以外は外接矩形の4頂点を使用
+    return [
+      { x: rect.x, y: rect.y },
+      { x: rect.x + rect.width, y: rect.y },
+      { x: rect.x + rect.width, y: rect.y + rect.height },
+      { x: rect.x, y: rect.y + rect.height }
+    ];
+  }
+}
 
-  let tl = points[sum.indexOf(Math.min(...sum))];
-  let br = points[sum.indexOf(Math.max(...sum))];
-  let tr = points[diff.indexOf(Math.min(...diff))];
-  let bl = points[diff.indexOf(Math.max(...diff))];
+function warpPerspectiveFromPoints(srcMat, points) {
+  // points: [{x, y}, {x, y}, {x, y}, {x, y}] (左上, 右上, 右下, 左下)
+  let p1 = points[0], p2 = points[1], p3 = points[2], p4 = points[3];
 
-  let dstWidth = 800, dstHeight = 500;
-  canvas.width = dstWidth; 
-  canvas.height = dstHeight;
-  
+  // 名刺の幅と高さを計算
+  let widthA = Math.hypot(p3.x - p4.x, p3.y - p4.y);
+  let widthB = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+  let maxWidth = Math.max(widthA, widthB);
+
+  let heightA = Math.hypot(p2.x - p3.x, p2.y - p3.y);
+  let heightB = Math.hypot(p1.x - p4.x, p1.y - p4.y);
+  let maxHeight = Math.max(heightA, heightB);
+
+  // 変換前の4点
   let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-    tl.x, tl.y, tr.x, tr.y, br.x, br.y, bl.x, bl.y
+    p1.x, p1.y,
+    p2.x, p2.y,
+    p3.x, p3.y,
+    p4.x, p4.y
   ]);
-  let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, dstWidth, 0, dstWidth, dstHeight, 0, dstHeight]);
+
+  // 変換後の長方形の4点
+  let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+    0, 0,
+    maxWidth - 1, 0,
+    maxWidth - 1, maxHeight - 1,
+    0, maxHeight - 1
+  ]);
+
   let M = cv.getPerspectiveTransform(srcTri, dstTri);
   let dst = new cv.Mat();
-  
-  cv.warpPerspective(src, dst, M, new cv.Size(dstWidth, dstHeight));
-  let normalized = new cv.Mat();
-  cv.normalize(dst, normalized, 0, 255, cv.NORM_MINMAX);
-  
-  cv.imshow('outputCanvas', normalized);
-  
-  normalized.delete(); dst.delete(); M.delete(); srcTri.delete(); dstTri.delete();
+  let dsize = new cv.Size(maxWidth, maxHeight);
+
+  // 透視変換を実行して正面画像を作成
+  cv.warpPerspective(srcMat, dst, M, dsize, cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+
+  // outputCanvas に描画
+  cv.imshow('outputCanvas', dst);
+
+  // メモリ解放
+  srcTri.delete();
+  dstTri.delete();
+  M.delete();
+  dst.delete();
 }
 
 captureBtn.addEventListener('click', async () => {
