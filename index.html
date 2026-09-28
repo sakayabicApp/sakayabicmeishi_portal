@@ -497,11 +497,17 @@ function checkOrientation() {
 window.addEventListener('resize', checkOrientation);
 window.addEventListener('orientationchange', checkOrientation);
 
+// ▼ 元々のログイン処理（変更なし）
 document.getElementById('loginBtn').addEventListener('click', async () => {
   const loginBtn = document.getElementById('loginBtn');
-  const id = document.getElementById('loginId').value;
-  const pass = document.getElementById('loginPass').value;
-  
+  const id = document.getElementById('loginId').value.trim();
+  const pass = document.getElementById('loginPass').value.trim();
+
+  if (!id || !pass) {
+    alert("ユーザーIDとパスワードを入力してください");
+    return;
+  }
+
   loginBtn.disabled = true;
   const originalText = loginBtn.textContent;
   loginBtn.textContent = "ログイン処理中...";
@@ -510,23 +516,30 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   const GAS_URL = "https://script.google.com/macros/s/AKfycbyya3RzVXc9pdWUCNhBaJN-F7_ShidH16FVFuL5VMh1CFLDifyAnUBkM-Z987FKb8o0/exec"; 
 
   try {
+    const payload = {
+      action: "login",
+      id: id,
+      pass: pass
+    };
+
     const response = await fetch(GAS_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'text/plain;charset=utf-8'
       },
-      body: JSON.stringify({ action: "login", id: id, pass: pass })
+      body: JSON.stringify(payload)
     });
+
     const result = await response.json();
 
     if (result.success) {
       sessionStorage.setItem('isLoggedIn', 'true');
-      sessionStorage.setItem('userName', result.userName);
+      sessionStorage.setItem('userName', result.userName || id);
       sessionStorage.setItem('loginTime', new Date().getTime().toString());
       showPage('page-camera');
       document.getElementById('bottom-nav').style.display = 'flex';
     } else {
-      alert("IDまたはパスワードが違います");
+      alert(result.message || "IDまたはパスワードが違います");
       loginBtn.disabled = false;
       loginBtn.textContent = originalText;
       loginBtn.style.opacity = "1";
@@ -628,39 +641,16 @@ function getGuideRoiInVideo() {
   };
 }
 
-// 静止判定用の状態保持変数（グローバル領域に追加）
+// 静止判定用の状態保持変数
 let prevPoints = null;
 let stableCounter = 0;
-const STABLE_REQUIRED_FRAMES = 5; // 安定して必要な連続フレーム数（約0.5〜0.8秒）
-const STABLE_THRESHOLD_PX = 15;   // 頂点移動の許容限界ピクセル数
+const STABLE_REQUIRED_FRAMES = 5;
+const STABLE_THRESHOLD_PX = 15;
 
-// 2頂点間の距離計算ヘルパー
 function getDistance(p1, p2) {
   return Math.hypot(p1.x - p2.x, p1.y - p2.y);
 }
 
-// 安定度の判定関数
-function isPointsStable(currentPoints, previousPoints, threshold) {
-  if (!previousPoints || previousPoints.length !== 4) return false;
-  let totalMovement = 0;
-  for (let i = 0; i < 4; i++) {
-    totalMovement += getDistance(currentPoints[i], previousPoints[i]);
-  }
-  return (totalMovement / 4) < threshold;
-}  
-
-// 静止判定用の状態保持変数（グローバル領域に追加）
-let prevPoints = null;
-let stableCounter = 0;
-const STABLE_REQUIRED_FRAMES = 5; // 安定して必要な連続フレーム数（約0.5〜0.8秒）
-const STABLE_THRESHOLD_PX = 15;   // 頂点移動の許容限界ピクセル数
-
-// 2頂点間の距離計算ヘルパー
-function getDistance(p1, p2) {
-  return Math.hypot(p1.x - p2.x, p1.y - p2.y);
-}
-
-// 安定度の判定関数
 function isPointsStable(currentPoints, previousPoints, threshold) {
   if (!previousPoints || previousPoints.length !== 4) return false;
   let totalMovement = 0;
@@ -670,7 +660,6 @@ function isPointsStable(currentPoints, previousPoints, threshold) {
   return (totalMovement / 4) < threshold;
 }
 
-// 最適検出＆手振れ安定時自動撮影対応の detectLoop
 function detectLoop() {
   if (!isDetecting) return;
   if (!video || video.readyState !== 4) {
@@ -719,11 +708,9 @@ function detectLoop() {
     let rect = cv.boundingRect(cnt);
     let aspectRatio = rect.width / rect.height;
 
-    // 4角形かつアスペクト比（横長・縦長両対応）判定
     if (approx.rows === 4 && 
        ((aspectRatio >= 1.2 && aspectRatio <= 2.0) || (aspectRatio >= 0.5 && aspectRatio <= 0.8))) {
       
-      // 充填率のチェック（四角形の中に綺麗にフィットしているか）
       let rectArea = rect.width * rect.height;
       let extent = area / rectArea;
 
@@ -748,45 +735,37 @@ function detectLoop() {
   if (found && currentDetected) {
     detectedPoints = currentDetected;
 
-    // 前回の検出と安定しているか（手振れチェック）
     if (prevPoints && isPointsStable(currentDetected, prevPoints, STABLE_THRESHOLD_PX)) {
       stableCounter++;
     } else {
-      stableCounter = 1; // 揺れた場合はカウントリセット
+      stableCounter = 1;
     }
     
     prevPoints = currentDetected;
 
-    // 状態に応じたUIフィードバックと自動撮影
     if (stableCounter >= STABLE_REQUIRED_FRAMES) {
-      // 自動撮影実行
-      guideFrame.className = 'guide-stable';
-      statusEl.textContent = '撮影中...動かさないでください';
+      if (guideFrame) guideFrame.className = 'guide-stable';
+      if (statusEl) statusEl.textContent = '撮影中...動かさないでください';
       
       stableCounter = 0;
       prevPoints = null;
       
-      // 一瞬遅延を入れてUI更新を反映してからシャッター
       setTimeout(() => {
         captureBtn.click();
       }, 100);
 
-      // メモリ解放
       roiMat.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
       return;
 
     } else if (stableCounter > 1) {
-      // 静止検知中（固定を促す）
-      guideFrame.className = 'guide-stable';
-      statusEl.textContent = 'そのまま静止してください...';
+      if (guideFrame) guideFrame.className = 'guide-stable';
+      if (statusEl) statusEl.textContent = 'そのまま静止してください...';
     } else {
-      // 名刺検知状態
-      guideFrame.className = 'guide-detected';
-      statusEl.textContent = '名刺を検知しました';
+      if (guideFrame) guideFrame.className = 'guide-detected';
+      if (statusEl) statusEl.textContent = '名刺を検知しました';
     }
 
   } else {
-    // 検出できなかった場合
     detectedPoints = null;
     prevPoints = null;
     stableCounter = 0;
@@ -794,7 +773,6 @@ function detectLoop() {
     if (statusEl) statusEl.textContent = '名刺をガイド枠内に合わせてください';
   }
 
-  // メモリ解放
   roiMat.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
   
   if (isDetecting) {
@@ -802,10 +780,7 @@ function detectLoop() {
   }
 }
 
-// 安定した4頂点ソート付き透視変換関数
 function warpPerspectiveFromPoints(src, points) {
-  // x + y が最小=左上(tl), 最大=右下(br)
-  // y - x が最小=右上(tr), 最大=左下(bl)
   let sum = points.map(p => p.x + p.y);
   let diff = points.map(p => p.y - p.x);
 
@@ -834,7 +809,6 @@ function warpPerspectiveFromPoints(src, points) {
   normalized.delete(); dst.delete(); M.delete(); srcTri.delete(); dstTri.delete();
 }
 
-// 撮影ボタン押下処理
 captureBtn.addEventListener('click', async () => {
   if (!globalCardId) globalCardId = Date.now();  
   
@@ -861,7 +835,6 @@ captureBtn.addEventListener('click', async () => {
   if (finalPoints) {
     warpPerspectiveFromPoints(src, finalPoints);
   } else if (roi) {
-    // 判定できない場合はガイド枠全体をクロップ
     canvas.width = roi.w;
     canvas.height = roi.h;
     const canvasCtx = canvas.getContext('2d');
@@ -1054,7 +1027,7 @@ function renderCards(dataList) {
 function openDetail(id) {
   const item = mockData.find(d => d.id === id);
   alert(`詳細表示: ${item.name} - ${item.company}`);
-} 
+}
 </script>
 </body>
 </html>
