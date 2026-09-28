@@ -680,125 +680,93 @@ function isPointsStable(currentPoints, previousPoints, threshold) {
   return (totalMovement / 4) < threshold;
 }
 
+let lastArea = 0;
+let captureCounter = 0;
+  
 function detectLoop() {
   if (!isDetecting) return;
   if (!video || video.readyState !== 4) {
-    setTimeout(() => requestAnimationFrame(detectLoop), 150);
+    setTimeout(() => requestAnimationFrame(detectLoop), 200);
     return;
   }
   if (video.style.display === 'none') return;
-  
-  let roi = getGuideRoiInVideo();
-  if (!roi || roi.w <= 0 || roi.h <= 0) {
-    setTimeout(() => requestAnimationFrame(detectLoop), 150);
-    return;
-  }
 
   let fullMat = cv.imread(video);
-  let roiRect = new cv.Rect(roi.x, roi.y, roi.w, roi.h);
+  
+  // 画面中央 60% の領域をROI（関心領域）に設定
+  let width = fullMat.cols;
+  let height = fullMat.rows;
+  let roiRect = new cv.Rect(
+    Math.floor(width * 0.2),
+    Math.floor(height * 0.2),
+    Math.floor(width * 0.6),
+    Math.floor(height * 0.6)
+  );
+  
   let roiMat = fullMat.roi(roiRect);
-
   let gray = new cv.Mat();
-  let blur = new cv.Mat();
   let canny = new cv.Mat();
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
 
-  // 1. ノイズ除去とエッジ検出（閾値を下げて薄い影・輪郭も拾う）
   cv.cvtColor(roiMat, gray, cv.COLOR_RGBA2GRAY);
-  cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-  cv.Canny(blur, canny, 30, 100);
+  cv.Canny(gray, canny, 50, 150);
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let found = false;
-  let roiArea = roi.w * roi.h;
-  let minArea = roiArea * 0.10; // ガイド枠の10%以上の大きさがあれば対象
-  let maxAreaThreshold = roiArea * 0.98;
-  let maxFoundArea = 0;
-  let currentDetected = null;
+  let minArea = (width * height) * 0.03;
+  let maxArea = (width * height) * 0.60;
 
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
-
-    if (area < minArea || area > maxAreaThreshold) {
-      cnt.delete();
+    if (Math.abs(area - lastArea) > (area * 0.5)) {
+      lastArea = area;
       continue;
     }
-
     let approx = new cv.Mat();
-    // 近似精度を0.04に広げて多少の角の丸みや手振れを許容
-    cv.approxPolyDP(cnt, approx, 0.04 * cv.arcLength(cnt, true), true);
-    
+    // 精度が高かった近似率 (0.06)
+    cv.approxPolyDP(cnt, approx, 0.06 * cv.arcLength(cnt, true), true);
     let rect = cv.boundingRect(cnt);
     let aspectRatio = rect.width / rect.height;
+    let isGoodAspectRatio = aspectRatio > 1.3 && aspectRatio < 2.0;
 
-    // 4角形〜6角形程度まで許容（ノイズで角が増えるケースに対応）
-    if (approx.rows >= 4 && approx.rows <= 6) {
-      if (area > maxFoundArea) {
-        maxFoundArea = area;
-        found = true;
-        
-        // 4点に補正して取得
-        currentDetected = getBounding4Points(approx, rect);
-      }
+    if (approx.rows === 4 && area > minArea && area < maxArea && isGoodAspectRatio) {
+      found = true;
+      lastArea = area;
+      approx.delete();
+      break; 
     }
     approx.delete();
-    cnt.delete();
   }
-
+  
   const guideFrame = document.getElementById('guide-frame');
   const statusEl = document.getElementById('status-message');
 
-  if (found && currentDetected) {
-    detectedPoints = currentDetected;
+  if (guideFrame) {
+    guideFrame.className = found ? 'guide-detected' : 'guide-default';
+  }
+  if (statusEl) {
+    statusEl.textContent = found ? '名刺を検知しました' : 'カメラを名刺に向けてください';
+  }
 
-    // 静止判定
-    if (prevPoints && isPointsStable(currentDetected, prevPoints, STABLE_THRESHOLD_PX)) {
-      stableCounter++;
-    } else {
-      stableCounter = 1;
-    }
-    prevPoints = currentDetected;
-
-    // 【色変更処理】フレームのクラスを更新
-    if (stableCounter >= STABLE_REQUIRED_FRAMES) {
-      if (guideFrame) guideFrame.className = 'guide-stable'; // 黄色（撮影直前）
-      if (statusEl) statusEl.textContent = '撮影中...動かさないでください';
-      
-      stableCounter = 0;
-      prevPoints = null;
-      
-      setTimeout(() => {
-        captureBtn.click();
-      }, 100);
-
-      roiMat.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
+  // 連続検知で自動撮影
+  if (found) {
+    captureCounter++;
+    if (captureCounter >= 5) {
+      captureCounter = 0;
+      captureBtn.click();
+      roiMat.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
       return;
-
-    } else if (stableCounter > 1) {
-      if (guideFrame) guideFrame.className = 'guide-stable'; // 黄色
-      if (statusEl) statusEl.textContent = 'そのまま静止してください...';
-    } else {
-      if (guideFrame) guideFrame.className = 'guide-detected'; // 緑色（検出完了）
-      if (statusEl) statusEl.textContent = '名刺を検知しました';
     }
-
   } else {
-    // 検出できなかった場合はデフォルト（白点線）に戻す
-    detectedPoints = null;
-    prevPoints = null;
-    stableCounter = 0;
-    if (guideFrame) guideFrame.className = 'guide-default';
-    if (statusEl) statusEl.textContent = '名刺をガイド枠内に合わせてください';
+    captureCounter = 0;
   }
 
-  roiMat.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
-  
-  if (isDetecting) {
-    setTimeout(() => requestAnimationFrame(detectLoop), 120);
-  }
+  roiMat.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
+  setTimeout(() => requestAnimationFrame(detectLoop), 200);
 }
+  
 
 // 頂点が4つでない場合もバウンディングボックスから4点を安全に抽出する補助関数
 function getBounding4Points(approx, rect) {
@@ -819,127 +787,126 @@ function getBounding4Points(approx, rect) {
   }
 }
 
-function warpPerspectiveFromPoints(srcMat, points) {
-  // points: [{x, y}, {x, y}, {x, y}, {x, y}] (左上, 右上, 右下, 左下)
-  let p1 = points[0], p2 = points[1], p3 = points[2], p4 = points[3];
+// ==========================================
+// 精度が高かった正統派 warpPerspective (800x500 補正)
+// ==========================================
+function warpPerspective(src, contour) {
+  let perimeter = cv.arcLength(contour, true);
+  let approx = new cv.Mat();
+  cv.approxPolyDP(contour, approx, 0.04 * perimeter, true);
 
-  // 名刺の幅と高さを計算
-  let widthA = Math.hypot(p3.x - p4.x, p3.y - p4.y);
-  let widthB = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-  let maxWidth = Math.max(widthA, widthB);
+  let points = [];
+  for (let i = 0; i < 4; i++) {
+    points.push({ x: approx.data32S[i * 2], y: approx.data32S[i * 2 + 1] });
+  }
+  
+  // 4頂点の並び替え（左上、右上、右下、左下）
+  points.sort((a, b) => a.y - b.y);
+  let top = points.slice(0, 2).sort((a, b) => a.x - b.x);
+  let bottom = points.slice(2, 4).sort((a, b) => a.x - b.x);
+  let sortedPoints = [top[0], top[1], bottom[1], bottom[0]];
 
-  let heightA = Math.hypot(p2.x - p3.x, p2.y - p3.y);
-  let heightB = Math.hypot(p1.x - p4.x, p1.y - p4.y);
-  let maxHeight = Math.max(heightA, heightB);
-
-  // 変換前の4点
+  let dstWidth = 800, dstHeight = 500;
+  canvas.width = dstWidth; 
+  canvas.height = dstHeight;
+  
   let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-    p1.x, p1.y,
-    p2.x, p2.y,
-    p3.x, p3.y,
-    p4.x, p4.y
+    sortedPoints[0].x, sortedPoints[0].y,
+    sortedPoints[1].x, sortedPoints[1].y,
+    sortedPoints[2].x, sortedPoints[2].y,
+    sortedPoints[3].x, sortedPoints[3].y
   ]);
-
-  // 変換後の長方形の4点
-  let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-    0, 0,
-    maxWidth - 1, 0,
-    maxWidth - 1, maxHeight - 1,
-    0, maxHeight - 1
-  ]);
-
+  let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, dstWidth, 0, dstWidth, dstHeight, 0, dstHeight]);
+  
   let M = cv.getPerspectiveTransform(srcTri, dstTri);
   let dst = new cv.Mat();
-  let dsize = new cv.Size(maxWidth, maxHeight);
-
-  // 透視変換を実行して正面画像を作成
-  cv.warpPerspective(srcMat, dst, M, dsize, cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
-
-  // outputCanvas に描画
-  cv.imshow('outputCanvas', dst);
-
-  // メモリ解放
-  srcTri.delete();
-  dstTri.delete();
-  M.delete();
-  dst.delete();
+  cv.warpPerspective(src, dst, M, new cv.Size(dstWidth, dstHeight));
+  
+  let normalized = new cv.Mat();
+  cv.normalize(dst, normalized, 0, 255, cv.NORM_MINMAX);
+  
+  cv.imshow('outputCanvas', normalized);
+  
+  normalized.delete(); dst.delete(); M.delete(); srcTri.delete(); dstTri.delete(); approx.delete();
 }
 
+// ==========================================
+// 過去の切り取り精度を再現した captureBtn 処理
+// ==========================================
 captureBtn.addEventListener('click', async () => {
   if (!globalCardId) globalCardId = Date.now();  
-  
   isDetecting = false;
-  
+
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = video.videoWidth; 
   tempCanvas.height = video.videoHeight;
-  const ctx = tempCanvas.getContext('2d');
-  ctx.drawImage(video, 0, 0);
+  tempCanvas.getContext('2d').drawImage(video, 0, 0);
 
   let src = cv.imread(tempCanvas);
-  let finalPoints = null;
+  let gray = new cv.Mat();
+  let blur = new cv.Mat();
+  let canny = new cv.Mat();
+  let contours = new cv.MatVector();
+  let hierarchy = new cv.Mat();
 
-  let roi = getGuideRoiInVideo();
+  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+  cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
+  cv.Canny(blur, canny, 20, 80);
+  cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-  if (detectedPoints && detectedPoints.length === 4 && roi) {
-    finalPoints = detectedPoints.map(pt => ({
-      x: pt.x + roi.x,
-      y: pt.y + roi.y
-    }));
+  let bestContour = null, maxArea = 0;
+  for (let i = 0; i < contours.size(); ++i) {
+    let cnt = contours.get(i);
+    let approx = new cv.Mat();
+    cv.approxPolyDP(cnt, approx, 0.04 * cv.arcLength(cnt, true), true);
+    if (approx.rows === 4 && cv.contourArea(cnt) > maxArea) {
+      maxArea = cv.contourArea(cnt);
+      bestContour = cnt;
+    }
+    approx.delete();
   }
 
-  if (finalPoints) {
-    warpPerspectiveFromPoints(src, finalPoints);
-  } else if (roi) {
-    canvas.width = roi.w;
-    canvas.height = roi.h;
-    const canvasCtx = canvas.getContext('2d');
-
-    canvasCtx.drawImage(
-      tempCanvas,
-      roi.x, roi.y, roi.w, roi.h,
-      0, 0, roi.w, roi.h
-    );
-  }
-
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-  
- if (isFrontSide) {
-    capturedImages.front = dataUrl;
+  if (bestContour) {
+    // 過去の強力な透視変換・長方形切り抜きを実行
+    warpPerspective(src, bestContour);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
     
-    // ガイド枠内に大きくプレビュー表示
-    const guidePreview = document.getElementById('guidePreview');
-    if (guidePreview) {
-      guidePreview.src = dataUrl;
-      guidePreview.style.display = 'block';
-    }
+    if (isFrontSide) {
+      capturedImages.front = dataUrl;
+      
+      // ガイド枠の位置に拡大表示
+      const guidePreview = document.getElementById('guidePreview');
+      if (guidePreview) {
+        guidePreview.src = dataUrl;
+        guidePreview.style.display = 'block';
+      }
 
-    // 下部プレビュー（表面）にデータを準備（まだ非表示）
-    const previewFront = document.getElementById('previewFront');
-    if (previewFront) {
-      previewFront.src = dataUrl;
-      previewFront.style.display = 'none';
+      // 下部プレビューにも保存
+      const previewFront = document.getElementById('previewFront');
+      if (previewFront) previewFront.src = dataUrl;
+
+    } else {
+      capturedImages.back = dataUrl;
+      const previewBack = document.getElementById('previewBack');
+      if (previewBack) {
+        previewBack.src = dataUrl;
+        previewBack.style.display = 'block';
+      }
     }
+    
+    video.style.display = 'none';
+    canvas.style.display = 'none';
+    if (guideFrame) guideFrame.style.display = 'none';
+    
+    showActionUI();
 
   } else {
-    capturedImages.back = dataUrl;
-
-    // 裏面撮影完了時は下部の裏面プレビューを表示
-    const previewBack = document.getElementById('previewBack');
-    if (previewBack) {
-      previewBack.src = dataUrl;
-      previewBack.style.display = 'block';
-    }
+    alert("名刺をうまく認識できませんでした。もう少し近づけて再度お試しください。");
+    isDetecting = true;
+    detectLoop();
   }
-  
-  video.style.display = 'none';
-  canvas.style.display = 'none';
-  if (guideFrame) guideFrame.style.display = 'none';
-  
-  showActionUI();
 
-  src.delete();
-  detectedPoints = null;
+  src.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete();
 });
 
 // ② 「裏面を撮影」ボタン押下時
