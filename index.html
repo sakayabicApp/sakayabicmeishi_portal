@@ -628,9 +628,7 @@ async function startCamera() {
   } catch (err) { alert("カメラアクセスを許可してください"); }
 }
 
-// ==========================================
-// リアルタイム認識ロジック (detectLoop)
-// ==========================================
+
 // ==========================================
 // リアルタイム認識ロジック (detectLoop)
 // ==========================================
@@ -710,7 +708,7 @@ function detectLoop() {
     if (found) {
       guideFrame.classList.add('detected');
     } else {
-      guideFrame.classList.remove('detected');
+      guideFrame.classList.remove('detected', 'stable');
     }
   }
 
