@@ -144,7 +144,7 @@
   /* ガイド枠 */
   #guide-frame {
     position: absolute;
-    top: 40%;
+    top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     width: 82vw;
@@ -543,10 +543,79 @@ async function startCamera() {
 // --- グローバル変数の追加・更新 ---
 let isDetected = false; // 現在検知成功しているかどうかの状態フラグ
 let currentContour = null; // 検知した輪郭データを保持
+let lastDetectedQuad = null; // リアルタイムで検出した4頂点
+let captureCounter = 0;
+
+// --------------------------------------------------
+// 共通処理: OpenCV Mat から名刺の4頂点を検出する（アイデアA + B）
+// --------------------------------------------------
+function findCardQuad(srcMat) {
+  let gray = new cv.Mat();
+  let equalized = new cv.Mat();
+  let edges = new cv.Mat();
+  let contours = new cv.MatVector();
+  let hierarchy = new cv.Mat();
+
+  // アイデアA: コントラスト強調 + Canny
+  cv.cvtColor(srcMat, gray, cv.COLOR_RGBA2GRAY);
+  cv.equalizeHist(gray, equalized); // ヒストグラム平坦化
+  cv.Canny(equalized, edges, 50, 150);
+
+  let kernel = cv.Mat.ones(3, 3, cv.CV_8U);
+  cv.dilate(edges, edges, kernel); // 膨張処理で線の隙間を埋める
+
+  cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+  let bestQuad = null;
+  let fullArea = srcMat.cols * srcMat.rows;
+  let minArea = fullArea * 0.05;
+  let maxArea = fullArea * 0.85;
+
+  for (let i = 0; i < contours.size(); ++i) {
+    let cnt = contours.get(i);
+    let area = cv.contourArea(cnt);
+
+    if (area >= minArea && area <= maxArea) {
+      let approx = new cv.Mat();
+      let perimeter = cv.arcLength(cnt, true);
+      cv.approxPolyDP(cnt, approx, 0.03 * perimeter, true);
+
+      let rect = cv.boundingRect(cnt);
+      let aspectRatio = rect.width / rect.height;
+      // 名刺の縦横比チェック（縦・横対応）
+      let isGoodRatio = (aspectRatio >= 1.1 && aspectRatio <= 2.3) || (aspectRatio >= 0.4 && aspectRatio <= 0.9);
+
+      if (isGoodRatio) {
+        // アイデアB: 4頂点近似 優先
+        if (approx.rows === 4) {
+          bestQuad = [];
+          for (let j = 0; j < 4; j++) {
+            bestQuad.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
+          }
+          approx.delete();
+          break;
+        } 
+        // アイデアB (救済): 4頂点にならない場合、外接矩形から4頂点を作成
+        else if (!bestQuad) {
+          bestQuad = [
+            { x: rect.x, y: rect.y },
+            { x: rect.x + rect.width, y: rect.y },
+            { x: rect.x + rect.width, y: rect.y + rect.height },
+            { x: rect.x, y: rect.y + rect.height }
+          ];
+        }
+      }
+      approx.delete();
+    }
+  }
+
+  kernel.delete(); gray.delete(); equalized.delete(); edges.delete(); contours.delete(); hierarchy.delete();
+  return bestQuad;
+}  
   
-// ==========================================
-// リアルタイム認識ロジック (detectLoop)
-// ==========================================
+// --------------------------------------------------
+// リアルタイム認識ループ
+// --------------------------------------------------
 function detectLoop() {
   if (!isDetecting) return;
   if (!video || video.readyState !== 4) {
@@ -556,60 +625,17 @@ function detectLoop() {
   if (video.style.display === 'none') return;
 
   let fullMat = cv.imread(video);
-  let width = fullMat.cols;
-  let height = fullMat.rows;
   
-  let roiMat = fullMat;
-  let gray = new cv.Mat();
-  let blur = new cv.Mat();
-  let thresh = new cv.Mat();
-  let contours = new cv.MatVector();
-  let hierarchy = new cv.Mat();
-
-  cv.cvtColor(roiMat, gray, cv.COLOR_RGBA2GRAY);
-  cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-  cv.adaptiveThreshold(blur, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
-
-  let M = cv.Mat.ones(3, 3, cv.CV_8U);
-  cv.morphologyEx(thresh, thresh, cv.MORPH_CLOSE, M);
-
-  cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-  let found = false;
-  let roiArea = roiMat.cols * roiMat.rows;
-  let minArea = roiArea * 0.05;
-  let maxArea = roiArea * 0.85;
-
-  for (let i = 0; i < contours.size(); ++i) {
-    let cnt = contours.get(i);
-    let area = cv.contourArea(cnt);
-    
-    if (area >= minArea && area <= maxArea) {
-      let approx = new cv.Mat();
-      let perimeter = cv.arcLength(cnt, true);
-      cv.approxPolyDP(cnt, approx, 0.04 * perimeter, true);
-      
-      if (approx.rows === 4) {
-        let rect = cv.boundingRect(cnt);
-        let aspectRatio = rect.width / rect.height;
-        let isGoodAspectRatio = (aspectRatio >= 1.0 && aspectRatio <= 2.5) || (aspectRatio >= 0.4 && aspectRatio <= 1.0);
-
-        if (isGoodAspectRatio) {
-          found = true;
-          approx.delete();
-          break;
-        }
-      }
-      approx.delete();
-    }
-  }
+  // アイデアA + B による解析
+  let quad = findCardQuad(fullMat);
 
   const statusEl = document.getElementById('status-message');
   const guideEl = document.getElementById('guide-frame');
+  const captureBtn = document.getElementById('capture-btn');
 
-  isDetected = found; // フラグの更新
-
-  if (found) {
+  if (quad) {
+    isDetected = true;
+    lastDetectedQuad = quad;
     captureCounter++;
 
     if (captureCounter === 1) {
@@ -622,26 +648,27 @@ function detectLoop() {
         captureBtn.classList.remove('disabled');
         captureBtn.classList.add('active');
       }
-    } 
-    else if (captureCounter >= 2 && captureCounter < 4) {
+    } else if (captureCounter >= 2 && captureCounter < 4) {
       if (guideEl) guideEl.className = 'stable';
       if (statusEl) {
         statusEl.className = 'detected';
         statusEl.textContent = '📸 撮影中...';
       }
-    } 
-    else if (captureCounter >= 4) {
+    } else if (captureCounter >= 4) {
       captureCounter = 0;
       captureBtn.click();
-      M.delete(); gray.delete(); blur.delete(); thresh.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
+      fullMat.delete();
       return;
     }
   } else {
+    isDetected = false;
+    lastDetectedQuad = null;
     captureCounter = 0;
+
     if (guideEl) guideEl.className = '';
     if (statusEl) {
       statusEl.className = '';
-      statusEl.textContent = 'ガイド枠内に名刺を合わせてください (タップでマニュアル撮影)';
+      statusEl.textContent = 'ガイド枠内に合わせてください (タップで手動撮影)';
     }
     if (captureBtn) {
       captureBtn.classList.add('disabled');
@@ -649,103 +676,91 @@ function detectLoop() {
     }
   }
 
-  M.delete(); gray.delete(); blur.delete(); thresh.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
+  fullMat.delete();
   setTimeout(() => requestAnimationFrame(detectLoop), 200);
 }
 
-// ==========================================
-// 頂点ソート精度向上版 透視変換処理 (warpPerspective)
-// ==========================================
-function warpPerspective(src, contour) {
-  let perimeter = cv.arcLength(contour, true);
-  let approx = new cv.Mat();
-  cv.approxPolyDP(contour, approx, 0.03 * perimeter, true);
+  // --------------------------------------------------
+// 座標並び替え（左上, 右上, 右下, 左下）
+// --------------------------------------------------
+function sortPoints(pts) {
+  pts.sort((a, b) => a.y - b.y);
+  let topPts = pts.slice(0, 2).sort((a, b) => a.x - b.x);
+  let bottomPts = pts.slice(2, 4).sort((a, b) => a.x - b.x);
+  return [topPts[0], topPts[1], bottomPts[1], bottomPts[0]];
+}
+  
+// --------------------------------------------------
+// 透視変換 (補正切り抜き)
+// --------------------------------------------------
+function warpPerspective(srcMat, quadPoints) {
+  try {
+    let sorted = sortPoints(quadPoints);
+    let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+      sorted[0].x, sorted[0].y,
+      sorted[1].x, sorted[1].y,
+      sorted[2].x, sorted[2].y,
+      sorted[3].x, sorted[3].y
+    ]);
 
-  if (approx.rows !== 4) {
-    approx.delete();
+    const cardWidth = 800;
+    const cardHeight = 484; // 91:55比率
+
+    let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+      0, 0,
+      cardWidth, 0,
+      cardWidth, cardHeight,
+      0, cardHeight
+    ]);
+
+    let M = cv.getPerspectiveTransform(srcTri, dstTri);
+    let dst = new cv.Mat();
+    cv.warpPerspective(srcMat, dst, M, new cv.Size(cardWidth, cardHeight));
+
+    let outputCanvas = document.getElementById('outputCanvas');
+    outputCanvas.width = cardWidth;
+    outputCanvas.height = cardHeight;
+    cv.imshow('outputCanvas', dst);
+
+    srcTri.delete(); dstTri.delete(); M.delete(); dst.delete();
+    return true;
+  } catch (e) {
+    console.error('Warp error:', e);
     return false;
   }
-
-  let pts = [];
-  for (let i = 0; i < 4; i++) {
-    pts.push({ x: approx.data32S[i * 2], y: approx.data32S[i * 2 + 1] });
-  }
-
-  // 和(x+y) と 差(y-x) を使った高精度頂点整列
-  // 左上: x+yが最小 / 右下: x+yが最大
-  // 右上: y-xが最小 / 左下: y-xが最大
-  let sumList = pts.map(p => p.x + p.y);
-  let diffList = pts.map(p => p.y - p.x);
-
-  let topLeft = pts[sumList.indexOf(Math.min(...sumList))];
-  let bottomRight = pts[sumList.indexOf(Math.max(...sumList))];
-  let topRight = pts[diffList.indexOf(Math.min(...diffList))];
-  let bottomLeft = pts[diffList.indexOf(Math.max(...diffList))];
-
-  let sortedPoints = [topLeft, topRight, bottomRight, bottomLeft];
-
-  // 縦横の判定
-  let widthA = Math.hypot(topRight.x - topLeft.x, topRight.y - topLeft.y);
-  let heightA = Math.hypot(bottomLeft.x - topLeft.x, bottomLeft.y - topLeft.y);
-  let isLandscape = widthA >= heightA;
-
-  let dstWidth = isLandscape ? 800 : 500;
-  let dstHeight = isLandscape ? 500 : 800;
-  
-  canvas.width = dstWidth; 
-  canvas.height = dstHeight;
-  
-  let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-    sortedPoints[0].x, sortedPoints[0].y,
-    sortedPoints[1].x, sortedPoints[1].y,
-    sortedPoints[2].x, sortedPoints[2].y,
-    sortedPoints[3].x, sortedPoints[3].y
-  ]);
-  let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, dstWidth, 0, dstWidth, dstHeight, 0, dstHeight]);
-  
-  let M = cv.getPerspectiveTransform(srcTri, dstTri);
-  let dst = new cv.Mat();
-  cv.warpPerspective(src, dst, M, new cv.Size(dstWidth, dstHeight));
-  
-  let normalized = new cv.Mat();
-  cv.normalize(dst, normalized, 0, 255, cv.NORM_MINMAX);
-  
-  cv.imshow('outputCanvas', normalized);
-  
-  normalized.delete(); dst.delete(); M.delete(); srcTri.delete(); dstTri.delete(); approx.delete();
-  return true;
 }
 
-// ==========================================
-// ガイド枠基準のフォールバック切り抜き (マニュアル撮影用)
-// ==========================================
-function cropFallbackROI(src) {
-  let width = src.cols;
-  let height = src.rows;
+// --------------------------------------------------
+// ガイド枠基準のフォールバック切り抜き (無補正生切り抜き)
+// --------------------------------------------------
+function cropFallbackROI(srcMat) {
+  let w = srcMat.cols;
+  let h = srcMat.rows;
 
-  // ガイド枠の比率に合わせた中央切り抜き領域（画面中央の横80%、名刺縦横比）
-  let cropWidth = Math.floor(width * 0.82);
-  let cropHeight = Math.floor(cropWidth * 55 / 91);
-  let startX = Math.floor((width - cropWidth) / 2);
-  let startY = Math.floor((height - cropHeight) / 2);
+  let cropW = Math.floor(w * 0.82);
+  let cropH = Math.floor(cropW * 55 / 91);
+  let startX = Math.floor((w - cropW) / 2);
+  let startY = Math.floor((h - cropH) / 2);
 
-  let rect = new cv.Rect(startX, startY, cropWidth, cropHeight);
-  let roi = src.roi(rect);
+  let rect = new cv.Rect(startX, startY, cropW, cropH);
+  let roi = srcMat.roi(rect);
 
-  canvas.width = cropWidth;
-  canvas.height = cropHeight;
+  let outputCanvas = document.getElementById('outputCanvas');
+  outputCanvas.width = cropW;
+  outputCanvas.height = cropH;
   cv.imshow('outputCanvas', roi);
 
   roi.delete();
 }
 
 // ==========================================
-// 撮影ボタン処理 (分岐付き)
+// シャッターボタンタップ時の処理 (アイデアC ＆ 表裏保存対応)
 // ==========================================
-captureBtn.addEventListener('click', async () => {
+document.getElementById('capture-btn').addEventListener('click', async () => {
   if (!globalCardId) globalCardId = Date.now();  
   isDetecting = false;
 
+  // 1. 現在のカメラ映像フレームを一時キャンバスに描画
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = video.videoWidth; 
   tempCanvas.height = video.videoHeight;
@@ -754,67 +769,48 @@ captureBtn.addEventListener('click', async () => {
   let src = cv.imread(tempCanvas);
   let success = false;
 
-  // ★ 1. 認識成功時は自動補正・輪郭透視変換を実行
-  if (isDetected) {
-    let gray = new cv.Mat();
-    let blur = new cv.Mat();
-    let thresh = new cv.Mat();
-    let contours = new cv.MatVector();
-    let hierarchy = new cv.Mat();
-
-    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-    cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-    cv.adaptiveThreshold(blur, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
-
-    let kernel = cv.Mat.ones(3, 3, cv.CV_8U);
-    cv.morphologyEx(thresh, thresh, cv.MORPH_CLOSE, kernel);
-    cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-    const fullArea = src.cols * src.rows;
-    let bestContour = null;
-    let maxFoundArea = 0;
-
-    for (let i = 0; i < contours.size(); ++i) {
-      let cnt = contours.get(i);
-      let area = cv.contourArea(cnt);
-      if (area >= fullArea * 0.05 && area <= fullArea * 0.85) {
-        let approx = new cv.Mat();
-        let perimeter = cv.arcLength(cnt, true);
-        cv.approxPolyDP(cnt, approx, 0.03 * perimeter, true);
-
-        if (approx.rows === 4 && area > maxFoundArea) {
-          maxFoundArea = area;
-          bestContour = cnt;
-        }
-        approx.delete();
-      }
-    }
-
-    if (bestContour) {
-      success = warpPerspective(src, bestContour);
-    }
-
-    kernel.delete(); gray.delete(); blur.delete(); thresh.delete(); contours.delete(); hierarchy.delete();
+  // ① リアルタイム検出で既に輪郭が見つかっている場合（補正実行）
+  if (isDetected && lastDetectedQuad) {
+    success = warpPerspective(src, lastDetectedQuad);
   }
 
-  // ★ 2. 認識できていない場合（マニュアル撮影）または自動補正失敗時は生切り抜き
+  // ② アイデアC: 未検知状態でのタップ時、撮影画像から再度高精細な判定を試みる
+  if (!success) {
+    let fallbackQuad = findCardQuad(src);
+    if (fallbackQuad) {
+      success = warpPerspective(src, fallbackQuad);
+    }
+  }
+
+  // ③ それでも検知不可能な場合のみ、ガイド枠位置での無補正（生データ）切り抜き
   if (!success) {
     cropFallbackROI(src);
   }
 
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+  // 2. 切り抜き後のキャンバスからDataURL（JPEG）を取得
+  const outputCanvas = document.getElementById('outputCanvas');
+  const dataUrl = outputCanvas.toDataURL('image/jpeg', 0.9);
   
+  // 3. 表面・裏面の判定に応じた画像保存とプレビュー更新
   if (isFrontSide) {
     capturedImages.front = dataUrl;
+    
+    // ガイド枠位置に重ねる大きめプレビュー
     const guidePreview = document.getElementById('guidePreview');
     if (guidePreview) {
       guidePreview.src = dataUrl;
       guidePreview.style.display = 'block';
     }
+    
+    // 下部のサムネイル表示
     const previewFront = document.getElementById('previewFront');
-    if (previewFront) previewFront.src = dataUrl;
+    if (previewFront) {
+      previewFront.src = dataUrl;
+      previewFront.style.display = 'block';
+    }
   } else {
     capturedImages.back = dataUrl;
+    
     const previewBack = document.getElementById('previewBack');
     if (previewBack) {
       previewBack.src = dataUrl;
@@ -822,11 +818,16 @@ captureBtn.addEventListener('click', async () => {
     }
   }
   
+  // 4. ビデオ要素とガイド枠を非表示にして撮影完了後の操作ボタン（送信/裏面撮影など）を表示
   video.style.display = 'none';
-  canvas.style.display = 'none';
+  if (outputCanvas) outputCanvas.style.display = 'none';
+  
+  const guideFrame = document.getElementById('guide-frame');
   if (guideFrame) guideFrame.style.display = 'none';
   
   showActionUI();
+  
+  // メモリ解放
   src.delete();
 });
   
