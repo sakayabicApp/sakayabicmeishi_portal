@@ -656,39 +656,35 @@ function detectLoop() {
   let hierarchy = new cv.Mat();
 
   cv.cvtColor(roiMat, gray, cv.COLOR_RGBA2GRAY);
-  cv.Canny(gray, canny, 50, 150);
+  cv.Canny(gray, canny, 20, 80); // しきい値を調整済み
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let found = false;
   let roiArea = roiMat.cols * roiMat.rows;
-  // ★ROIエリアの20%以上の大きさがあるものだけを認識（小さな文字を無視）
-  let minArea = roiArea * 0.20; 
+  let minArea = roiArea * 0.20; // ROI内面積の20%以上
   let maxArea = roiArea * 0.90;
 
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
-    if (Math.abs(area - lastArea) > (area * 0.5)) {
-      lastArea = area;
-      continue;
-    }
     let approx = new cv.Mat();
-    cv.approxPolyDP(cnt, approx, 0.06 * cv.arcLength(cnt, true), true);
+    cv.approxPolyDP(cnt, approx, 0.05 * cv.arcLength(cnt, true), true);
+    
     let rect = cv.boundingRect(cnt);
     let aspectRatio = rect.width / rect.height;
     
-    // ★名刺比率の範囲を厳格化
+    // 名刺比率（横長: 1.3〜2.1 / 縦長: 0.48〜0.76）
     let isGoodAspectRatio = (aspectRatio >= 1.3 && aspectRatio <= 2.1) || (aspectRatio >= 0.48 && aspectRatio <= 0.76);
 
     if (approx.rows === 4 && area > minArea && area < maxArea && isGoodAspectRatio) {
       found = true;
-      lastArea = area;
       approx.delete();
-      break; 
+      break; // 検出成功時にループを抜ける
     }
     approx.delete();
   }
   
+  // ★修正ポイント: ループ完了後にここでフレームの色クラスとメッセージを更新
   const statusEl = document.getElementById('status-message');
 
   if (guideFrame) {
@@ -698,9 +694,10 @@ function detectLoop() {
     statusEl.textContent = found ? '名刺を検知しました' : 'カメラを名刺に向けてください';
   }
 
+  // 連続検知カウント（自動撮影）
   if (found) {
     captureCounter++;
-    if (captureCounter >= 5) {
+    if (captureCounter >= 5) { // 5回連続で検出したら自動パシャ
       captureCounter = 0;
       captureBtn.click();
       roiMat.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
@@ -713,7 +710,6 @@ function detectLoop() {
   roiMat.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
   setTimeout(() => requestAnimationFrame(detectLoop), 200);
 }
-
 // ==========================================
 // 高精度透視変換処理 (warpPerspective)
 // ==========================================
@@ -813,8 +809,20 @@ captureBtn.addEventListener('click', async () => {
 
   cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
   cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-  cv.Canny(blur, canny, 30, 100);
-  cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+  // パターン1: Cannyエッジ検出（高コントラスト用）
+  let canny = new cv.Mat();
+  cv.Canny(blur, canny, 20, 70);
+  
+  // パターン2: 大津の二値化（白背景・低コントラスト用）
+  let thresh = new cv.Mat();
+  cv.threshold(blur, thresh, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
+
+  // 両方の結果を足し合わせて輪郭の切れ目を補強
+  let combined = new cv.Mat();
+  cv.bitwise_or(canny, thresh, combined);
+
+  cv.findContours(combined, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   const fullArea = src.cols * src.rows;
   
