@@ -161,25 +161,31 @@
     z-index: 1;
   }
 
-  /* ガイド枠 */
-  #guide-frame {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 82vw;
-    max-width: 380px;
-    height: calc(82vw * 55 / 91);
-    max-height: calc(380px * 55 / 91);
-    box-sizing: border-box;
-    pointer-events: none;
-    z-index: 10;
-    border-radius: 12px;
-    border: 3px dashed rgba(255, 255, 255, 0.8);
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    transition: all 0.2s ease;
-  }
+/* ガイド枠の基本構造（色や線種は含めない） */
+#guide-frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 82vw;
+  max-width: 380px;
+  height: calc(82vw * 55 / 91);
+  max-height: calc(380px * 55 / 91);
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 10;
+  border-radius: 12px;
+  transition: border 0.2s ease, box-shadow 0.2s ease; /* アニメーション対象を限定 */
+}
 
+  /* 通常時（非検知・ガイド状態） */
+#guide-frame,
+#guide-frame.guide-default {
+  border: 3px dashed rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+  
   /* 検知時の枠色（!importantで色変更を確実に） */
   #guide-frame.detected {
     border: 4px solid #10b981 !important;
@@ -724,7 +730,7 @@ function detectLoop() {
     lastDetectedQuad = null;
     captureCounter = 0;
 
-    if (guideEl) guideEl.className = ''; // 検知なし時はクラス初期化
+    if (guideEl) guideEl.className = 'guide-default'; // ← '' から 'guide-default' に変更
     if (statusEl) {
       statusEl.className = '';
       statusEl.textContent = 'ガイド枠内に合わせてください (タップで手動撮影)';
