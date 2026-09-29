@@ -482,6 +482,7 @@ let globalCardId = null;
 let isFrontSide = true; 
 let capturedImages = { front: null, back: null };
 let captureCounter = 0;
+let lastArea = 0;
 
 const mockData = [
   { id: 1, name: "山田 太郎", company: "株式会社サンプル", image: "url_to_image" },
@@ -520,8 +521,8 @@ function checkOrientation() {
 window.addEventListener('resize', checkOrientation);
 window.addEventListener('orientationchange', checkOrientation);
 
-// ▼ 元々のログイン処理（変更なし）
-document.getElementById('loginBtn').addEventListener('click', async () => {
+// ログイン処理
+document.getElementById('loginBtn')?.addEventListener('click', async () => {
   const loginBtn = document.getElementById('loginBtn');
   const id = document.getElementById('loginId').value.trim();
   const pass = document.getElementById('loginPass').value.trim();
@@ -596,7 +597,7 @@ function showPage(pageId) {
   }
 }
 
-document.getElementById('searchInput').addEventListener('input', (e) => {
+document.getElementById('searchInput')?.addEventListener('input', (e) => {
   const query = e.target.value.toLowerCase();
   const filtered = mockData.filter(item => 
     item.name.toLowerCase().includes(query) || item.company.toLowerCase().includes(query)
@@ -626,7 +627,7 @@ async function startCamera() {
 }
 
 // ==========================================
-// リアルタイム認識ロジック (detectLoop)
+// リアルタイム認識ロジック (detectLoop) [精度再現]
 // ==========================================
 function detectLoop() {
   if (!isDetecting) return;
@@ -640,7 +641,7 @@ function detectLoop() {
   let width = fullMat.cols;
   let height = fullMat.rows;
   
-  // 中央60%のROIエリア
+  // 画面中央 60% の領域をROI（関心領域）に設定
   let roiRect = new cv.Rect(
     Math.floor(width * 0.2),
     Math.floor(height * 0.2),
@@ -650,39 +651,40 @@ function detectLoop() {
   
   let roiMat = fullMat.roi(roiRect);
   let gray = new cv.Mat();
-  let blur = new cv.Mat();
   let canny = new cv.Mat();
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
 
   cv.cvtColor(roiMat, gray, cv.COLOR_RGBA2GRAY);
-  cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-  cv.Canny(blur, canny, 30, 100);
+  cv.Canny(gray, canny, 50, 150);
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-  let roiArea = roiRect.width * roiRect.height;
-  let minArea = roiArea * 0.15; // QRコード等を排除
-  let maxArea = roiArea * 0.95;
-  
   let found = false;
+  let minArea = (width * height) * 0.03;
+  let maxArea = (width * height) * 0.60;
 
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
-
-    if (area >= minArea && area <= maxArea) {
-      let rect = cv.boundingRect(cnt);
-      let aspectRatio = rect.width / rect.height;
-
-      if ((aspectRatio >= 1.1 && aspectRatio <= 2.3) || (aspectRatio >= 0.45 && aspectRatio <= 0.9)) {
-        found = true;
-        cnt.delete();
-        break;
-      }
+    if (Math.abs(area - lastArea) > (area * 0.5)) {
+      lastArea = area;
+      continue;
     }
-    cnt.delete();
-  }
+    let approx = new cv.Mat();
+    cv.approxPolyDP(cnt, approx, 0.06 * cv.arcLength(cnt, true), true);
+    let rect = cv.boundingRect(cnt);
+    let aspectRatio = rect.width / rect.height;
+    let isGoodAspectRatio = (aspectRatio > 1.2 && aspectRatio < 2.0) || (aspectRatio > 0.5 && aspectRatio < 0.85);
 
+    if (approx.rows === 4 && area > minArea && area < maxArea && isGoodAspectRatio) {
+      found = true;
+      lastArea = area;
+      approx.delete();
+      break; 
+    }
+    approx.delete();
+  }
+  
   const statusEl = document.getElementById('status-message');
 
   if (guideFrame) {
@@ -694,22 +696,100 @@ function detectLoop() {
 
   if (found) {
     captureCounter++;
-    if (captureCounter >= 4) {
+    if (captureCounter >= 5) {
       captureCounter = 0;
       captureBtn.click();
-      roiMat.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
+      roiMat.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
       return;
     }
   } else {
     captureCounter = 0;
   }
 
-  roiMat.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
-  setTimeout(() => requestAnimationFrame(detectLoop), 150);
+  roiMat.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
+  setTimeout(() => requestAnimationFrame(detectLoop), 200);
 }
 
 // ==========================================
-// 撮影処理 (二値化＋モルフォロジーで精度大幅向上)
+// 高精度透視変換処理 (warpPerspective)
+// ==========================================
+function warpPerspective(src, contour) {
+  let perimeter = cv.arcLength(contour, true);
+  let approx = new cv.Mat();
+  cv.approxPolyDP(contour, approx, 0.04 * perimeter, true);
+
+  if (approx.rows !== 4) {
+    approx.delete();
+    return false;
+  }
+
+  let points = [];
+  for (let i = 0; i < 4; i++) {
+    points.push({ x: approx.data32S[i * 2], y: approx.data32S[i * 2 + 1] });
+  }
+  
+  // 頂点の整列（左上、右上、右下、左下）
+  points.sort((a, b) => a.y - b.y);
+  let top = points.slice(0, 2).sort((a, b) => a.x - b.x);
+  let bottom = points.slice(2, 4).sort((a, b) => b.x - a.x);
+  let sortedPoints = [top[0], top[1], bottom[0], bottom[1]];
+
+  // 縦横判定
+  let widthA = Math.hypot(sortedPoints[1].x - sortedPoints[0].x, sortedPoints[1].y - sortedPoints[0].y);
+  let heightA = Math.hypot(sortedPoints[3].x - sortedPoints[0].x, sortedPoints[3].y - sortedPoints[0].y);
+  let isLandscape = widthA >= heightA;
+
+  let dstWidth = isLandscape ? 800 : 500;
+  let dstHeight = isLandscape ? 500 : 800;
+  
+  canvas.width = dstWidth; 
+  canvas.height = dstHeight;
+  
+  let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+    sortedPoints[0].x, sortedPoints[0].y,
+    sortedPoints[1].x, sortedPoints[1].y,
+    sortedPoints[2].x, sortedPoints[2].y,
+    sortedPoints[3].x, sortedPoints[3].y
+  ]);
+  let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, dstWidth, 0, dstWidth, dstHeight, 0, dstHeight]);
+  
+  let M = cv.getPerspectiveTransform(srcTri, dstTri);
+  let dst = new cv.Mat();
+  cv.warpPerspective(src, dst, M, new cv.Size(dstWidth, dstHeight));
+  
+  let normalized = new cv.Mat();
+  cv.normalize(dst, normalized, 0, 255, cv.NORM_MINMAX);
+  
+  cv.imshow('outputCanvas', normalized);
+  
+  normalized.delete(); dst.delete(); M.delete(); srcTri.delete(); dstTri.delete(); approx.delete();
+  return true;
+}
+
+// ==========================================
+// 自動補正不可時のフォールバック処理（手動ガイド枠切り抜き）
+// ==========================================
+function cropFallbackROI(srcMat) {
+  let width = srcMat.cols;
+  let height = srcMat.rows;
+  
+  // 画面中央付近の標準ガイドエリアに合わせてカット
+  let rect = new cv.Rect(
+    Math.floor(width * 0.15),
+    Math.floor(height * 0.25),
+    Math.floor(width * 0.7),
+    Math.floor(height * 0.5)
+  );
+  
+  let cropped = srcMat.roi(rect);
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  cv.imshow('outputCanvas', cropped);
+  cropped.delete();
+}
+
+// ==========================================
+// 撮影ボタン処理
 // ==========================================
 captureBtn.addEventListener('click', async () => {
   if (!globalCardId) globalCardId = Date.now();  
@@ -718,52 +798,42 @@ captureBtn.addEventListener('click', async () => {
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = video.videoWidth; 
   tempCanvas.height = video.videoHeight;
-  const ctx = tempCanvas.getContext('2d');
-  ctx.drawImage(video, 0, 0);
+  tempCanvas.getContext('2d').drawImage(video, 0, 0);
 
   let src = cv.imread(tempCanvas);
   let gray = new cv.Mat();
   let blur = new cv.Mat();
-  let binary = new cv.Mat();
-  let kernel = cv.Mat.ones(5, 5, cv.CV_8U);
+  let canny = new cv.Mat();
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
 
-  // 1. ノイズ除去
   cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
   cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
+  cv.Canny(blur, canny, 20, 80);
+  cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-  // 2. 大津の二値化（白黒はっきり分離）
-  cv.threshold(blur, binary, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
-
-  // 3. モルフォロジー処理（途切れた枠線・文字穴の結合）
-  cv.morphologyEx(binary, binary, cv.MORPH_CLOSE, kernel);
-
-  // 4. 外枠輪郭抽出
-  cv.findContours(binary, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-  let fullArea = src.cols * src.rows;
-  let minCardArea = fullArea * 0.05;
-  let maxCardArea = fullArea * 0.85;
-  
-  let bestContour = null;
-  let maxFoundArea = 0;
-
+  let bestContour = null, maxArea = 0;
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
-    if (area >= minCardArea && area <= maxCardArea) {
-      if (area > maxFoundArea) {
-        maxFoundArea = area;
-        bestContour = cnt;
-      }
+    let approx = new cv.Mat();
+    cv.approxPolyDP(cnt, approx, 0.04 * cv.arcLength(cnt, true), true);
+    
+    if (approx.rows === 4 && area > maxArea) {
+      maxArea = area;
+      bestContour = cnt;
     }
+    approx.delete();
   }
 
+  let success = false;
   if (bestContour) {
-    cropCardFromContour(src, bestContour);
-  } else {
-    // 輪郭取得失敗時のフォールバック（中央ガイド枠位置でそのままカット）
+    // 高精度透視変換を実行
+    success = warpPerspective(src, bestContour);
+  }
+
+  // 精度補正に失敗、または輪郭が取れなかった場合は手動撮影用フォールバック
+  if (!success) {
     cropFallbackROI(src);
   }
 
@@ -793,80 +863,17 @@ captureBtn.addEventListener('click', async () => {
   
   showActionUI();
 
-  // メモリ解放
-  src.delete(); gray.delete(); blur.delete(); binary.delete();
-  kernel.delete(); contours.delete(); hierarchy.delete();
+  src.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete();
 });
 
-// ==========================================
-// 外接回転矩形からの正確な補正切り抜き関数
-// ==========================================
-function cropCardFromContour(srcMat, contour) {
-  let rotatedRect = cv.minAreaRect(contour);
-  let vertices = cv.RotatedRect.points(rotatedRect);
-
-  let pts = [
-    { x: vertices[0].x, y: vertices[0].y },
-    { x: vertices[1].x, y: vertices[1].y },
-    { x: vertices[2].x, y: vertices[2].y },
-    { x: vertices[3].x, y: vertices[3].y }
-  ];
-
-  // 頂点を上下左右で正しく並べ替え
-  pts.sort((a, b) => a.y - b.y);
-  let topTwo = pts.slice(0, 2).sort((a, b) => a.x - b.x);
-  let bottomTwo = pts.slice(2, 4).sort((a, b) => b.x - a.x);
-
-  let sortedPoints = [topTwo[0], topTwo[1], bottomTwo[0], bottomTwo[1]];
-
-  let dstWidth = 800, dstHeight = 500;
-  canvas.width = dstWidth;
-  canvas.height = dstHeight;
-
-  let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-    sortedPoints[0].x, sortedPoints[0].y,
-    sortedPoints[1].x, sortedPoints[1].y,
-    sortedPoints[2].x, sortedPoints[2].y,
-    sortedPoints[3].x, sortedPoints[3].y
-  ]);
-  let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, dstWidth, 0, dstWidth, dstHeight, 0, dstHeight]);
-
-  let M = cv.getPerspectiveTransform(srcTri, dstTri);
-  let dst = new cv.Mat();
-  cv.warpPerspective(srcMat, dst, M, new cv.Size(dstWidth, dstHeight));
-
-  cv.imshow('outputCanvas', dst);
-
-  srcTri.delete(); dstTri.delete(); M.delete(); dst.delete();
-}
-
-// 万が一輪郭が検知できない場合に処理を止めないフォールバック
-function cropFallbackROI(srcMat) {
-  let width = srcMat.cols;
-  let height = srcMat.rows;
-  let rect = new cv.Rect(
-    Math.floor(width * 0.15),
-    Math.floor(height * 0.25),
-    Math.floor(width * 0.7),
-    Math.floor(height * 0.5)
-  );
-  let cropped = srcMat.roi(rect);
-  canvas.width = rect.width;
-  canvas.height = rect.height;
-  cv.imshow('outputCanvas', cropped);
-  cropped.delete();
-}
-
-// ② 「裏面を撮影」ボタン押下時
+// ボタンアクション制御など
 backCaptureBtn.addEventListener('click', () => {
   isFrontSide = false;
-
   const guidePreview = document.getElementById('guidePreview');
   if (guidePreview) {
     guidePreview.style.display = 'none';
     guidePreview.src = "";
   }
-
   const previewFront = document.getElementById('previewFront');
   if (previewFront && capturedImages.front) {
     previewFront.style.display = 'block';
@@ -923,7 +930,6 @@ function showCaptureUI() {
   }
 }
 
-// ③ プレビューリセット関数
 function resetPreview() {
   const guidePreview = document.getElementById('guidePreview');
   if (guidePreview) {
@@ -1017,6 +1023,7 @@ window.addEventListener('load', () => {
 
 function renderCards(dataList) {
   const container = document.getElementById('card-container');
+  if (!container) return;
   container.innerHTML = "";
 
   dataList.forEach(item => {
