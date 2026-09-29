@@ -682,6 +682,10 @@ function isPointsStable(currentPoints, previousPoints, threshold) {
 
 let lastArea = 0;
   
+// ==========================================
+// 過去の精度向上ロジックを反映した detectLoop
+// ==========================================
+
 function detectLoop() {
   if (!isDetecting) return;
   if (!video || video.readyState !== 4) {
@@ -692,6 +696,7 @@ function detectLoop() {
 
   let fullMat = cv.imread(video);
   
+  // 画面中央 60% の領域をROI（関心領域）に設定
   let width = fullMat.cols;
   let height = fullMat.rows;
   let roiRect = new cv.Rect(
@@ -709,51 +714,35 @@ function detectLoop() {
 
   cv.cvtColor(roiMat, gray, cv.COLOR_RGBA2GRAY);
   cv.Canny(gray, canny, 50, 150);
-  // RETR_EXTERNAL で一番外側の輪郭のみを対象にする
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let found = false;
-  let roiArea = roiRect.width * roiRect.height;
-  
-  // ★名刺サイズフィルタリング（ROIの15%〜95%の範囲のみ名刺とみなす）
-  // これにより小さなQRコードやアイコン（数%以下）は無視されます
-  let minArea = roiArea * 0.15; 
-  let maxArea = roiArea * 0.95;
+  let minArea = (width * height) * 0.03;
+  let maxArea = (width * height) * 0.60;
 
-  // 輪郭を面積順（大きい順）に評価するための配列を作成
-  let contourList = [];
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
-    contourList.push({ cnt: cnt, area: cv.contourArea(cnt) });
-  }
-  // 面積が大きい順にソート
-  contourList.sort((a, b) => b.area - a.area);
-
-  for (let item of contourList) {
-    let cnt = item.cnt;
-    let area = item.area;
-
-    // 小さすぎる四角（QR等）や大きすぎる領域はスキップ
-    if (area < minArea || area > maxArea) {
+    let area = cv.contourArea(cnt);
+    if (Math.abs(area - lastArea) > (area * 0.5)) {
+      lastArea = area;
       continue;
     }
-
     let approx = new cv.Mat();
-    cv.approxPolyDP(cnt, approx, 0.05 * cv.arcLength(cnt, true), true);
+    // 精度が高かった近似率 (0.06)
+    cv.approxPolyDP(cnt, approx, 0.06 * cv.arcLength(cnt, true), true);
     let rect = cv.boundingRect(cnt);
     let aspectRatio = rect.width / rect.height;
-    
-    // 名刺らしいアスペクト比（横長・縦長両対応）
-    let isGoodAspectRatio = (aspectRatio >= 1.2 && aspectRatio <= 2.2) || (aspectRatio >= 0.45 && aspectRatio <= 0.85);
+    let isGoodAspectRatio = aspectRatio > 1.3 && aspectRatio < 2.0;
 
-    if (approx.rows === 4 && isGoodAspectRatio) {
+    if (approx.rows === 4 && area > minArea && area < maxArea && isGoodAspectRatio) {
       found = true;
+      lastArea = area;
       approx.delete();
-      break; // 一番大きくて条件に合う四角（＝名刺）が見つかったので抜ける
+      break; 
     }
     approx.delete();
   }
-
+  
   const guideFrame = document.getElementById('guide-frame');
   const statusEl = document.getElementById('status-message');
 
@@ -764,6 +753,7 @@ function detectLoop() {
     statusEl.textContent = found ? '名刺を検知しました' : 'カメラを名刺に向けてください';
   }
 
+  // 連続検知で自動撮影
   if (found) {
     captureCounter++;
     if (captureCounter >= 5) {
@@ -779,7 +769,6 @@ function detectLoop() {
   roiMat.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
   setTimeout(() => requestAnimationFrame(detectLoop), 200);
 }
-  
 
 // 頂点が4つでない場合もバウンディングボックスから4点を安全に抽出する補助関数
 function getBounding4Points(approx, rect) {
@@ -846,6 +835,9 @@ function warpPerspective(src, contour) {
 // ==========================================
 // 過去の切り取り精度を再現した captureBtn 処理
 // ==========================================
+// ==========================================
+// 過去の切り取り精度を再現した captureBtn 処理
+// ==========================================
 captureBtn.addEventListener('click', async () => {
   if (!globalCardId) globalCardId = Date.now();  
   isDetecting = false;
@@ -864,45 +856,40 @@ captureBtn.addEventListener('click', async () => {
 
   cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
   cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-  cv.Canny(blur, canny, 30, 100);
+  cv.Canny(blur, canny, 20, 80);
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-  let fullArea = src.cols * src.rows;
-  let minCardArea = fullArea * 0.05; // 画面全体の5%以上の大きさがあるものだけ
-  let bestContour = null;
-  let maxFoundArea = 0;
-
+  let bestContour = null, maxArea = 0;
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
-    let area = cv.contourArea(cnt);
-    
-    // 小さすぎる輪郭（QRコード等）は無視
-    if (area < minCardArea) continue;
-
     let approx = new cv.Mat();
     cv.approxPolyDP(cnt, approx, 0.04 * cv.arcLength(cnt, true), true);
-
-    // 4角形かつ、これまでに見つかったものより大きい場合更新
-    if (approx.rows === 4 && area > maxFoundArea) {
-      maxFoundArea = area;
+    if (approx.rows === 4 && cv.contourArea(cnt) > maxArea) {
+      maxArea = cv.contourArea(cnt);
       bestContour = cnt;
     }
     approx.delete();
   }
 
   if (bestContour) {
+    // 過去の強力な透視変換・長方形切り抜きを実行
     warpPerspective(src, bestContour);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
     
     if (isFrontSide) {
       capturedImages.front = dataUrl;
+      
+      // ガイド枠の位置に拡大表示
       const guidePreview = document.getElementById('guidePreview');
       if (guidePreview) {
         guidePreview.src = dataUrl;
         guidePreview.style.display = 'block';
       }
+
+      // 下部プレビューにも保存
       const previewFront = document.getElementById('previewFront');
       if (previewFront) previewFront.src = dataUrl;
+
     } else {
       capturedImages.back = dataUrl;
       const previewBack = document.getElementById('previewBack');
@@ -919,13 +906,14 @@ captureBtn.addEventListener('click', async () => {
     showActionUI();
 
   } else {
-    alert("名刺サイズとして認識できる領域が見つかりませんでした。枠内に収めてお試しください。");
+    alert("名刺をうまく認識できませんでした。もう少し近づけて再度お試しください。");
     isDetecting = true;
     detectLoop();
   }
 
   src.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete();
 });
+  
 // ② 「裏面を撮影」ボタン押下時
 backCaptureBtn.addEventListener('click', () => {
   isFrontSide = false;
