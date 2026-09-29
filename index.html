@@ -42,14 +42,14 @@
   }
 
   .page {
-    height: calc(100vh - 65px); /* ナビバー分を除いた高さ */
+    height: calc(100vh - 65px);
     width: 100vw;
     overflow-y: auto;
     display: none;
     box-sizing: border-box;
   }
 
-  /* 縦画面警告オーバーレイ（修正追加） */
+  /* 縦画面警告オーバーレイ */
   #orientation-warning {
     position: fixed;
     top: 0;
@@ -180,6 +180,7 @@
     transition: all 0.2s ease;
   }
 
+  /* 検知時の枠色（!importantで色変更を確実に） */
   #guide-frame.detected {
     border: 4px solid #10b981 !important;
     box-shadow: 0 0 20px rgba(16, 185, 129, 0.8) !important;
@@ -217,7 +218,7 @@
 
   #guidePreview {
     position: absolute;
-    top: 50%; /* ガイド枠と位置を一致（修正） */
+    top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 15;
@@ -330,7 +331,7 @@
   #retryBackBtn { background: #d97706; }
   #retryAllBtn { background: var(--danger); }
 
-  /* 下部ナビゲーションバー（修正追加） */
+  /* 下部ナビゲーションバー */
   #bottom-nav {
     position: fixed;
     bottom: 0;
@@ -370,7 +371,7 @@
     font-weight: bold;
   }
 
-  /* 検索画面用簡易CSS */
+  /* 検索画面CSS */
   .search-header { padding: 16px; }
   .search-header input {
     width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid #334155; background: #1e293b; color: #fff;
@@ -614,7 +615,7 @@ async function startCamera() {
 }
 
 // --------------------------------------------------
-// 共通処理: OpenCV Mat から名刺の4頂点を検出する（アイデアA + B）
+// 共通処理: OpenCV Mat から名刺の4頂点を検出する（誤認識防止ロジック追加）
 // --------------------------------------------------
 function findCardQuad(srcMat) {
   let gray = new cv.Mat();
@@ -623,10 +624,10 @@ function findCardQuad(srcMat) {
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
 
-  // アイデアA: コントラスト強調 + Canny
+  // コントラスト強調 + エッジ検出
   cv.cvtColor(srcMat, gray, cv.COLOR_RGBA2GRAY);
   cv.equalizeHist(gray, equalized);
-  cv.Canny(equalized, edges, 50, 150);
+  cv.Canny(equalized, edges, 70, 200); // 閾値を少し上げて細かい内部線の拾いすぎを防止
 
   let kernel = cv.Mat.ones(3, 3, cv.CV_8U);
   cv.dilate(edges, edges, kernel);
@@ -634,41 +635,35 @@ function findCardQuad(srcMat) {
   cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let bestQuad = null;
+  let maxDetectedArea = 0; // 最も大きい外側輪郭を優先するための変数
   let fullArea = srcMat.cols * srcMat.rows;
-  let minArea = fullArea * 0.05;
-  let maxArea = fullArea * 0.85;
+  
+  // 名刺として適切な面積範囲（カメラ画面の 15% ～ 80%）
+  let minArea = fullArea * 0.15;
+  let maxArea = fullArea * 0.80;
 
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
 
-    if (area >= minArea && area <= maxArea) {
+    // 一番外側の大きい四角形（名刺の外枠）を優先採用する
+    if (area >= minArea && area <= maxArea && area > maxDetectedArea) {
       let approx = new cv.Mat();
       let perimeter = cv.arcLength(cnt, true);
       cv.approxPolyDP(cnt, approx, 0.03 * perimeter, true);
 
       let rect = cv.boundingRect(cnt);
       let aspectRatio = rect.width / rect.height;
-      let isGoodRatio = (aspectRatio >= 1.1 && aspectRatio <= 2.3) || (aspectRatio >= 0.4 && aspectRatio <= 0.9);
+      let isGoodRatio = (aspectRatio >= 1.2 && aspectRatio <= 2.2) || (aspectRatio >= 0.45 && aspectRatio <= 0.85);
 
       if (isGoodRatio) {
-        // アイデアB: 4頂点近似 優先
         if (approx.rows === 4) {
-          bestQuad = [];
+          let quadCandidate = [];
           for (let j = 0; j < 4; j++) {
-            bestQuad.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
+            quadCandidate.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
           }
-          approx.delete();
-          break;
-        } 
-        // アイデアB (救済): 4頂点にならない場合、外接矩形から4頂点を作成
-        else if (!bestQuad) {
-          bestQuad = [
-            { x: rect.x, y: rect.y },
-            { x: rect.x + rect.width, y: rect.y },
-            { x: rect.x + rect.width, y: rect.y + rect.height },
-            { x: rect.x, y: rect.y + rect.height }
-          ];
+          bestQuad = quadCandidate;
+          maxDetectedArea = area; // より大きな輪郭が見つかったら更新
         }
       }
       approx.delete();
@@ -677,10 +672,10 @@ function findCardQuad(srcMat) {
 
   kernel.delete(); gray.delete(); equalized.delete(); edges.delete(); contours.delete(); hierarchy.delete();
   return bestQuad;
-}  
-  
+}
+
 // --------------------------------------------------
-// リアルタイム認識ループ
+// リアルタイム認識ループ (フレーム色変更の確実化)
 // --------------------------------------------------
 function detectLoop() {
   if (!isDetecting) return;
@@ -691,7 +686,6 @@ function detectLoop() {
   if (video.style.display === 'none') return;
 
   let fullMat = cv.imread(video);
-  
   let quad = findCardQuad(fullMat);
 
   const statusEl = document.getElementById('status-message');
@@ -704,7 +698,7 @@ function detectLoop() {
     captureCounter++;
 
     if (captureCounter === 1) {
-      if (guideEl) guideEl.className = 'detected';
+      if (guideEl) guideEl.className = 'detected'; // クラスを正しく上書き
       if (statusEl) {
         statusEl.className = 'detected';
         statusEl.textContent = '名刺を検知しました';
@@ -730,7 +724,7 @@ function detectLoop() {
     lastDetectedQuad = null;
     captureCounter = 0;
 
-    if (guideEl) guideEl.className = '';
+    if (guideEl) guideEl.className = ''; // 検知なし時はクラス初期化
     if (statusEl) {
       statusEl.className = '';
       statusEl.textContent = 'ガイド枠内に合わせてください (タップで手動撮影)';
