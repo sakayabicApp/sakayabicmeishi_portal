@@ -161,38 +161,29 @@
     z-index: 1;
   }
 
-/* ガイド枠の基本構造・通常時（非検知状態：白破線） */
-#guide-frame {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 82vw;
-  max-width: 380px;
-  height: calc(82vw * 55 / 91);
-  max-height: calc(380px * 55 / 91);
-  box-sizing: border-box;
-  pointer-events: none;
-  z-index: 10;
-  border-radius: 12px;
-  
-  /* 通常時の見た目 */
-  border: 3px dashed rgba(255, 255, 255, 0.85);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-  
-  /* 色や線種の変化をなめらかにする */
-  transition: all 0.2s ease;
-}
+  /* ガイド枠の基本構造・通常時（非検知状態：白破線） */
+  #guide-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 82vw;
+    max-width: 380px;
+    height: calc(82vw * 55 / 91);
+    max-height: calc(380px * 55 / 91);
+    box-sizing: border-box;
+    pointer-events: none;
+    z-index: 10;
+    border-radius: 12px;
+    border: 3px dashed rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    transition: all 0.2s ease;
+  }
 
-/* 検知時（緑色・実線） */
-#guide-frame.detected {
-  border: 4px solid #10b981 !important;
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.8) !important;
-}
-
-  @keyframes pulse-stable {
-    0% { transform: translate(-50%, -50%) scale(0.99); }
-    100% { transform: translate(-50%, -50%) scale(1.01); }
+  /* 検知時（緑色・実線） */
+  #guide-frame.detected {
+    border: 4px solid #10b981 !important;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.8) !important;
   }
 
   #status-message {
@@ -287,12 +278,6 @@
     background-color: #ffffff;
     border-radius: 50%;
     transition: all 0.2s ease;
-  }
-
-  #capture-btn.disabled {
-    opacity: 0.6;
-    filter: grayscale(50%);
-    border-color: rgba(255, 255, 255, 0.6);
   }
 
   #capture-btn.active::after {
@@ -411,10 +396,8 @@
   <div id="camera-container">
     <div id="status-message">名刺をガイド枠内に合わせてください</div>
     <video id="video" playsinline autoplay></video>
-    <div id="guide-frame"></div> <!-- class="guide-default" を削除 -->
+    <div id="guide-frame"></div>
     <img id="guidePreview" style="display: none;" />
-  </div>
-</div>
     
     <div id="previewContainer">
       <img id="previewFront" class="preview-card" alt="表面">
@@ -467,7 +450,6 @@ let isDetecting = true;
 let globalCardId = null; 
 let isFrontSide = true; 
 let capturedImages = { front: null, back: null };
-let captureCounter = 0;
 
 let isDetected = false;
 let lastDetectedQuad = null;
@@ -615,7 +597,7 @@ async function startCamera() {
 }
 
 // --------------------------------------------------
-// 共通処理: OpenCV Mat から名刺の4頂点を検出する（誤認識防止ロジック追加）
+// OpenCV 4頂点検知（元の認識ロジックそのまま）
 // --------------------------------------------------
 function findCardQuad(srcMat) {
   let gray = new cv.Mat();
@@ -627,7 +609,7 @@ function findCardQuad(srcMat) {
   // コントラスト強調 + エッジ検出
   cv.cvtColor(srcMat, gray, cv.COLOR_RGBA2GRAY);
   cv.equalizeHist(gray, equalized);
-  cv.Canny(equalized, edges, 70, 200); // 閾値を少し上げて細かい内部線の拾いすぎを防止
+  cv.Canny(equalized, edges, 70, 200);
 
   let kernel = cv.Mat.ones(3, 3, cv.CV_8U);
   cv.dilate(edges, edges, kernel);
@@ -635,10 +617,9 @@ function findCardQuad(srcMat) {
   cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let bestQuad = null;
-  let maxDetectedArea = 0; // 最も大きい外側輪郭を優先するための変数
+  let maxDetectedArea = 0;
   let fullArea = srcMat.cols * srcMat.rows;
   
-  // 名刺として適切な面積範囲（カメラ画面の 15% ～ 80%）
   let minArea = fullArea * 0.15;
   let maxArea = fullArea * 0.80;
 
@@ -646,7 +627,6 @@ function findCardQuad(srcMat) {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
 
-    // 一番外側の大きい四角形（名刺の外枠）を優先採用する
     if (area >= minArea && area <= maxArea && area > maxDetectedArea) {
       let approx = new cv.Mat();
       let perimeter = cv.arcLength(cnt, true);
@@ -663,7 +643,7 @@ function findCardQuad(srcMat) {
             quadCandidate.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
           }
           bestQuad = quadCandidate;
-          maxDetectedArea = area; // より大きな輪郭が見つかったら更新
+          maxDetectedArea = area;
         }
       }
       approx.delete();
@@ -675,7 +655,7 @@ function findCardQuad(srcMat) {
 }
 
 // --------------------------------------------------
-// リアルタイム認識ループ (自動撮影なし・手動タップ専用)
+// リアルタイム認識ループ
 // --------------------------------------------------
 function detectLoop() {
   if (!isDetecting) return;
@@ -696,33 +676,28 @@ function detectLoop() {
     isDetected = true;
     lastDetectedQuad = quad;
 
-    // 名刺を検知している間は緑枠を表示＆シャッターボタンを有効化
     if (guideEl) {
-      guideEl.classList.remove('stable');
       guideEl.classList.add('detected');
     }
     if (statusEl) {
-      statusEl.className = 'detected';
+      statusEl.classList.add('detected');
       statusEl.textContent = '名刺を検知しました (ボタンを押して撮影)';
     }
     if (captureBtn) {
-      captureBtn.classList.remove('disabled');
       captureBtn.classList.add('active');
     }
   } else {
-    // 名刺が外れたら通常の白破線枠に戻す
     isDetected = false;
     lastDetectedQuad = null;
 
     if (guideEl) {
-      guideEl.classList.remove('detected', 'stable');
+      guideEl.classList.remove('detected');
     }
     if (statusEl) {
-      statusEl.className = '';
+      statusEl.classList.remove('detected');
       statusEl.textContent = 'ガイド枠内に合わせてください (タップで手動撮影)';
     }
     if (captureBtn) {
-      captureBtn.classList.add('disabled');
       captureBtn.classList.remove('active');
     }
   }
@@ -731,19 +706,13 @@ function detectLoop() {
   setTimeout(() => requestAnimationFrame(detectLoop), 200);
 }
 
-// --------------------------------------------------
-// 座標並び替え（左上, 右上, 右下, 左下）
-// --------------------------------------------------
 function sortPoints(pts) {
   pts.sort((a, b) => a.y - b.y);
   let topPts = pts.slice(0, 2).sort((a, b) => a.x - b.x);
   let bottomPts = pts.slice(2, 4).sort((a, b) => a.x - b.x);
   return [topPts[0], topPts[1], bottomPts[1], bottomPts[0]];
 }
-  
-// --------------------------------------------------
-// 透視変換 (補正切り抜き)
-// --------------------------------------------------
+
 function warpPerspective(srcMat, quadPoints) {
   try {
     let sorted = sortPoints(quadPoints);
@@ -755,7 +724,7 @@ function warpPerspective(srcMat, quadPoints) {
     ]);
 
     const cardWidth = 800;
-    const cardHeight = 484; // 91:55比率
+    const cardHeight = 484;
 
     let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
       0, 0,
@@ -781,9 +750,6 @@ function warpPerspective(srcMat, quadPoints) {
   }
 }
 
-// --------------------------------------------------
-// ガイド枠基準のフォールバック切り抜き (無補正生切り抜き)
-// --------------------------------------------------
 function cropFallbackROI(srcMat) {
   let w = srcMat.cols;
   let h = srcMat.rows;
@@ -804,9 +770,7 @@ function cropFallbackROI(srcMat) {
   roi.delete();
 }
 
-// ==========================================
-// シャッターボタンタップ時の処理 (アイデアC ＆ 表裏保存対応)
-// ==========================================
+// シャッターボタンタップ時
 document.getElementById('capture-btn').addEventListener('click', async () => {
   if (!globalCardId) globalCardId = Date.now();  
   isDetecting = false;
@@ -930,7 +894,7 @@ function showCaptureUI() {
   
   if (guideFrame) {
     guideFrame.style.display = 'block';
-    guideFrame.classList.remove('detected', 'stable'); // 色クラスだけ外してデフォルトに戻す
+    guideFrame.classList.remove('detected');
   }
 }
 
