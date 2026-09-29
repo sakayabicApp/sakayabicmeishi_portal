@@ -205,6 +205,7 @@
     color: #ffffff;
   }   
 
+ /* 撮影後のガイドプレビュー（表面単体表示時） */
   #guidePreview {
     position: absolute;
     top: 50%;
@@ -222,31 +223,40 @@
     display: none;
   }
 
+  /* 表裏2枚の縦並びプレビューコンテナ */
   #previewContainer {
-    position: relative;
-    z-index: 12;
-    display: flex;
+    position: absolute;
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 15;
+    display: none;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    margin-top: auto;
-    margin-bottom: 10px;
+    gap: 12px;
+    max-height: 70vh;
+    overflow-y: auto;
   }
 
+  /* プレビューカード（表面プレビューと同等のサイズに拡大） */
   .preview-card {
-    width: 140px;
-    height: 84px;
-    border-radius: 8px;
+    width: 78vw;
+    max-width: 340px;
+    height: calc(78vw * 55 / 91);
+    max-height: calc(340px * 55 / 91);
+    border-radius: 12px;
     object-fit: contain;
     background: #000;
-    border: 2px solid #fff;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-    display: none;
+    border: 2px solid #ffffff;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.6);
   }
 
+  /* コントロール（ボタン類）のレイヤー設定 */
   #controls {
-    position: relative;
-    z-index: 20;
+    position: absolute;
+    bottom: 30px;
+    left: 0;
+    z-index: 30; /* プレビューより前面に表示 */
     width: 100%;
     display: flex;
     justify-content: center;
@@ -813,7 +823,7 @@ document.getElementById('capture-btn').addEventListener('click', async () => {
   const outputCanvas = document.getElementById('outputCanvas');
   const dataUrl = outputCanvas.toDataURL('image/jpeg', 0.9);
   
-  if (isFrontSide) {
+if (isFrontSide) {
     capturedImages.front = dataUrl;
     
     const guidePreview = document.getElementById('guidePreview');
@@ -825,7 +835,6 @@ document.getElementById('capture-btn').addEventListener('click', async () => {
     const previewFront = document.getElementById('previewFront');
     if (previewFront) {
       previewFront.src = dataUrl;
-      previewFront.style.display = 'block';
     }
   } else {
     capturedImages.back = dataUrl;
@@ -833,9 +842,16 @@ document.getElementById('capture-btn').addEventListener('click', async () => {
     const previewBack = document.getElementById('previewBack');
     if (previewBack) {
       previewBack.src = dataUrl;
-      previewBack.style.display = 'block';
     }
+
+    // 裏面撮影完了時は単体ガイドプレビューを隠し、表裏縦並びコンテナを表示
+    const guidePreview = document.getElementById('guidePreview');
+    if (guidePreview) guidePreview.style.display = 'none';
+
+    const previewContainer = document.getElementById('previewContainer');
+    if (previewContainer) previewContainer.style.display = 'flex';
   }
+  
   
   video.style.display = 'none';
   if (outputCanvas) outputCanvas.style.display = 'none';
@@ -868,7 +884,15 @@ retryBackBtn.addEventListener('click', () => {
   isFrontSide = false;
   capturedImages.back = null;
   document.getElementById('previewBack').src = "";
-  document.getElementById('previewBack').style.display = 'none';
+  
+  const previewContainer = document.getElementById('previewContainer');
+  if (previewContainer) previewContainer.style.display = 'none';
+
+  const guidePreview = document.getElementById('guidePreview');
+  if (guidePreview && capturedImages.front) {
+    guidePreview.style.display = 'block';
+  }
+
   showCaptureUI();
   isDetecting = true;
   detectLoop();
@@ -917,10 +941,13 @@ function resetPreview() {
     guidePreview.src = "";
   }
 
+  const previewContainer = document.getElementById('previewContainer');
+  if (previewContainer) previewContainer.style.display = 'none';
+
   const pFront = document.getElementById('previewFront');
   const pBack = document.getElementById('previewBack');
-  if (pFront) { pFront.style.display = 'none'; pFront.src = ""; }
-  if (pBack) { pBack.style.display = 'none'; pBack.src = ""; }
+  if (pFront) { pFront.src = ""; }
+  if (pBack) { pBack.src = ""; }
 }
 
 async function uploadAllImages() {
