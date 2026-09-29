@@ -716,7 +716,7 @@ function detectLoop() {
   }
 
   // 連続検知カウント（自動撮影）
-  if (found) if (found) {
+  if (found) {
     console.log("★名刺検知成功！");
   }else {
     captureCounter = 0;
@@ -896,6 +896,8 @@ captureBtn.addEventListener('click', async () => {
   // メモリ解放
   kernel.delete(); src.delete(); gray.delete(); blur.delete(); thresh.delete(); contours.delete(); hierarchy.delete();
 });
+
+  
 // ボタンアクション制御など
 backCaptureBtn.addEventListener('click', () => {
   isFrontSide = false;
