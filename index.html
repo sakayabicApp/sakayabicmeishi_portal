@@ -158,6 +158,14 @@
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
+
+ /* 通常時のガイド枠 */
+.guide-default {
+  border: 3px dashed #ffffff;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); /* 枠外を暗くする */
+  transition: border-color 0.2s ease;
+}
+
 /* 基本のガイド枠（未検知時） */
 .guide-frame, #guideFrame {
   border: 3px dashed #ffffff; /* または赤やオレンジ等 */
@@ -717,8 +725,15 @@ function detectLoop() {
 
   // 連続検知カウント（自動撮影）
   if (found) {
+    
     console.log("★名刺検知成功！");
-  }else {
+    captureCounter++;
+    if (captureCounter >= 3) { // 5回連続検知で自動撮影
+      captureCounter = 0;
+      captureBtn.click();
+      M.delete(); roiMat.delete(); gray.delete(); blur.delete(); thresh.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
+      return;
+    }else {
     captureCounter = 0;
   }
 
