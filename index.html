@@ -811,7 +811,7 @@ captureBtn.addEventListener('click', async () => {
   cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
 
   // パターン1: Cannyエッジ検出（高コントラスト用）
-  let canny = new cv.Mat();
+
   cv.Canny(blur, canny, 20, 70);
   
   // パターン2: 大津の二値化（白背景・低コントラスト用）
