@@ -660,8 +660,10 @@ function detectLoop() {
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let found = false;
-  let minArea = (width * height) * 0.03;
-  let maxArea = (width * height) * 0.60;
+  let roiArea = roiMat.cols * roiMat.rows;
+  // ★ROIエリアの20%以上の大きさがあるものだけを認識（小さな文字を無視）
+  let minArea = roiArea * 0.20; 
+  let maxArea = roiArea * 0.90;
 
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
@@ -674,7 +676,9 @@ function detectLoop() {
     cv.approxPolyDP(cnt, approx, 0.06 * cv.arcLength(cnt, true), true);
     let rect = cv.boundingRect(cnt);
     let aspectRatio = rect.width / rect.height;
-    let isGoodAspectRatio = (aspectRatio > 1.2 && aspectRatio < 2.0) || (aspectRatio > 0.5 && aspectRatio < 0.85);
+    
+    // ★名刺比率の範囲を厳格化
+    let isGoodAspectRatio = (aspectRatio >= 1.3 && aspectRatio <= 2.1) || (aspectRatio >= 0.48 && aspectRatio <= 0.76);
 
     if (approx.rows === 4 && area > minArea && area < maxArea && isGoodAspectRatio) {
       found = true;
@@ -809,30 +813,54 @@ captureBtn.addEventListener('click', async () => {
 
   cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
   cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-  cv.Canny(blur, canny, 20, 80);
+  cv.Canny(blur, canny, 30, 100);
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-  let bestContour = null, maxArea = 0;
+  const fullArea = src.cols * src.rows;
+  
+  // ★調整ポイント1: 最小面積を引き上げて小さな四角（文字・QRコード等）を除外
+  // 画面全体の12%〜85%の範囲にある四角のみを対象にする
+  const minCardArea = fullArea * 0.12; 
+  const maxCardArea = fullArea * 0.85;
+
+  let bestContour = null;
+  let maxFoundArea = 0;
+
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
-    let approx = new cv.Mat();
-    cv.approxPolyDP(cnt, approx, 0.04 * cv.arcLength(cnt, true), true);
     
-    if (approx.rows === 4 && area > maxArea) {
-      maxArea = area;
-      bestContour = cnt;
+    if (area >= minCardArea && area <= maxCardArea) {
+      let approx = new cv.Mat();
+      let perimeter = cv.arcLength(cnt, true);
+      cv.approxPolyDP(cnt, approx, 0.04 * perimeter, true);
+
+      // 4頂点であること
+      if (approx.rows === 4) {
+        let rect = cv.boundingRect(cnt);
+        let aspectRatio = rect.width / rect.height;
+
+        // ★調整ポイント2: 名刺の長方形比率（縦横比）を厳格化して正方形に近い文字を弾く
+        // 横長: 1.3〜2.1 / 縦長: 0.48〜0.76
+        let isLandscapeCard = (aspectRatio >= 1.3 && aspectRatio <= 2.1);
+        let isPortraitCard  = (aspectRatio >= 0.48 && aspectRatio <= 0.76);
+
+        if ((isLandscapeCard || isPortraitCard) && area > maxFoundArea) {
+          maxFoundArea = area;
+          bestContour = cnt;
+        }
+      }
+      approx.delete();
     }
-    approx.delete();
   }
 
   let success = false;
   if (bestContour) {
-    // 高精度透視変換を実行
+    // 条件に合致した中で「最も大きい四角」を透視変換
     success = warpPerspective(src, bestContour);
   }
 
-  // 精度補正に失敗、または輪郭が取れなかった場合は手動撮影用フォールバック
+  // 自動検出に失敗した場合は手動用ガイド枠で切り抜き（フォールバック）
   if (!success) {
     cropFallbackROI(src);
   }
