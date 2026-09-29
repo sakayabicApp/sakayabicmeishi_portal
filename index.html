@@ -681,7 +681,7 @@ function findCardQuad(srcMat) {
 }
 
 // --------------------------------------------------
-// リアルタイム認識ループ (classListでの確実な色切り替え)
+// リアルタイム認識ループ (自動撮影なし・手動タップ専用)
 // --------------------------------------------------
 function detectLoop() {
   if (!isDetecting) return;
@@ -701,43 +701,25 @@ function detectLoop() {
   if (quad) {
     isDetected = true;
     lastDetectedQuad = quad;
-    captureCounter++;
 
-    if (captureCounter === 1) {
-      // クラスを一旦クリアして 'detected' を追加
-      if (guideEl) {
-        guideEl.classList.remove('stable');
-        guideEl.classList.add('detected');
-      }
-      if (statusEl) {
-        statusEl.className = 'detected';
-        statusEl.textContent = '名刺を検知しました';
-      }
-      if (captureBtn) {
-        captureBtn.classList.remove('disabled');
-        captureBtn.classList.add('active');
-      }
-    } else if (captureCounter >= 2 && captureCounter < 4) {
-      if (guideEl) {
-        guideEl.classList.remove('detected');
-        guideEl.classList.add('stable');
-      }
-      if (statusEl) {
-        statusEl.className = 'detected';
-        statusEl.textContent = '📸 撮影中...';
-      }
-    } else if (captureCounter >= 4) {
-      captureCounter = 0;
-      captureBtn.click();
-      fullMat.delete();
-      return;
+    // 名刺を検知している間は緑枠を表示＆シャッターボタンを有効化
+    if (guideEl) {
+      guideEl.classList.remove('stable');
+      guideEl.classList.add('detected');
+    }
+    if (statusEl) {
+      statusEl.className = 'detected';
+      statusEl.textContent = '名刺を検知しました (ボタンを押して撮影)';
+    }
+    if (captureBtn) {
+      captureBtn.classList.remove('disabled');
+      captureBtn.classList.add('active');
     }
   } else {
+    // 名刺が外れたら通常の白破線枠に戻す
     isDetected = false;
     lastDetectedQuad = null;
-    captureCounter = 0;
 
-    // 検知外時は追加クラスを外す（元の白枠に戻る）
     if (guideEl) {
       guideEl.classList.remove('detected', 'stable');
     }
