@@ -141,48 +141,40 @@
       z-index: 1;
     }
 
-    /* ガイドフレーム（初期表示CSS修正） */
-    #guide-frame {
-      position: absolute;
-      top: 40%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 10;
-      width: 82vw;
-      max-width: 380px;
-      height: calc(82vw * 55 / 91);
-      max-height: calc(380px * 55 / 91);
-      border-radius: 12px;
-      pointer-events: none;
-      box-sizing: border-box;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-
-
- /* 通常時のガイド枠 */
-.guide-default {
+/* ==========================================
+   ガイド枠の基本スタイル（位置・サイズ指定）
+   ========================================== */
+.guide-frame, #guideFrame, .guide-default {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;  /* JS側のROI設定（60%）と合わせる */
+  height: 50%; /* 名刺の比率に合わせて調整 */
+  box-sizing: border-box;
+  pointer-events: none; /* カメラ操作を邪魔しない */
+  z-index: 10;
+  
+  /* 未検知時（デフォルト）の線デザイン */
   border: 3px dashed #ffffff;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); /* 枠外を暗くする */
-  transition: border-color 0.2s ease;
-}
-
-/* 基本のガイド枠（未検知時） */
-.guide-frame, #guideFrame {
-  border: 3px dashed #ffffff; /* または赤やオレンジ等 */
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-  transition: border-color 0.2s ease, border-style 0.2s ease;
+  transition: border-color 0.2s ease, border-style 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* ★検知成功時の枠色（!importantで確実に上書き） */
-.guide-frame.detected, #guideFrame.detected {
-  border: 4px solid #00ff00 !important; /* 緑色の実線 */
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.8) !important;
+/* ==========================================
+   ★検知成功時の枠色（緑色）
+   ========================================== */
+.guide-frame.detected, #guideFrame.detected, .guide-detected {
+  border: 4px solid #00ff00 !important;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.8) !important;
 }
 
-  /* 安定して自動撮影準備中（黄・点滅） */
-.guide-stable {
+/* ==========================================
+   ★自動撮影カウントダウン中（黄色・点滅）
+   ========================================== */
+.guide-frame.stable, #guideFrame.stable, .guide-stable {
   border: 4px solid #f59e0b !important;
-  box-shadow: 0 0 25px #f59e0b, 0 0 0 9999px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 0 25px #f59e0b !important;
   animation: pulse-stable 0.4s infinite alternate;
 }
 
@@ -639,6 +631,9 @@ async function startCamera() {
 // ==========================================
 // リアルタイム認識ロジック (detectLoop)
 // ==========================================
+// ==========================================
+// リアルタイム認識ロジック (detectLoop)
+// ==========================================
 function detectLoop() {
   if (!isDetecting) return;
   if (!video || video.readyState !== 4) {
@@ -708,7 +703,7 @@ function detectLoop() {
     }
   }
   
-  // ★修正ポイント: classList を使って検知クラスの追加・削除を確実に行う
+  // UI表記および枠色の更新
   const statusEl = document.getElementById('status-message');
 
   if (guideFrame) {
@@ -725,7 +720,6 @@ function detectLoop() {
 
   // 連続検知カウント（自動撮影）
   if (found) {
-    
     console.log("★名刺検知成功！");
     captureCounter++;
     if (captureCounter >= 3) { // 5回連続検知で自動撮影
@@ -733,7 +727,8 @@ function detectLoop() {
       captureBtn.click();
       M.delete(); roiMat.delete(); gray.delete(); blur.delete(); thresh.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
       return;
-    }else {
+    }
+  } else {
     captureCounter = 0;
   }
 
