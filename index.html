@@ -770,9 +770,19 @@ function cropFallbackROI(srcMat) {
   roi.delete();
 }
 
+// 短いカードIDを生成する関数（例: "260929-a8f"）
+function generateShortCardId() {
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const rand = Math.random().toString(36).substring(2, 5); // ランダム英数字3文字
+  return `${yy}${mm}${dd}-${rand}`;
+}
+  
 // シャッターボタンタップ時
 document.getElementById('capture-btn').addEventListener('click', async () => {
-  if (!globalCardId) globalCardId = Date.now();  
+  if (!globalCardId) globalCardId = generateShortCardId();
   isDetecting = false;
 
   const tempCanvas = document.createElement('canvas');
@@ -913,11 +923,13 @@ function resetPreview() {
 
 async function uploadAllImages() {
   const cloudRunUrl = 'https://upload-meishi-function-769951420007.asia-northeast2.run.app';
-
+// セッションからユーザーコードを取得（未保持の場合は'unknown'）
+  const userCode = sessionStorage.getItem('userCode') || 'unknown';
+  
   if (capturedImages.front) {
     const frontPayload = {
       base64Data: capturedImages.front.split(',')[1],
-      fileName: `card_${globalCardId}_front.jpg`
+      fileName: `card_${globalCardId}_${userCode}_front.jpg`
     };
     const res1 = await fetch(cloudRunUrl, {
       method: 'POST',
@@ -930,7 +942,7 @@ async function uploadAllImages() {
   if (capturedImages.back) {
     const backPayload = {
       base64Data: capturedImages.back.split(',')[1],
-      fileName: `card_${globalCardId}_back.jpg`
+      fileName: `card_${globalCardId}_${userCode}_back.jpg`
     };
     const res2 = await fetch(cloudRunUrl, {
       method: 'POST',
