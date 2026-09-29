@@ -42,15 +42,35 @@
   }
 
   .page {
-    height: 100vh;
+    height: calc(100vh - 65px); /* ナビバー分を除いた高さ */
     width: 100vw;
     overflow-y: auto;
     display: none;
     box-sizing: border-box;
   }
 
+  /* 縦画面警告オーバーレイ（修正追加） */
+  #orientation-warning {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: #ffffff;
+    padding: 20px;
+  }
+
   /* ログイン */
   #page-login {
+    height: 100vh;
     background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
     display: flex;
     justify-content: center;
@@ -121,7 +141,7 @@
   #camera-container {
     position: relative;
     width: 100vw;
-    height: calc(100vh - 65px);
+    height: 100%;
     background: #000;
     display: flex;
     flex-direction: column;
@@ -197,7 +217,7 @@
 
   #guidePreview {
     position: absolute;
-    top: 50%;
+    top: 50%; /* ガイド枠と位置を一致（修正） */
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 15;
@@ -258,7 +278,7 @@
     align-items: center;
     transition: all 0.2s ease;
     position: relative;
-    z-index: 30; /* タップ阻害を防ぐ */
+    z-index: 30;
   }
 
   #capture-btn::after {
@@ -270,14 +290,12 @@
     transition: all 0.2s ease;
   }
 
-  /* 未検知時（タップは可能） */
   #capture-btn.disabled {
     opacity: 0.6;
     filter: grayscale(50%);
     border-color: rgba(255, 255, 255, 0.6);
   }
 
-  /* 検知成功時 */
   #capture-btn.active::after {
     background-color: #10b981;
     transform: scale(0.9);
@@ -311,78 +329,60 @@
   #backCaptureBtn { background: var(--warning); }
   #retryBackBtn { background: #d97706; }
   #retryAllBtn { background: var(--danger); }
-/* ナビゲーションバーのスタイル（追加） */
-#bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100vw;
-  height: 65px;
-  background: #1e293b;
-  display: none; /* ログイン後に flex 表示 */
-  justify-content: space-around;
-  align-items: center;
-  z-index: 100; /* 最前面に配置 */
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
 
-#bottom-nav button {
-  flex: 1;
-  height: 100%;
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  font-size: 12px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
+  /* 下部ナビゲーションバー（修正追加） */
+  #bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 65px;
+    background: #1e293b;
+    display: none;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 100;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
 
-#bottom-nav button span {
-  font-size: 20px;
-}
+  #bottom-nav button {
+    flex: 1;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
 
-#bottom-nav button.active {
-  color: #ffffff;
-  font-weight: bold;
-}
+  #bottom-nav button span {
+    font-size: 20px;
+  }
 
-/* 縦画面警告オーバーレイ（追加） */
-#orientation-warning {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(10px);
-  z-index: 9999; /* 全ての要素の上に重ねる */
-  display: none; /* JavaScriptの checkOrientation() で切り替え */
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  color: #ffffff;
-  padding: 20px;
-}  
+  #bottom-nav button.active {
+    color: #ffffff;
+    font-weight: bold;
+  }
 
-  #camera-container {
-  position: relative;
-  width: 100vw;
-  height: calc(100vh - 65px); /* ナビゲーションバーの高さ分を引く */
-  background: #000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 20px;
-  overflow: hidden;
-}
-  
+  /* 検索画面用簡易CSS */
+  .search-header { padding: 16px; }
+  .search-header input {
+    width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid #334155; background: #1e293b; color: #fff;
+  }
+  #card-container { padding: 0 16px; }
+  .card {
+    background: #1e293b; color: #fff; padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card h3 { margin: 0 0 4px 0; font-size: 16px; }
+  .card p { margin: 0; font-size: 13px; color: #94a3b8; }
+  .detail-btn { background: var(--primary); color: #fff; border: none; padding: 8px 14px; border-radius: 6px; }
 </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
 </head>
@@ -413,7 +413,6 @@
     <div id="status-message">名刺をガイド枠内に合わせてください</div>
     <video id="video" playsinline autoplay></video>
     <div id="guide-frame" class="guide-default"></div>
-<!-- 【追加】表面撮影直後にガイド枠位置へ大きく表示するプレビュー -->
     <img id="guidePreview" style="display: none;" />
     
     <div id="previewContainer">
@@ -468,7 +467,9 @@ let globalCardId = null;
 let isFrontSide = true; 
 let capturedImages = { front: null, back: null };
 let captureCounter = 0;
-let lastArea = 0;
+
+let isDetected = false;
+let lastDetectedQuad = null;
 
 const mockData = [
   { id: 1, name: "山田 太郎", company: "株式会社サンプル", image: "url_to_image" },
@@ -612,12 +613,6 @@ async function startCamera() {
   } catch (err) { alert("カメラアクセスを許可してください"); }
 }
 
-// --- グローバル変数の追加・更新 ---
-let isDetected = false; // 現在検知成功しているかどうかの状態フラグ
-let currentContour = null; // 検知した輪郭データを保持
-let lastDetectedQuad = null; // リアルタイムで検出した4頂点
-
-
 // --------------------------------------------------
 // 共通処理: OpenCV Mat から名刺の4頂点を検出する（アイデアA + B）
 // --------------------------------------------------
@@ -630,11 +625,11 @@ function findCardQuad(srcMat) {
 
   // アイデアA: コントラスト強調 + Canny
   cv.cvtColor(srcMat, gray, cv.COLOR_RGBA2GRAY);
-  cv.equalizeHist(gray, equalized); // ヒストグラム平坦化
+  cv.equalizeHist(gray, equalized);
   cv.Canny(equalized, edges, 50, 150);
 
   let kernel = cv.Mat.ones(3, 3, cv.CV_8U);
-  cv.dilate(edges, edges, kernel); // 膨張処理で線の隙間を埋める
+  cv.dilate(edges, edges, kernel);
 
   cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
@@ -654,7 +649,6 @@ function findCardQuad(srcMat) {
 
       let rect = cv.boundingRect(cnt);
       let aspectRatio = rect.width / rect.height;
-      // 名刺の縦横比チェック（縦・横対応）
       let isGoodRatio = (aspectRatio >= 1.1 && aspectRatio <= 2.3) || (aspectRatio >= 0.4 && aspectRatio <= 0.9);
 
       if (isGoodRatio) {
@@ -698,7 +692,6 @@ function detectLoop() {
 
   let fullMat = cv.imread(video);
   
-  // アイデアA + B による解析
   let quad = findCardQuad(fullMat);
 
   const statusEl = document.getElementById('status-message');
@@ -752,7 +745,7 @@ function detectLoop() {
   setTimeout(() => requestAnimationFrame(detectLoop), 200);
 }
 
-  // --------------------------------------------------
+// --------------------------------------------------
 // 座標並び替え（左上, 右上, 右下, 左下）
 // --------------------------------------------------
 function sortPoints(pts) {
@@ -832,7 +825,6 @@ document.getElementById('capture-btn').addEventListener('click', async () => {
   if (!globalCardId) globalCardId = Date.now();  
   isDetecting = false;
 
-  // 1. 現在のカメラ映像フレームを一時キャンバスに描画
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = video.videoWidth; 
   tempCanvas.height = video.videoHeight;
@@ -841,12 +833,10 @@ document.getElementById('capture-btn').addEventListener('click', async () => {
   let src = cv.imread(tempCanvas);
   let success = false;
 
-  // ① リアルタイム検出で既に輪郭が見つかっている場合（補正実行）
   if (isDetected && lastDetectedQuad) {
     success = warpPerspective(src, lastDetectedQuad);
   }
 
-  // ② アイデアC: 未検知状態でのタップ時、撮影画像から再度高精細な判定を試みる
   if (!success) {
     let fallbackQuad = findCardQuad(src);
     if (fallbackQuad) {
@@ -854,27 +844,22 @@ document.getElementById('capture-btn').addEventListener('click', async () => {
     }
   }
 
-  // ③ それでも検知不可能な場合のみ、ガイド枠位置での無補正（生データ）切り抜き
   if (!success) {
     cropFallbackROI(src);
   }
 
-  // 2. 切り抜き後のキャンバスからDataURL（JPEG）を取得
   const outputCanvas = document.getElementById('outputCanvas');
   const dataUrl = outputCanvas.toDataURL('image/jpeg', 0.9);
   
-  // 3. 表面・裏面の判定に応じた画像保存とプレビュー更新
   if (isFrontSide) {
     capturedImages.front = dataUrl;
     
-    // ガイド枠位置に重ねる大きめプレビュー
     const guidePreview = document.getElementById('guidePreview');
     if (guidePreview) {
       guidePreview.src = dataUrl;
       guidePreview.style.display = 'block';
     }
     
-    // 下部のサムネイル表示
     const previewFront = document.getElementById('previewFront');
     if (previewFront) {
       previewFront.src = dataUrl;
@@ -890,7 +875,6 @@ document.getElementById('capture-btn').addEventListener('click', async () => {
     }
   }
   
-  // 4. ビデオ要素とガイド枠を非表示にして撮影完了後の操作ボタン（送信/裏面撮影など）を表示
   video.style.display = 'none';
   if (outputCanvas) outputCanvas.style.display = 'none';
   
@@ -898,12 +882,9 @@ document.getElementById('capture-btn').addEventListener('click', async () => {
   if (guideFrame) guideFrame.style.display = 'none';
   
   showActionUI();
-  
-  // メモリ解放
   src.delete();
 });
   
-// ボタンアクション制御など
 backCaptureBtn.addEventListener('click', () => {
   isFrontSide = false;
   const guidePreview = document.getElementById('guidePreview');
