@@ -656,7 +656,7 @@ function detectLoop() {
   let hierarchy = new cv.Mat();
 
   cv.cvtColor(roiMat, gray, cv.COLOR_RGBA2GRAY);
-  cv.Canny(gray, canny, 20, 80); // しきい値を調整済み
+  cv.Canny(gray, canny, 10, 60); // しきい値を調整済み
   cv.findContours(canny, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let found = false;
@@ -668,7 +668,7 @@ function detectLoop() {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
     let approx = new cv.Mat();
-    cv.approxPolyDP(cnt, approx, 0.05 * cv.arcLength(cnt, true), true);
+    cv.approxPolyDP(cnt, approx, 0.03 * cv.arcLength(cnt, true), true);
     
     let rect = cv.boundingRect(cnt);
     let aspectRatio = rect.width / rect.height;
@@ -710,6 +710,8 @@ function detectLoop() {
   roiMat.delete(); gray.delete(); canny.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
   setTimeout(() => requestAnimationFrame(detectLoop), 200);
 }
+
+  
 // ==========================================
 // 高精度透視変換処理 (warpPerspective)
 // ==========================================
@@ -788,8 +790,9 @@ function cropFallbackROI(srcMat) {
   cropped.delete();
 }
 
+
 // ==========================================
-// 撮影ボタン処理
+// 撮影ボタン処理（白・黒背景 バランス調整版）
 // ==========================================
 captureBtn.addEventListener('click', async () => {
   if (!globalCardId) globalCardId = Date.now();  
@@ -804,31 +807,31 @@ captureBtn.addEventListener('click', async () => {
   let gray = new cv.Mat();
   let blur = new cv.Mat();
   let canny = new cv.Mat();
+  let thresh = new cv.Mat();
+  let combined = new cv.Mat();
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
 
+  // 1. グレースケール ＆ ノイズ除去
   cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
   cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
 
-  // パターン1: Cannyエッジ検出（高コントラスト用）
-
-  cv.Canny(blur, canny, 20, 70);
+  // 2. Cannyエッジ検出（低閾値で薄い線も拾う）
+  cv.Canny(blur, canny, 10, 60);
   
-  // パターン2: 大津の二値化（白背景・低コントラスト用）
-  let thresh = new cv.Mat();
-  cv.threshold(blur, thresh, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
+  // 3. 大津の二値化（白背景・黒背景双方のコントラストを補強）
+  cv.threshold(blur, thresh, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
 
-  // 両方の結果を足し合わせて輪郭の切れ目を補強
-  let combined = new cv.Mat();
+  // 4. エッジと二値化のOR結合
   cv.bitwise_or(canny, thresh, combined);
 
+  // 5. 輪郭抽出
   cv.findContours(combined, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   const fullArea = src.cols * src.rows;
   
-  // ★調整ポイント1: 最小面積を引き上げて小さな四角（文字・QRコード等）を除外
-  // 画面全体の12%〜85%の範囲にある四角のみを対象にする
-  const minCardArea = fullArea * 0.12; 
+  // バランス調整値1: 面積フィルタ（10%〜85%）
+  const minCardArea = fullArea * 0.10; 
   const maxCardArea = fullArea * 0.85;
 
   let bestContour = null;
@@ -841,17 +844,18 @@ captureBtn.addEventListener('click', async () => {
     if (area >= minCardArea && area <= maxCardArea) {
       let approx = new cv.Mat();
       let perimeter = cv.arcLength(cnt, true);
-      cv.approxPolyDP(cnt, approx, 0.04 * perimeter, true);
+      
+      // バランス調整値2: 近似精度を0.03に設定（影や傾きに強い四角形判定）
+      cv.approxPolyDP(cnt, approx, 0.03 * perimeter, true);
 
-      // 4頂点であること
+      // 4頂点の判定
       if (approx.rows === 4) {
         let rect = cv.boundingRect(cnt);
         let aspectRatio = rect.width / rect.height;
 
-        // ★調整ポイント2: 名刺の長方形比率（縦横比）を厳格化して正方形に近い文字を弾く
-        // 横長: 1.3〜2.1 / 縦長: 0.48〜0.76
-        let isLandscapeCard = (aspectRatio >= 1.3 && aspectRatio <= 2.1);
-        let isPortraitCard  = (aspectRatio >= 0.48 && aspectRatio <= 0.76);
+        // バランス調整値3: 傾きを考慮したアスペクト比
+        let isLandscapeCard = (aspectRatio >= 1.25 && aspectRatio <= 2.2);
+        let isPortraitCard  = (aspectRatio >= 0.45 && aspectRatio <= 0.80);
 
         if ((isLandscapeCard || isPortraitCard) && area > maxFoundArea) {
           maxFoundArea = area;
@@ -864,11 +868,10 @@ captureBtn.addEventListener('click', async () => {
 
   let success = false;
   if (bestContour) {
-    // 条件に合致した中で「最も大きい四角」を透視変換
     success = warpPerspective(src, bestContour);
   }
 
-  // 自動検出に失敗した場合は手動用ガイド枠で切り抜き（フォールバック）
+  // 検出失敗時の手動ガイド切り抜きフォールバック
   if (!success) {
     cropFallbackROI(src);
   }
@@ -899,7 +902,8 @@ captureBtn.addEventListener('click', async () => {
   
   showActionUI();
 
-  src.delete(); gray.delete(); blur.delete(); canny.delete(); contours.delete(); hierarchy.delete();
+  // メモリ解放
+  src.delete(); gray.delete(); blur.delete(); canny.delete(); thresh.delete(); combined.delete(); contours.delete(); hierarchy.delete();
 });
 
 // ボタンアクション制御など
