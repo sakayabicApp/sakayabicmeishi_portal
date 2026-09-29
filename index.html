@@ -175,28 +175,24 @@
   pointer-events: none;
   z-index: 10;
   border-radius: 12px;
-  transition: border 0.2s ease, box-shadow 0.2s ease; /* アニメーション対象を限定 */
-}
-
-  /* 通常時（非検知・ガイド状態） */
-#guide-frame,
-#guide-frame.guide-default {
+  /* デフォルトの白枠・破線 */
   border: 3px dashed rgba(255, 255, 255, 0.85);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
 }
 
-  
-  /* 検知時の枠色（!importantで色変更を確実に） */
-  #guide-frame.detected {
-    border: 4px solid #10b981 !important;
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.8) !important;
-  }
+/* 検知時（緑色・実線） */
+#guide-frame.detected {
+  border: 4px solid #10b981 !important;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.8) !important;
+}
 
-  #guide-frame.stable {
-    border: 4px solid #f59e0b !important;
-    box-shadow: 0 0 25px rgba(245, 158, 11, 0.9) !important;
-    animation: pulse-stable 0.3s infinite alternate;
-  }
+/* 撮影中（オレンジ色・実線） */
+#guide-frame.stable {
+  border: 4px solid #f59e0b !important;
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.9) !important;
+  animation: pulse-stable 0.3s infinite alternate;
+}
 
   @keyframes pulse-stable {
     0% { transform: translate(-50%, -50%) scale(0.99); }
@@ -681,7 +677,7 @@ function findCardQuad(srcMat) {
 }
 
 // --------------------------------------------------
-// リアルタイム認識ループ (フレーム色変更の確実化)
+// リアルタイム認識ループ (classListでの確実な色切り替え)
 // --------------------------------------------------
 function detectLoop() {
   if (!isDetecting) return;
@@ -704,7 +700,11 @@ function detectLoop() {
     captureCounter++;
 
     if (captureCounter === 1) {
-      if (guideEl) guideEl.className = 'detected'; // クラスを正しく上書き
+      // クラスを一旦クリアして 'detected' を追加
+      if (guideEl) {
+        guideEl.classList.remove('stable');
+        guideEl.classList.add('detected');
+      }
       if (statusEl) {
         statusEl.className = 'detected';
         statusEl.textContent = '名刺を検知しました';
@@ -714,7 +714,10 @@ function detectLoop() {
         captureBtn.classList.add('active');
       }
     } else if (captureCounter >= 2 && captureCounter < 4) {
-      if (guideEl) guideEl.className = 'stable';
+      if (guideEl) {
+        guideEl.classList.remove('detected');
+        guideEl.classList.add('stable');
+      }
       if (statusEl) {
         statusEl.className = 'detected';
         statusEl.textContent = '📸 撮影中...';
@@ -730,7 +733,10 @@ function detectLoop() {
     lastDetectedQuad = null;
     captureCounter = 0;
 
-    if (guideEl) guideEl.className = 'guide-default'; // ← '' から 'guide-default' に変更
+    // 検知外時は追加クラスを外す（元の白枠に戻る）
+    if (guideEl) {
+      guideEl.classList.remove('detected', 'stable');
+    }
     if (statusEl) {
       statusEl.className = '';
       statusEl.textContent = 'ガイド枠内に合わせてください (タップで手動撮影)';
