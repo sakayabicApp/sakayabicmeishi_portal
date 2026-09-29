@@ -197,7 +197,7 @@
 
   #guidePreview {
     position: absolute;
-    top: 40%;
+    top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 15;
@@ -311,6 +311,78 @@
   #backCaptureBtn { background: var(--warning); }
   #retryBackBtn { background: #d97706; }
   #retryAllBtn { background: var(--danger); }
+/* ナビゲーションバーのスタイル（追加） */
+#bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  height: 65px;
+  background: #1e293b;
+  display: none; /* ログイン後に flex 表示 */
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100; /* 最前面に配置 */
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#bottom-nav button {
+  flex: 1;
+  height: 100%;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#bottom-nav button span {
+  font-size: 20px;
+}
+
+#bottom-nav button.active {
+  color: #ffffff;
+  font-weight: bold;
+}
+
+/* 縦画面警告オーバーレイ（追加） */
+#orientation-warning {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  z-index: 9999; /* 全ての要素の上に重ねる */
+  display: none; /* JavaScriptの checkOrientation() で切り替え */
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: #ffffff;
+  padding: 20px;
+}  
+
+  #camera-container {
+  position: relative;
+  width: 100vw;
+  height: calc(100vh - 65px); /* ナビゲーションバーの高さ分を引く */
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 20px;
+  overflow: hidden;
+}
+  
 </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
 </head>
