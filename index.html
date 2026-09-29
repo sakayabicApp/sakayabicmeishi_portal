@@ -521,6 +521,8 @@ document.getElementById('loginBtn')?.addEventListener('click', async () => {
 
     if (result.success) {
       sessionStorage.setItem('isLoggedIn', 'true');
+      // ↓ この行を追加して userCode を保存します
+      sessionStorage.setItem('userCode', result.userCode || id);
       sessionStorage.setItem('userName', result.userName || id);
       sessionStorage.setItem('loginTime', new Date().getTime().toString());
       showPage('page-camera');
