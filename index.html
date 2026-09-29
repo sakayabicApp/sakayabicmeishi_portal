@@ -4,439 +4,314 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>酒ゃビック名刺管理システム</title>
-  <style>
-    :root {
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --bg-dark: #0f172a;
-      --bg-card: #ffffff;
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-      --radius-lg: 20px;
-      --radius-md: 12px;
-      --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
-    }
+<style>
+  :root {
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --bg-dark: #0f172a;
+    --bg-card: #ffffff;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --radius-lg: 20px;
+    --radius-md: 12px;
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  }
 
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
 
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      line-height: 1.5;
-    }
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
 
-    input, button {
-      font-family: inherit;
-      outline: none;
-    }
+  input, button {
+    font-family: inherit;
+    outline: none;
+  }
 
-    .page {
-      height: 100vh;
-      width: 100vw;
-      overflow-y: auto;
-      display: none;
-      box-sizing: border-box;
-    }
+  .page {
+    height: 100vh;
+    width: 100vw;
+    overflow-y: auto;
+    display: none;
+    box-sizing: border-box;
+  }
 
-    /* ログイン */
-    #page-login {
-      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 24px;
-    }
+  /* ログイン */
+  #page-login {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+  }
 
-    .login-box {
-      width: 100%;
-      max-width: 380px;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(12px);
-      padding: 36px 28px;
-      border-radius: var(--radius-lg);
-      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
-      text-align: center;
-    }
+  .login-box {
+    width: 100%;
+    max-width: 380px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    padding: 36px 28px;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+    text-align: center;
+  }
 
-    .login-box h2 {
-      margin: 0 0 8px 0;
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--text-main);
-    }
+  .login-box h2 {
+    margin: 0 0 8px 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-main);
+  }
 
-    .login-box p.subtitle {
-      margin: 0 0 24px 0;
-      font-size: 13px;
-      color: var(--text-muted);
-    }
+  .login-box p.subtitle {
+    margin: 0 0 24px 0;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
 
-    .input-group {
-      margin-bottom: 16px;
-      text-align: left;
-    }
+  .input-group {
+    margin-bottom: 16px;
+    text-align: left;
+  }
 
-    .input-group input {
-      width: 100%;
-      padding: 14px 16px;
-      font-size: 15px;
-      border: 1.5px solid #e2e8f0;
-      border-radius: var(--radius-md);
-      background: #f8fafc;
-      transition: all 0.2s;
-    }
+  .input-group input {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 15px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: var(--radius-md);
+    background: #f8fafc;
+    transition: all 0.2s;
+  }
 
-    .input-group input:focus {
-      border-color: var(--primary);
-      background: #fff;
-      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
-    }
+  .input-group input:focus {
+    border-color: var(--primary);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+  }
 
-    .btn-primary {
-      width: 100%;
-      padding: 14px;
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: var(--radius-md);
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-      transition: all 0.2s ease;
-    }
+  .btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    transition: all 0.2s ease;
+  }
 
-    /* カメラ画面 */
-    #camera-container {
-      position: relative;
-      width: 100vw;
-      height: calc(100vh - 65px);
-      background: #000;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      padding-bottom: 20px;
-      overflow: hidden;
-    }
+  /* カメラ画面 */
+  #camera-container {
+    position: relative;
+    width: 100vw;
+    height: calc(100vh - 65px);
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 20px;
+    overflow: hidden;
+  }
 
-    #video {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 1;
-    }
+  #video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+  }
 
-/* ==========================================
-   ガイド枠の基本スタイル（標準名刺比率 91:55）
-   ========================================== */
-#guide-frame {
-  position: absolute;
-  top: 40%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 82vw;
-  max-width: 380px;
-  height: calc(82vw * 55 / 91);
-  max-height: calc(380px * 55 / 91);
-  box-sizing: border-box;
-  pointer-events: none;
-  z-index: 10;
-  border-radius: 12px;
-  
-  /* 未検知時（デフォルト：白破線） */
-  border: 3px dashed rgba(255, 255, 255, 0.8);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-  transition: all 0.2s ease;
-}
+  /* ガイド枠 */
+  #guide-frame {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 82vw;
+    max-width: 380px;
+    height: calc(82vw * 55 / 91);
+    max-height: calc(380px * 55 / 91);
+    box-sizing: border-box;
+    pointer-events: none;
+    z-index: 10;
+    border-radius: 12px;
+    border: 3px dashed rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    transition: all 0.2s ease;
+  }
 
-/* ★検知成功時（緑色実線） */
-#guide-frame.detected {
-  border: 4px solid #10b981 !important;
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.8) !important;
-}
+  #guide-frame.detected {
+    border: 4px solid #10b981 !important;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.8) !important;
+  }
 
-/* ★安定・自動撮影カウント中（黄色点滅） */
-#guide-frame.stable {
-  border: 4px solid #f59e0b !important;
-  box-shadow: 0 0 25px rgba(245, 158, 11, 0.9) !important;
-  animation: pulse-stable 0.3s infinite alternate;
-}
+  #guide-frame.stable {
+    border: 4px solid #f59e0b !important;
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.9) !important;
+    animation: pulse-stable 0.3s infinite alternate;
+  }
 
-@keyframes pulse-stable {
-  0% { transform: translate(-50%, -50%) scale(0.99); }
-  100% { transform: translate(-50%, -50%) scale(1.01); }
-}
-    @keyframes pulse-border {
-      0% { box-shadow: 0 0 10px #10b981, 0 0 0 9999px rgba(0, 0, 0, 0.5); }
-      50% { box-shadow: 0 0 25px #10b981, 0 0 0 9999px rgba(0, 0, 0, 0.5); }
-      100% { box-shadow: 0 0 10px #10b981, 0 0 0 9999px rgba(0, 0, 0, 0.5); }
-    }
+  @keyframes pulse-stable {
+    0% { transform: translate(-50%, -50%) scale(0.99); }
+    100% { transform: translate(-50%, -50%) scale(1.01); }
+  }
 
-    #status-message {
-      position: relative;
-      z-index: 12;
-      margin-top: 25px;
-      background: rgba(15, 23, 42, 0.8);
-      backdrop-filter: blur(8px);
-      color: #fff;
-      padding: 8px 20px;
-      border-radius: 30px;
-      font-size: 14px;
-      font-weight: 500;
-    }
+  #status-message {
+    position: relative;
+    z-index: 12;
+    margin-top: 25px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(8px);
+    color: #ffffff;
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
 
- /* ステータスメッセージ */
-#status-message {
-  position: relative;
-  z-index: 12;
-  margin-top: 25px;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(8px);
-  color: #ffffff;
-  padding: 8px 20px;
-  border-radius: 30px;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
+  #status-message.detected {
+    background: rgba(16, 185, 129, 0.9);
+    color: #ffffff;
+  }   
 
-#status-message.detected {
-  background: rgba(16, 185, 129, 0.9);
-  color: #ffffff;
-}   
+  #guidePreview {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 15;
+    width: 82vw;
+    max-width: 380px;
+    height: calc(82vw * 55 / 91);
+    max-height: calc(380px * 55 / 91);
+    border-radius: 12px;
+    object-fit: contain;
+    background: #000;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    display: none;
+  }
 
-    /* ガイド枠と同じ位置・大きさに重ねて大きく表示するプレビュー */
-#guidePreview {
-  position: absolute;
-  top: 40%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 15;
-  width: 82vw;
-  max-width: 380px;
-  height: calc(82vw * 55 / 91);
-  max-height: calc(380px * 55 / 91);
-  border-radius: 12px;
-  object-fit: contain;
-  background: #000;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
-}
+  #previewContainer {
+    position: relative;
+    z-index: 12;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+    margin-bottom: 10px;
+  }
 
-    /* 下部プレビューコンテナ（裏面撮影時などに縦並び表示） */
-#previewContainer {
-  position: relative;
-  z-index: 12;
-  display: flex;
-  flex-direction: column; /* 横並びから縦並びに変更 */
-  align-items: center;
-  gap: 8px;
-  margin-top: auto;
-  margin-bottom: 10px;
-}
+  .preview-card {
+    width: 140px;
+    height: 84px;
+    border-radius: 8px;
+    object-fit: contain;
+    background: #000;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    display: none;
+  }
 
-    /* 下部の小さめカード表示（視認性を確保できるサイズ感に調整） */
-.preview-card {
-  width: 140px;
-  height: 84px;
-  border-radius: 8px;
-  object-fit: contain;
-  background: #000;
-  border: 2px solid #fff;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-  display: none;
-}
+  #controls {
+    position: relative;
+    z-index: 20;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 20px;
+  }
 
-    #controls {
-      position: relative;
-      z-index: 20;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 0 20px;
-    }
+  /* シャッターボタン */
+  #capture-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: transparent;
+    border: 4px solid #ffffff;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 30; /* タップ阻害を防ぐ */
+  }
 
-/* シャッターボタン（外枠） */
-#capture-btn {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: transparent;
-  border: 4px solid #ffffff;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: all 0.2s ease;
-  position: relative;
-}
+  #capture-btn::after {
+    content: "";
+    width: 54px;
+    height: 54px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+  }
 
-/* ボタン内部の白い●（カメラのシャッターマーク） */
-#capture-btn::after {
-  content: "";
-  width: 54px;
-  height: 54px;
-  background-color: #ffffff;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
+  /* 未検知時（タップは可能） */
+  #capture-btn.disabled {
+    opacity: 0.6;
+    filter: grayscale(50%);
+    border-color: rgba(255, 255, 255, 0.6);
+  }
 
-/* 無効化時（未検知状態） */
-#capture-btn.disabled {
-  opacity: 0.35;
-  /* pointer-events: none; */
-  filter: grayscale(100%);
-  border-color: rgba(255, 255, 255, 0.4);
-}
+  /* 検知成功時 */
+  #capture-btn.active::after {
+    background-color: #10b981;
+    transform: scale(0.9);
+  }
 
-/* ★検知成功・撮影可能時のスタイル（例: 内側の円を緑や大きく変化させる） */
-#capture-btn.active::after {
-  background-color: #10b981; /* 緑色に変化させる場合 */
-  transform: scale(0.9);
-}
-    #actionBtns {
-      display: none;
-      gap: 10px;
-      width: 100%;
-      max-width: 400px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
+  #actionBtns {
+    display: none;
+    gap: 10px;
+    width: 100%;
+    max-width: 400px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
 
-    .action-btn {
-      flex: 1;
-      min-width: 110px;
-      height: 48px;
-      border: none;
-      border-radius: var(--radius-md);
-      font-size: 14px;
-      font-weight: 600;
-      color: white;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+  .action-btn {
+    flex: 1;
+    min-width: 110px;
+    height: 48px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-    #sendBtn { background: var(--success); }
-    #backCaptureBtn { background: var(--warning); }
-    #retryBackBtn { background: #d97706; }
-    #retryAllBtn { background: var(--danger); }
-
-    /* 検索ページ */
-    #page-search {
-      background-color: #f8fafc;
-      padding: 20px 16px 80px 16px;
-      min-height: 100vh;
-    }
-
-    .search-header {
-      position: sticky;
-      top: 0;
-      padding: 10px 0 16px 0;
-      background-color: #f8fafc;
-      z-index: 10;
-    }
-
-    #searchInput {
-      width: 100%;
-      height: 48px;
-      padding: 0 18px;
-      font-size: 15px;
-      border: 1px solid #e2e8f0;
-      border-radius: 24px;
-      background: #ffffff;
-    }
-
-    .card {
-      background: var(--bg-card);
-      padding: 18px 20px;
-      margin-bottom: 12px;
-      border-radius: var(--radius-md);
-      border: 1px solid #f1f5f9;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .card h3 { margin: 0 0 4px 0; font-size: 16px; font-weight: 600; }
-    .card p { margin: 0; color: var(--text-muted); font-size: 13px; }
-
-    .detail-btn {
-      background: #f1f5f9;
-      color: var(--primary);
-      border: none;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    /* ボトムナビ */
-    #bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 65px;
-      background: rgba(15, 23, 42, 0.92);
-      backdrop-filter: blur(16px);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      z-index: 100;
-    }
-
-    #bottom-nav button {
-      background: none;
-      color: #94a3b8;
-      border: none;
-      font-size: 13px;
-      font-weight: 500;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      cursor: pointer;
-    }
-
-    #bottom-nav button.active { color: #ffffff; }
-
-    /* 横向き警告 */
-    #orientation-warning {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background-color: rgba(15, 23, 42, 0.96);
-      color: #ffffff;
-      z-index: 9999;
-      display: none;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-    }
-  </style>
+  #sendBtn { background: var(--success); }
+  #backCaptureBtn { background: var(--warning); }
+  #retryBackBtn { background: #d97706; }
+  #retryAllBtn { background: var(--danger); }
+</style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
 </head>
 <body>
@@ -665,10 +540,13 @@ async function startCamera() {
   } catch (err) { alert("カメラアクセスを許可してください"); }
 }
 
+// --- グローバル変数の追加・更新 ---
+let isDetected = false; // 現在検知成功しているかどうかの状態フラグ
+let currentContour = null; // 検知した輪郭データを保持
+  
 // ==========================================
 // リアルタイム認識ロジック (detectLoop)
 // ==========================================
-  
 function detectLoop() {
   if (!isDetecting) return;
   if (!video || video.readyState !== 4) {
@@ -681,7 +559,6 @@ function detectLoop() {
   let width = fullMat.cols;
   let height = fullMat.rows;
   
-  // 画面全体を解析対象にする（ROIを広げる）
   let roiMat = fullMat;
   let gray = new cv.Mat();
   let blur = new cv.Mat();
@@ -689,14 +566,10 @@ function detectLoop() {
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
 
-  // 前処理: グレースケール ＆ ガウシアンBlur
   cv.cvtColor(roiMat, gray, cv.COLOR_RGBA2GRAY);
   cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-
-  // 二値化
   cv.adaptiveThreshold(blur, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
 
-  // 隙間埋め
   let M = cv.Mat.ones(3, 3, cv.CV_8U);
   cv.morphologyEx(thresh, thresh, cv.MORPH_CLOSE, M);
 
@@ -704,7 +577,6 @@ function detectLoop() {
 
   let found = false;
   let roiArea = roiMat.cols * roiMat.rows;
-  // 面積閾値を少し緩和（画面の 5% 〜 85%）
   let minArea = roiArea * 0.05;
   let maxArea = roiArea * 0.85;
 
@@ -715,13 +587,11 @@ function detectLoop() {
     if (area >= minArea && area <= maxArea) {
       let approx = new cv.Mat();
       let perimeter = cv.arcLength(cnt, true);
-      // 輪郭近似の精度調整
       cv.approxPolyDP(cnt, approx, 0.04 * perimeter, true);
       
       if (approx.rows === 4) {
         let rect = cv.boundingRect(cnt);
         let aspectRatio = rect.width / rect.height;
-        // 比率チェックの許容範囲を拡大（1.0〜2.5）
         let isGoodAspectRatio = (aspectRatio >= 1.0 && aspectRatio <= 2.5) || (aspectRatio >= 0.4 && aspectRatio <= 1.0);
 
         if (isGoodAspectRatio) {
@@ -737,10 +607,11 @@ function detectLoop() {
   const statusEl = document.getElementById('status-message');
   const guideEl = document.getElementById('guide-frame');
 
+  isDetected = found; // フラグの更新
+
   if (found) {
     captureCounter++;
 
-    // 1回検知：緑色（枠変更 ＆ シャッターボタン有効化）
     if (captureCounter === 1) {
       if (guideEl) guideEl.className = 'detected';
       if (statusEl) {
@@ -752,7 +623,6 @@ function detectLoop() {
         captureBtn.classList.add('active');
       }
     } 
-    // 3回連続検知：撮影中表示
     else if (captureCounter >= 2 && captureCounter < 4) {
       if (guideEl) guideEl.className = 'stable';
       if (statusEl) {
@@ -760,7 +630,6 @@ function detectLoop() {
         statusEl.textContent = '📸 撮影中...';
       }
     } 
-    // 5回連続検知：自動撮影実行
     else if (captureCounter >= 4) {
       captureCounter = 0;
       captureBtn.click();
@@ -768,12 +637,11 @@ function detectLoop() {
       return;
     }
   } else {
-    // 未検知状態へリセット
     captureCounter = 0;
     if (guideEl) guideEl.className = '';
     if (statusEl) {
       statusEl.className = '';
-      statusEl.textContent = 'ガイド枠内に名刺を合わせてください';
+      statusEl.textContent = 'ガイド枠内に名刺を合わせてください (タップでマニュアル撮影)';
     }
     if (captureBtn) {
       captureBtn.classList.add('disabled');
@@ -848,9 +716,31 @@ function warpPerspective(src, contour) {
   return true;
 }
 
+// ==========================================
+// ガイド枠基準のフォールバック切り抜き (マニュアル撮影用)
+// ==========================================
+function cropFallbackROI(src) {
+  let width = src.cols;
+  let height = src.rows;
+
+  // ガイド枠の比率に合わせた中央切り抜き領域（画面中央の横80%、名刺縦横比）
+  let cropWidth = Math.floor(width * 0.82);
+  let cropHeight = Math.floor(cropWidth * 55 / 91);
+  let startX = Math.floor((width - cropWidth) / 2);
+  let startY = Math.floor((height - cropHeight) / 2);
+
+  let rect = new cv.Rect(startX, startY, cropWidth, cropHeight);
+  let roi = src.roi(rect);
+
+  canvas.width = cropWidth;
+  canvas.height = cropHeight;
+  cv.imshow('outputCanvas', roi);
+
+  roi.delete();
+}
 
 // ==========================================
-// 撮影ボタン処理 (精度優先・適応的二値化版)
+// 撮影ボタン処理 (分岐付き)
 // ==========================================
 captureBtn.addEventListener('click', async () => {
   if (!globalCardId) globalCardId = Date.now();  
@@ -862,65 +752,52 @@ captureBtn.addEventListener('click', async () => {
   tempCanvas.getContext('2d').drawImage(video, 0, 0);
 
   let src = cv.imread(tempCanvas);
-  let gray = new cv.Mat();
-  let blur = new cv.Mat();
-  let thresh = new cv.Mat();
-  let contours = new cv.MatVector();
-  let hierarchy = new cv.Mat();
+  let success = false;
 
-  // 1. ノイズ除去
-  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-  cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
+  // ★ 1. 認識成功時は自動補正・輪郭透視変換を実行
+  if (isDetected) {
+    let gray = new cv.Mat();
+    let blur = new cv.Mat();
+    let thresh = new cv.Mat();
+    let contours = new cv.MatVector();
+    let hierarchy = new cv.Mat();
 
-  // 2. 適応的二値化（背景色や照明ムラに左右されない処理）
-  cv.adaptiveThreshold(blur, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+    cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
+    cv.adaptiveThreshold(blur, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
 
-  // 3. 隙間埋め処理
-  let kernel = cv.Mat.ones(3, 3, cv.CV_8U);
-  cv.morphologyEx(thresh, thresh, cv.MORPH_CLOSE, kernel);
+    let kernel = cv.Mat.ones(3, 3, cv.CV_8U);
+    cv.morphologyEx(thresh, thresh, cv.MORPH_CLOSE, kernel);
+    cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-  // 4. 輪郭抽出
-  cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+    const fullArea = src.cols * src.rows;
+    let bestContour = null;
+    let maxFoundArea = 0;
 
-  const fullArea = src.cols * src.rows;
-  const minCardArea = fullArea * 0.08; 
-  const maxCardArea = fullArea * 0.85;
+    for (let i = 0; i < contours.size(); ++i) {
+      let cnt = contours.get(i);
+      let area = cv.contourArea(cnt);
+      if (area >= fullArea * 0.05 && area <= fullArea * 0.85) {
+        let approx = new cv.Mat();
+        let perimeter = cv.arcLength(cnt, true);
+        cv.approxPolyDP(cnt, approx, 0.03 * perimeter, true);
 
-  let bestContour = null;
-  let maxFoundArea = 0;
-
-  for (let i = 0; i < contours.size(); ++i) {
-    let cnt = contours.get(i);
-    let area = cv.contourArea(cnt);
-    
-    if (area >= minCardArea && area <= maxCardArea) {
-      let approx = new cv.Mat();
-      let perimeter = cv.arcLength(cnt, true);
-      
-      cv.approxPolyDP(cnt, approx, 0.03 * perimeter, true);
-
-      if (approx.rows === 4) {
-        let rect = cv.boundingRect(cnt);
-        let aspectRatio = rect.width / rect.height;
-
-        let isLandscapeCard = (aspectRatio >= 1.25 && aspectRatio <= 2.2);
-        let isPortraitCard  = (aspectRatio >= 0.45 && aspectRatio <= 0.80);
-
-        if ((isLandscapeCard || isPortraitCard) && area > maxFoundArea) {
+        if (approx.rows === 4 && area > maxFoundArea) {
           maxFoundArea = area;
           bestContour = cnt;
         }
+        approx.delete();
       }
-      approx.delete();
     }
+
+    if (bestContour) {
+      success = warpPerspective(src, bestContour);
+    }
+
+    kernel.delete(); gray.delete(); blur.delete(); thresh.delete(); contours.delete(); hierarchy.delete();
   }
 
-  let success = false;
-  if (bestContour) {
-    success = warpPerspective(src, bestContour);
-  }
-
-  // 失敗時は手動枠切り抜きにフォールバック
+  // ★ 2. 認識できていない場合（マニュアル撮影）または自動補正失敗時は生切り抜き
   if (!success) {
     cropFallbackROI(src);
   }
@@ -950,11 +827,8 @@ captureBtn.addEventListener('click', async () => {
   if (guideFrame) guideFrame.style.display = 'none';
   
   showActionUI();
-
-  // メモリ解放
-  kernel.delete(); src.delete(); gray.delete(); blur.delete(); thresh.delete(); contours.delete(); hierarchy.delete();
+  src.delete();
 });
-
   
 // ボタンアクション制御など
 backCaptureBtn.addEventListener('click', () => {
