@@ -300,7 +300,7 @@
 /* 無効化時（未検知状態） */
 #capture-btn.disabled {
   opacity: 0.35;
-  pointer-events: none;
+  /* pointer-events: none; */
   filter: grayscale(100%);
   border-color: rgba(255, 255, 255, 0.4);
 }
@@ -665,10 +665,10 @@ async function startCamera() {
   } catch (err) { alert("カメラアクセスを許可してください"); }
 }
 
-
 // ==========================================
 // リアルタイム認識ロジック (detectLoop)
 // ==========================================
+  
 function detectLoop() {
   if (!isDetecting) return;
   if (!video || video.readyState !== 4) {
@@ -681,15 +681,8 @@ function detectLoop() {
   let width = fullMat.cols;
   let height = fullMat.rows;
   
-  // 画面中央領域をROI（関心領域）に設定
-  let roiRect = new cv.Rect(
-    Math.floor(width * 0.1),
-    Math.floor(height * 0.2),
-    Math.floor(width * 0.8),
-    Math.floor(height * 0.6)
-  );
-  
-  let roiMat = fullMat.roi(roiRect);
+  // 画面全体を解析対象にする（ROIを広げる）
+  let roiMat = fullMat;
   let gray = new cv.Mat();
   let blur = new cv.Mat();
   let thresh = new cv.Mat();
@@ -700,10 +693,10 @@ function detectLoop() {
   cv.cvtColor(roiMat, gray, cv.COLOR_RGBA2GRAY);
   cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
 
-  // 適応的二値化
+  // 二値化
   cv.adaptiveThreshold(blur, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
 
-  // モルフォロジー変換
+  // 隙間埋め
   let M = cv.Mat.ones(3, 3, cv.CV_8U);
   cv.morphologyEx(thresh, thresh, cv.MORPH_CLOSE, M);
 
@@ -711,8 +704,9 @@ function detectLoop() {
 
   let found = false;
   let roiArea = roiMat.cols * roiMat.rows;
-  let minArea = roiArea * 0.15;
-  let maxArea = roiArea * 0.90;
+  // 面積閾値を少し緩和（画面の 5% 〜 85%）
+  let minArea = roiArea * 0.05;
+  let maxArea = roiArea * 0.85;
 
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
@@ -721,13 +715,14 @@ function detectLoop() {
     if (area >= minArea && area <= maxArea) {
       let approx = new cv.Mat();
       let perimeter = cv.arcLength(cnt, true);
-      cv.approxPolyDP(cnt, approx, 0.03 * perimeter, true);
+      // 輪郭近似の精度調整
+      cv.approxPolyDP(cnt, approx, 0.04 * perimeter, true);
       
       if (approx.rows === 4) {
         let rect = cv.boundingRect(cnt);
         let aspectRatio = rect.width / rect.height;
-        // 横長・縦長名刺の比率チェック
-        let isGoodAspectRatio = (aspectRatio >= 1.25 && aspectRatio <= 2.2) || (aspectRatio >= 0.45 && aspectRatio <= 0.80);
+        // 比率チェックの許容範囲を拡大（1.0〜2.5）
+        let isGoodAspectRatio = (aspectRatio >= 1.0 && aspectRatio <= 2.5) || (aspectRatio >= 0.4 && aspectRatio <= 1.0);
 
         if (isGoodAspectRatio) {
           found = true;
@@ -745,20 +740,20 @@ function detectLoop() {
   if (found) {
     captureCounter++;
 
-    // 1回検知：緑色（検知中・手動撮影も可能）
+    // 1回検知：緑色（枠変更 ＆ シャッターボタン有効化）
     if (captureCounter === 1) {
       if (guideEl) guideEl.className = 'detected';
       if (statusEl) {
         statusEl.className = 'detected';
-        statusEl.textContent = '名刺を検知しました (そのまま固定)';
+        statusEl.textContent = '名刺を検知しました';
       }
       if (captureBtn) {
         captureBtn.classList.remove('disabled');
-        captureBtn.classList.add('active'); // ★アクティブ状態のクラスを追加
+        captureBtn.classList.add('active');
       }
     } 
-    // 3回連続検知：撮影準備
-    else if (captureCounter >= 2 && captureCounter < 3) {
+    // 3回連続検知：撮影中表示
+    else if (captureCounter >= 2 && captureCounter < 4) {
       if (guideEl) guideEl.className = 'stable';
       if (statusEl) {
         statusEl.className = 'detected';
@@ -766,10 +761,10 @@ function detectLoop() {
       }
     } 
     // 5回連続検知：自動撮影実行
-    else if (captureCounter >= 3) {
+    else if (captureCounter >= 4) {
       captureCounter = 0;
       captureBtn.click();
-      M.delete(); roiMat.delete(); gray.delete(); blur.delete(); thresh.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
+      M.delete(); gray.delete(); blur.delete(); thresh.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
       return;
     }
   } else {
@@ -782,14 +777,13 @@ function detectLoop() {
     }
     if (captureBtn) {
       captureBtn.classList.add('disabled');
-      captureBtn.classList.remove('active'); // ★リセット
+      captureBtn.classList.remove('active');
     }
   }
 
-  M.delete(); roiMat.delete(); gray.delete(); blur.delete(); thresh.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
+  M.delete(); gray.delete(); blur.delete(); thresh.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
   setTimeout(() => requestAnimationFrame(detectLoop), 200);
 }
-
 
 // ==========================================
 // 頂点ソート精度向上版 透視変換処理 (warpPerspective)
