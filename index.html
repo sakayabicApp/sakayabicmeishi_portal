@@ -142,46 +142,45 @@
     }
 
 /* ==========================================
-   ガイド枠の基本スタイル（位置・サイズ指定）
+   ガイド枠の基本スタイル（標準名刺比率 91:55）
    ========================================== */
-.guide-frame, #guideFrame, .guide-default {
+#guide-frame {
   position: absolute;
-  top: 50%;
+  top: 40%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 60%;  /* JS側のROI設定（60%）と合わせる */
-  height: 50%; /* 名刺の比率に合わせて調整 */
+  width: 82vw;
+  max-width: 380px;
+  height: calc(82vw * 55 / 91);
+  max-height: calc(380px * 55 / 91);
   box-sizing: border-box;
-  pointer-events: none; /* カメラ操作を邪魔しない */
+  pointer-events: none;
   z-index: 10;
+  border-radius: 12px;
   
-  /* 未検知時（デフォルト）の線デザイン */
-  border: 3px dashed #ffffff;
+  /* 未検知時（デフォルト：白破線） */
+  border: 3px dashed rgba(255, 255, 255, 0.8);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-  transition: border-color 0.2s ease, border-style 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.2s ease;
 }
 
-/* ==========================================
-   ★検知成功時の枠色（緑色）
-   ========================================== */
-.guide-frame.detected, #guideFrame.detected, .guide-detected {
-  border: 4px solid #00ff00 !important;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.8) !important;
+/* ★検知成功時（緑色実線） */
+#guide-frame.detected {
+  border: 4px solid #10b981 !important;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.8) !important;
 }
 
-/* ==========================================
-   ★自動撮影カウントダウン中（黄色・点滅）
-   ========================================== */
-.guide-frame.stable, #guideFrame.stable, .guide-stable {
+/* ★安定・自動撮影カウント中（黄色点滅） */
+#guide-frame.stable {
   border: 4px solid #f59e0b !important;
-  box-shadow: 0 0 25px #f59e0b !important;
-  animation: pulse-stable 0.4s infinite alternate;
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.9) !important;
+  animation: pulse-stable 0.3s infinite alternate;
 }
 
 @keyframes pulse-stable {
-  0% { transform: translate(-50%, -50%) scale(1.0); }
-  100% { transform: translate(-50%, -50%) scale(1.02); }
-}  
+  0% { transform: translate(-50%, -50%) scale(0.99); }
+  100% { transform: translate(-50%, -50%) scale(1.01); }
+}
     @keyframes pulse-border {
       0% { box-shadow: 0 0 10px #10b981, 0 0 0 9999px rgba(0, 0, 0, 0.5); }
       50% { box-shadow: 0 0 25px #10b981, 0 0 0 9999px rgba(0, 0, 0, 0.5); }
@@ -200,6 +199,26 @@
       font-size: 14px;
       font-weight: 500;
     }
+
+ /* ステータスメッセージ */
+#status-message {
+  position: relative;
+  z-index: 12;
+  margin-top: 25px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  padding: 8px 20px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+#status-message.detected {
+  background: rgba(16, 185, 129, 0.9);
+  color: #ffffff;
+}   
 
     /* ガイド枠と同じ位置・大きさに重ねて大きく表示するプレビュー */
 #guidePreview {
@@ -252,26 +271,27 @@
       padding: 0 20px;
     }
 
-    #capture-btn {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      background: #ffffff;
-      border: 4px solid rgba(255, 255, 255, 0.4);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-      cursor: pointer;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+/* シャッターボタン（未検知時は無効化して見せる） */
+#capture-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 4px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s ease;
+}
 
-    #capture-btn::after {
-      content: '';
-      width: 54px;
-      height: 54px;
-      border-radius: 50%;
-      background: var(--primary);
-    }
+/* 押せない状態の見た目 */
+#capture-btn.disabled {
+  opacity: 0.35;
+  pointer-events: none;
+  filter: grayscale(100%);
+}
 
     #actionBtns {
       display: none;
@@ -644,11 +664,11 @@ function detectLoop() {
   let width = fullMat.cols;
   let height = fullMat.rows;
   
-  // 画面中央 60% の領域をROI（関心領域）に設定
+  // 画面中央領域をROI（関心領域）に設定
   let roiRect = new cv.Rect(
-    Math.floor(width * 0.2),
+    Math.floor(width * 0.1),
     Math.floor(height * 0.2),
-    Math.floor(width * 0.6),
+    Math.floor(width * 0.8),
     Math.floor(height * 0.6)
   );
   
@@ -663,10 +683,10 @@ function detectLoop() {
   cv.cvtColor(roiMat, gray, cv.COLOR_RGBA2GRAY);
   cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
 
-  // 適応的二値化（白・黒・木目背景いずれにも対応）
+  // 適応的二値化
   cv.adaptiveThreshold(blur, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
 
-  // モルフォロジー変換（エッジの途切れをくっつける）
+  // モルフォロジー変換
   let M = cv.Mat.ones(3, 3, cv.CV_8U);
   cv.morphologyEx(thresh, thresh, cv.MORPH_CLOSE, M);
 
@@ -689,6 +709,7 @@ function detectLoop() {
       if (approx.rows === 4) {
         let rect = cv.boundingRect(cnt);
         let aspectRatio = rect.width / rect.height;
+        // 横長・縦長名刺の比率チェック
         let isGoodAspectRatio = (aspectRatio >= 1.25 && aspectRatio <= 2.2) || (aspectRatio >= 0.45 && aspectRatio <= 0.80);
 
         if (isGoodAspectRatio) {
@@ -700,34 +721,46 @@ function detectLoop() {
       approx.delete();
     }
   }
-  
-  // UI表記および枠色の更新
+
   const statusEl = document.getElementById('status-message');
+  const guideEl = document.getElementById('guide-frame');
 
-  if (guideFrame) {
-    if (found) {
-      guideFrame.classList.add('detected');
-    } else {
-      guideFrame.classList.remove('detected', 'stable');
-    }
-  }
-
-  if (statusEl) {
-    statusEl.textContent = found ? '名刺を検知しました' : 'カメラを名刺に向けてください';
-  }
-
-  // 連続検知カウント（自動撮影）
   if (found) {
-    console.log("★名刺検知成功！");
     captureCounter++;
-    if (captureCounter >= 3) { // 5回連続検知で自動撮影
+
+    // 1回検知：緑色（検知中）
+    if (captureCounter === 1) {
+      if (guideEl) guideEl.className = 'detected';
+      if (statusEl) {
+        statusEl.className = 'detected';
+        statusEl.textContent = '名刺を検知しました (そのまま固定)';
+      }
+      if (captureBtn) captureBtn.classList.remove('disabled');
+    } 
+    // 3回連続検知：黄色点滅（撮影準備）
+    else if (captureCounter >= 2 && captureCounter < 3) {
+      if (guideEl) guideEl.className = 'stable';
+      if (statusEl) {
+        statusEl.className = 'detected';
+        statusEl.textContent = '📸 撮影中...';
+      }
+    } 
+    // 5回連続検知：自動撮影実行
+    else if (captureCounter >= 3) {
       captureCounter = 0;
       captureBtn.click();
       M.delete(); roiMat.delete(); gray.delete(); blur.delete(); thresh.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
       return;
     }
   } else {
+    // 未検知状態へリセット
     captureCounter = 0;
+    if (guideEl) guideEl.className = '';
+    if (statusEl) {
+      statusEl.className = '';
+      statusEl.textContent = 'ガイド枠内に名刺を合わせてください';
+    }
+    if (captureBtn) captureBtn.classList.add('disabled');
   }
 
   M.delete(); roiMat.delete(); gray.delete(); blur.delete(); thresh.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
