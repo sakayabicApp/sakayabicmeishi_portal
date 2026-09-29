@@ -271,28 +271,45 @@
       padding: 0 20px;
     }
 
-/* シャッターボタン（未検知時は無効化して見せる） */
+/* シャッターボタン（外枠） */
 #capture-btn {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: #ffffff;
-  border: 4px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  border: 4px solid #ffffff;
   box-shadow: 0 4px 20px rgba(0,0,0,0.4);
   cursor: pointer;
   display: flex;
   justify-content: center;
   align-items: center;
   transition: all 0.2s ease;
+  position: relative;
 }
 
-/* 押せない状態の見た目 */
+/* ボタン内部の白い●（カメラのシャッターマーク） */
+#capture-btn::after {
+  content: "";
+  width: 54px;
+  height: 54px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+/* 無効化時（未検知状態） */
 #capture-btn.disabled {
   opacity: 0.35;
   pointer-events: none;
   filter: grayscale(100%);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
+/* ★検知成功・撮影可能時のスタイル（例: 内側の円を緑や大きく変化させる） */
+#capture-btn.active::after {
+  background-color: #10b981; /* 緑色に変化させる場合 */
+  transform: scale(0.9);
+}
     #actionBtns {
       display: none;
       gap: 10px;
@@ -728,16 +745,19 @@ function detectLoop() {
   if (found) {
     captureCounter++;
 
-    // 1回検知：緑色（検知中）
+    // 1回検知：緑色（検知中・手動撮影も可能）
     if (captureCounter === 1) {
       if (guideEl) guideEl.className = 'detected';
       if (statusEl) {
         statusEl.className = 'detected';
         statusEl.textContent = '名刺を検知しました (そのまま固定)';
       }
-      if (captureBtn) captureBtn.classList.remove('disabled');
+      if (captureBtn) {
+        captureBtn.classList.remove('disabled');
+        captureBtn.classList.add('active'); // ★アクティブ状態のクラスを追加
+      }
     } 
-    // 3回連続検知：黄色点滅（撮影準備）
+    // 3回連続検知：撮影準備
     else if (captureCounter >= 2 && captureCounter < 3) {
       if (guideEl) guideEl.className = 'stable';
       if (statusEl) {
@@ -760,7 +780,10 @@ function detectLoop() {
       statusEl.className = '';
       statusEl.textContent = 'ガイド枠内に名刺を合わせてください';
     }
-    if (captureBtn) captureBtn.classList.add('disabled');
+    if (captureBtn) {
+      captureBtn.classList.add('disabled');
+      captureBtn.classList.remove('active'); // ★リセット
+    }
   }
 
   M.delete(); roiMat.delete(); gray.delete(); blur.delete(); thresh.delete(); contours.delete(); hierarchy.delete(); fullMat.delete();
