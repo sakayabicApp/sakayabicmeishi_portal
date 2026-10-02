@@ -781,8 +781,13 @@ document.getElementById('loginBtn')?.addEventListener('click', async () => {
   }
 });
   
+// ---------------------------------------------------------
+// ページ切り替え処理（カメラ制御を追加）
+// ---------------------------------------------------------
 function showPage(pageId) {
+  // すべてのページを非表示
   document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  
   const targetPage = document.getElementById(pageId);
   if (targetPage) {
     targetPage.style.display = 'block';
@@ -790,38 +795,50 @@ function showPage(pageId) {
     return;
   }
 
+  // ナビゲーションの表示更新
   document.querySelectorAll('#bottom-nav button').forEach(btn => btn.classList.remove('active'));
   if (pageId === 'page-camera') document.getElementById('nav-camera')?.classList.add('active');
   if (pageId === 'page-search') document.getElementById('nav-search')?.classList.add('active');
 
+  // ★【変更点】ページの切り替えに応じてカメラのON/OFFを切り替え
   if (pageId === 'page-camera') {
-    if (!video.srcObject) {
-      startCamera();
-    }
-    checkOrientation();
-    if (window.innerWidth <= window.innerHeight) {
-      isDetecting = true;
-      detectLoop();
-    }
+    // 撮影ページ：カメラを起動する
+    startCamera();
   } else {
-    isDetecting = false;
+    // 撮影ページ以外（検索ページ等）：カメラを完全停止（オフ）する
+    stopCamera();
   }
+
+  // 検索ページ表示時：最新データを取得
   if (pageId === 'page-search') {
-    isDetecting = false;
-    fetchCardsData(); // ★検索ページ表示時に最新一覧をロード
+    fetchCardsData();
   }
 }
 
-document.getElementById('searchInput')?.addEventListener('input', (e) => {
-  const query = e.target.value.toLowerCase();
-  const filtered = mockData.filter(item => 
-    item.name.toLowerCase().includes(query) || item.company.toLowerCase().includes(query)
-  );
-  renderCards(filtered);
-});
+// ---------------------------------------------------------
+// カメラ停止関数（新規追加）
+// ---------------------------------------------------------
+function stopCamera() {
+  isDetecting = false; // 検知ループを止める
+  
+  // カメラのストリームを完全に停止する
+  if (video && video.srcObject) {
+    const stream = video.srcObject;
+    const tracks = stream.getTracks();
+    tracks.forEach(track => track.stop()); // 各トラック（映像）を個別に停止
+    video.srcObject = null; // ビデオエレメントをクリア
+  }
+}
 
+// ---------------------------------------------------------
+// カメラ起動関数（修正）
+// ---------------------------------------------------------
 async function startCamera() {
   await enforcePortraitOrientation();
+  
+  // すでに動いている場合は重複起動しない
+  if (video.srcObject) return;
+
   const constraints = {
     video: {
       width: { ideal: 1920 },
@@ -829,17 +846,45 @@ async function startCamera() {
       facingMode: { ideal: "environment" }
     }
   };
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
     video.onloadedmetadata = () => {
       checkOrientation();
       if (window.innerWidth <= window.innerHeight) {
+        isDetecting = true;
         detectLoop();
       }
     };
-  } catch (err) { alert("カメラアクセスを許可してください"); }
+  } catch (err) { 
+    alert("カメラアクセスを許可してください"); 
+  }
 }
+
+// ---------------------------------------------------------
+// 検索バー入力イベント（mockDataではなくallCardsDataから検索）
+// ---------------------------------------------------------
+document.getElementById('searchInput')?.addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase().trim();
+  
+  if (!query) {
+    renderCards(allCardsData);
+    return;
+  }
+
+  // 社名・氏名・かな・部署・メール等からあいまい検索
+  const filtered = allCardsData.filter(item => {
+    const textGroup = [
+      item.name, item.nameKana, item.company, item.companyKana, 
+      item.department, item.title, item.email, item.phone
+    ].join(' ').toLowerCase();
+
+    return textGroup.includes(query);
+  });
+
+  renderCards(filtered);
+});
 
 // --------------------------------------------------
 // OpenCV 4頂点検知（元の認識ロジックそのまま）
