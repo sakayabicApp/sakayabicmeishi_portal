@@ -760,7 +760,7 @@ document.getElementById('loginBtn')?.addEventListener('click', async () => {
       sessionStorage.setItem('userCode', result.userCode || id);
       sessionStorage.setItem('userName', result.userName || id);
       sessionStorage.setItem('loginTime', new Date().getTime().toString());
-      showPage('page-camera');
+      Page('page-camera');
       document.getElementById('bottom-nav').style.display = 'flex';
     } else {
       alert(result.message || "IDまたはパスワードが違います");
@@ -1293,7 +1293,8 @@ window.addEventListener('load', () => {
     sessionStorage.clear();
     showPage('page-login');
   } else {  
-    renderCards(mockData);
+    // ★ 修正: mockData ではなく、GASからデータを取得して描画する関数を実行
+    fetchCardsData();
     if (sessionStorage.getItem('isLoggedIn') === 'true') {
       showPage('page-camera');
       document.getElementById('bottom-nav').style.display = 'flex';
@@ -1324,8 +1325,12 @@ function renderCards(dataList) {
 }
 
 function openDetail(id) {
-  const item = mockData.find(d => d.id === id);
-  alert(`詳細表示: ${item.name} - ${item.company}`);
+  // ★ 修正: mockData ではなく allCardsData から対象カードを検索
+  const item = allCardsData.find(d => d.id === id);
+  if (item) {
+    alert(`詳細表示: ${item.name} - ${item.company}`);
+    // モーダルを開いて編集・閲覧する場合は、ここにモーダル表示処理を記述
+  }
 }
 
 // ---------------------------------------------------------
