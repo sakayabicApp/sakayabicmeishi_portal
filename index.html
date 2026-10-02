@@ -760,7 +760,7 @@ document.getElementById('loginBtn')?.addEventListener('click', async () => {
       sessionStorage.setItem('userCode', result.userCode || id);
       sessionStorage.setItem('userName', result.userName || id);
       sessionStorage.setItem('loginTime', new Date().getTime().toString());
-      Page('page-camera');
+      showPage('page-camera');
       document.getElementById('bottom-nav').style.display = 'flex';
     } else {
       alert(result.message || "IDまたはパスワードが違います");
