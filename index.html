@@ -749,7 +749,8 @@ document.getElementById('loginBtn')?.addEventListener('click', async () => {
     const response = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      redirect: 'follow' // ← 追加
     });
 
     const result = await response.json();
@@ -1237,7 +1238,8 @@ async function uploadAllImages() {
     const res1 = await fetch(cloudRunUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(frontPayload)
+      body: JSON.stringify(frontPayload),
+      redirect: 'follow' // ← 追加
     });
     if (!res1.ok) throw new Error("表面送信失敗: " + await res1.text());
   }
@@ -1289,49 +1291,19 @@ window.addEventListener('load', () => {
   const loginTime = sessionStorage.getItem('loginTime');
   const now = new Date().getTime();
   
+  // 1時間以上経過していたらセッションクリア
   if (loginTime && (now - Number(loginTime) > 3600000)) {
     sessionStorage.clear();
+  }
+
+  if (sessionStorage.getItem('isLoggedIn') === 'true') {
+    showPage('page-camera');
+    document.getElementById('bottom-nav').style.display = 'flex';
+  } else {
     showPage('page-login');
-  } else {  
-    // ★ 修正: mockData ではなく、GASからデータを取得して描画する関数を実行
-    fetchCardsData();
-    if (sessionStorage.getItem('isLoggedIn') === 'true') {
-      showPage('page-camera');
-      document.getElementById('bottom-nav').style.display = 'flex';
-    } else {
-      showPage('page-login');
-      document.getElementById('bottom-nav').style.display = 'none';
-    }
+    document.getElementById('bottom-nav').style.display = 'none';
   }
 });
-
-function renderCards(dataList) {
-  const container = document.getElementById('card-container');
-  if (!container) return;
-  container.innerHTML = "";
-
-  dataList.forEach(item => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <div>
-        <h3>${item.name}</h3>
-        <p>${item.company}</p>
-      </div>
-      <button class="detail-btn" onclick="openDetail(${item.id})">詳細</button>
-    `;
-    container.appendChild(card);
-  });
-}
-
-function openDetail(id) {
-  // ★ 修正: mockData ではなく allCardsData から対象カードを検索
-  const item = allCardsData.find(d => d.id === id);
-  if (item) {
-    alert(`詳細表示: ${item.name} - ${item.company}`);
-    // モーダルを開いて編集・閲覧する場合は、ここにモーダル表示処理を記述
-  }
-}
 
 // ---------------------------------------------------------
 // 名刺データ取得処理（検索ページ用）
@@ -1343,25 +1315,32 @@ async function fetchCardsData() {
   container.innerHTML = `<div style="text-align:center; padding: 40px; color: #94a3b8;">読み込み中...</div>`;
 
   try {
-    // スクリプト最上部で宣言された GAS_URL が正常に使用されます
     const res = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: "getCards" }),
-      redirect: 'follow'
+      redirect: 'follow' // GASのリダイレクトを確実に追跡
     });
 
     const result = await res.json();
 
     if (result.success) {
-      allCardsData = result.cards;
+      allCardsData = result.cards || [];
       renderCards(allCardsData);
     } else {
-      container.innerHTML = `<div style="text-align:center; padding: 20px; color: #ef4444;">取得失敗: ${result.message}</div>`;
+      container.innerHTML = `
+        <div style="text-align:center; padding: 20px; color: #ef4444;">
+          <p>取得失敗: ${result.message || 'データが取得できませんでした'}</p>
+          <button onclick="fetchCardsData()" style="margin-top:10px; padding:8px 16px;">再試行</button>
+        </div>`;
     }
   } catch (e) {
     console.error(e);
-    container.innerHTML = `<div style="text-align:center; padding: 20px; color: #ef4444;">通信エラーが発生しました</div>`;
+    container.innerHTML = `
+      <div style="text-align:center; padding: 20px; color: #ef4444;">
+        <p>通信エラーが発生しました</p>
+        <button onclick="fetchCardsData()" style="margin-top:10px; padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:6px;">再読み込み</button>
+      </div>`;
   }
 }
   
