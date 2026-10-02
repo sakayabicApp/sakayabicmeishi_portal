@@ -693,10 +693,6 @@ let isDetected = false;
 let lastDetectedQuad = null;
 let allCardsData = []; // スプレッドシートから取得した名刺データ全件  
 
-const mockData = [
-  { id: 1, name: "山田 太郎", company: "株式会社サンプル", image: "url_to_image" },
-  { id: 2, name: "佐藤 花子", company: "デザイン事務所", image: "url_to_image" }
-];
 
 async function enforcePortraitOrientation() {
   if (screen.orientation && screen.orientation.lock) {
