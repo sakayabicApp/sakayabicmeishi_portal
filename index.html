@@ -377,6 +377,171 @@
   .card h3 { margin: 0 0 4px 0; font-size: 16px; }
   .card p { margin: 0; font-size: 13px; color: #94a3b8; }
   .detail-btn { background: var(--primary); color: #fff; border: none; padding: 8px 14px; border-radius: 6px; }
+
+  /* 検索画面CSS (Eight風デザイン) */
+  .search-header {
+    position: sticky;
+    top: 0;
+    background: var(--bg-dark);
+    padding: 16px;
+    z-index: 20;
+    border-bottom: 1px solid #334155;
+  }
+  .search-header input {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 25px;
+    border: 1px solid #334155;
+    background: #1e293b;
+    color: #fff;
+    font-size: 15px;
+  }
+  #card-container {
+    padding: 12px 16px 80px 16px;
+  }
+
+  /* Eight風カードスタイリング */
+  .eight-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    border: 1px solid #334155;
+    transition: transform 0.1s ease;
+  }
+  .eight-card:active {
+    transform: scale(0.98);
+  }
+  .card-thumb-box {
+    width: 72px;
+    height: 44px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #0f172a;
+    flex-shrink: 0;
+    border: 1px solid #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card-thumb-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .card-thumb-placeholder {
+    font-size: 11px;
+    color: #64748b;
+  }
+  .card-info {
+    flex: 1;
+    overflow: hidden;
+  }
+  .card-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0 0 2px 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .card-kana {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: normal;
+  }
+  .card-company {
+    font-size: 13px;
+    color: #cbd5e1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+  }
+  .card-dept {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 2px;
+  }
+  .card-date {
+    font-size: 10px;
+    color: #64748b;
+    margin-top: 4px;
+  }
+
+  /* 詳細・編集モーダル */
+  #detail-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
+    z-index: 200;
+    display: none;
+    flex-direction: column;
+  }
+  .modal-header {
+    height: 56px;
+    padding: 0 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #334155;
+  }
+  .modal-header h3 { margin: 0; font-size: 17px; }
+  .close-btn { background: none; border: none; color: #94a3b8; font-size: 24px; cursor: pointer; }
+  .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .modal-images {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+  }
+  .modal-img-card {
+    flex: 1;
+    min-width: 140px;
+    height: 90px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid #475569;
+    background: #000;
+  }
+  .form-group {
+    margin-bottom: 14px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    color: #94a3b8;
+    margin-bottom: 4px;
+  }
+  .form-group input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background: #1e293b;
+    color: #fff;
+    font-size: 14px;
+  }
+  .modal-footer {
+    padding: 12px 16px;
+    border-top: 1px solid #334155;
+    background: #0f172a;
+  }
+  
 </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
 </head>
@@ -435,7 +600,69 @@
   </div>
   <div id="card-container"></div>
 </div>
-  
+
+<!-- 詳細・編集モーダル -->
+<div id="detail-modal">
+  <div class="modal-header">
+    <h3>名刺詳細・編集</h3>
+    <button class="close-btn" onclick="closeDetailModal()">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="modal-images">
+      <img id="m-front-img" class="modal-img-card" alt="表面" style="display:none;" />
+      <img id="m-back-img" class="modal-img-card" alt="裏面" style="display:none;" />
+    </div>
+
+    <input type="hidden" id="edit-rowIndex">
+    <div class="form-group">
+      <label>会社名</label>
+      <input type="text" id="edit-company">
+    </div>
+    <div class="form-group">
+      <label>会社名 (かな)</label>
+      <input type="text" id="edit-companyKana">
+    </div>
+    <div class="form-group">
+      <label>氏名</label>
+      <input type="text" id="edit-name">
+    </div>
+    <div class="form-group">
+      <label>氏名 (かな)</label>
+      <input type="text" id="edit-nameKana">
+    </div>
+    <div class="form-group">
+      <label>部署</label>
+      <input type="text" id="edit-department">
+    </div>
+    <div class="form-group">
+      <label>役職</label>
+      <input type="text" id="edit-title">
+    </div>
+    <div class="form-group">
+      <label>電話番号</label>
+      <input type="text" id="edit-phone">
+    </div>
+    <div class="form-group">
+      <label>携帯電話</label>
+      <input type="text" id="edit-mobile">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="text" id="edit-email">
+    </div>
+    <div class="form-group">
+      <label>郵便番号</label>
+      <input type="text" id="edit-zipCode">
+    </div>
+    <div class="form-group">
+      <label>住所</label>
+      <input type="text" id="edit-address">
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn-primary" id="saveCardBtn" onclick="saveCardEdit()">変更を保存する</button>
+  </div>
+</div>  
 <nav id="bottom-nav">
   <button id="nav-camera" class="active" onclick="showPage('page-camera')">
     <span>📷</span> 撮影
@@ -463,6 +690,7 @@ let capturedImages = { front: null, back: null };
 
 let isDetected = false;
 let lastDetectedQuad = null;
+let allCardsData = []; // スプレッドシートから取得した名刺データ全件  
 
 const mockData = [
   { id: 1, name: "山田 太郎", company: "株式会社サンプル", image: "url_to_image" },
@@ -576,6 +804,10 @@ function showPage(pageId) {
     }
   } else {
     isDetecting = false;
+  }
+  if (pageId === 'page-search') {
+    isDetecting = false;
+    fetchCardsData(); // ★検索ページ表示時に最新一覧をロード
   }
 }
 
@@ -1053,6 +1285,166 @@ function openDetail(id) {
   const item = mockData.find(d => d.id === id);
   alert(`詳細表示: ${item.name} - ${item.company}`);
 }
+
+// GASからデータ取得
+async function fetchCardsData() {
+  const container = document.getElementById('card-container');
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: "getCards" })
+    });
+    const result = await res.json();
+    if (result.success) {
+      allCardsData = result.cards;
+      renderCards(allCardsData);
+    } else {
+      container.innerHTML = `<div style="text-align:center; padding: 20px; color: #ef4444;">取得失敗: ${result.message}</div>`;
+    }
+  } catch (e) {
+    container.innerHTML = `<div style="text-align:center; padding: 20px; color: #ef4444;">通信エラーが発生しました</div>`;
+  }
+}
+// ひらがな・カタカナ互換ヘルパー
+function hiraToKata(str) {
+  return str.replace(/[\u3041-\u3096]/g, m => String.fromCharCode(m.charCodeAt(0) + 0x60));
+}
+function kataToHira(str) {
+  return str.replace(/[\u30a1-\u30f6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
+}
+
+// リアルタイム検索処理（ひらがな・カタカナ・漢字対応）
+document.getElementById('searchInput')?.addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase().trim();
+  if (!query) {
+    renderCards(allCardsData);
+    return;
+  }
+
+  const qKata = hiraToKata(query);
+  const qHira = kataToHira(query);
+
+  const filtered = allCardsData.filter(card => {
+    const textGroup = [
+      card.name, card.nameKana, card.company, card.companyKana,
+      card.department, card.title, card.email, card.phone
+    ].join(' ').toLowerCase();
+
+    return textGroup.includes(query) || textGroup.includes(qKata) || textGroup.includes(qHira);
+  });
+
+  renderCards(filtered);
+});
+
+// Eight風カードの描写
+function renderCards(dataList) {
+  const container = document.getElementById('card-container');
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (!dataList || dataList.length === 0) {
+    container.innerHTML = `<div style="text-align:center; padding: 40px; color: #64748b;">名刺データが見つかりません</div>`;
+    return;
+  }
+
+  dataList.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'eight-card';
+    card.onclick = () => openDetailModal(item);
+
+    const thumbHtml = item.frontUrl ? `<img src="${item.frontUrl}" alt="名刺">` : `<span class="card-thumb-placeholder">No Img</span>`;
+
+    card.innerHTML = `
+      <div class="card-thumb-box">${thumbHtml}</div>
+      <div class="card-info">
+        <div class="card-name">
+          ${item.name || "名称未設定"}
+          ${item.nameKana ? `<span class="card-kana">${item.nameKana}</span>` : ''}
+        </div>
+        <p class="card-company">${item.company || "会社名なし"}</p>
+        <div class="card-dept">${[item.department, item.title].filter(Boolean).join(' / ')}</div>
+        <div class="card-date">更新: ${item.updatedAt || item.createdAt}</div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// モーダル表示と編集データのセット
+function openDetailModal(item) {
+  document.getElementById('edit-rowIndex').value = item.rowIndex;
+  document.getElementById('edit-company').value = item.company;
+  document.getElementById('edit-companyKana').value = item.companyKana;
+  document.getElementById('edit-name').value = item.name;
+  document.getElementById('edit-nameKana').value = item.nameKana;
+  document.getElementById('edit-department').value = item.department;
+  document.getElementById('edit-title').value = item.title;
+  document.getElementById('edit-phone').value = item.phone;
+  document.getElementById('edit-mobile').value = item.mobile;
+  document.getElementById('edit-email').value = item.email;
+  document.getElementById('edit-zipCode').value = item.zipCode;
+  document.getElementById('edit-address').value = item.address;
+
+  const fImg = document.getElementById('m-front-img');
+  const bImg = document.getElementById('m-back-img');
+
+  if (item.frontUrl) { fImg.src = item.frontUrl; fImg.style.display = "block"; } else { fImg.style.display = "none"; }
+  if (item.backUrl) { bImg.src = item.backUrl; bImg.style.display = "block"; } else { bImg.style.display = "none"; }
+
+  document.getElementById('detail-modal').style.display = 'flex';
+}
+
+function closeDetailModal() {
+  document.getElementById('detail-modal').style.display = 'none';
+}
+
+// 変更の保存処理（GASへ送信）
+async function saveCardEdit() {
+  const saveBtn = document.getElementById('saveCardBtn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = "保存中...";
+
+  const payload = {
+    action: "updateCard",
+    rowIndex: document.getElementById('edit-rowIndex').value,
+    userCode: sessionStorage.getItem('userCode') || 'unknown',
+    userName: sessionStorage.getItem('userName') || '不明',
+    company: document.getElementById('edit-company').value,
+    companyKana: document.getElementById('edit-companyKana').value,
+    name: document.getElementById('edit-name').value,
+    nameKana: document.getElementById('edit-nameKana').value,
+    department: document.getElementById('edit-department').value,
+    title: document.getElementById('edit-title').value,
+    phone: document.getElementById('edit-phone').value,
+    mobile: document.getElementById('edit-mobile').value,
+    email: document.getElementById('edit-email').value,
+    zipCode: document.getElementById('edit-zipCode').value,
+    address: document.getElementById('edit-address').value
+  };
+
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (result.success) {
+      alert("更新を保存しました");
+      closeDetailModal();
+      fetchCardsData(); // 一覧を再取得
+    } else {
+      alert("更新失敗: " + result.message);
+    }
+  } catch (e) {
+    alert("通信エラーが発生しました");
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = "変更を保存する";
+  }
+}
+  
 </script>
 </body>
 </html>
