@@ -49,24 +49,31 @@
     box-sizing: border-box;
   }
 
-  /* 縦画面警告オーバーレイ */
-  #orientation-warning {
+ /* 通常（縦向きや他ページ表示時）は非表示 */
+#orientation-warning {
+  display: none;
+}
+
+/* 「カメラ画面（#page-camera）が表示されている」かつ「横向き」の時だけ全画面で警告表示 */
+@media screen and (orientation: landscape) {
+  /* page-camera に active クラスがついている場合 */
+  #page-camera.active ~ #orientation-warning,
+  /* または style="display: block" 等でカメラ画面が表示されている場合 */
+  #page-camera:not([style*="display: none"]) ~ #orientation-warning {
+    display: flex;
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
     background: rgba(15, 23, 42, 0.95);
-    backdrop-filter: blur(10px);
     z-index: 9999;
-    display: none;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    text-align: center;
-    color: #ffffff;
-    padding: 20px;
+    color: #fff;
   }
+}
 
   /* ログイン */
   #page-login {
@@ -584,13 +591,12 @@
   cursor: default;
 }
 
-/* 基本スタイル */
+/* 詳細モーダル内のプレビュー容器・外枠の除去 */
 .card-preview-container {
-  display: grid;
-  gap: 12px;
-  width: 100%;
-  margin-bottom: 20px;
-  box-sizing: border-box;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 
 .preview-item {
@@ -604,14 +610,20 @@
   box-sizing: border-box;
 }
 
+/* ラベル要素が存在する場合も非表示 */
 .preview-label {
-  font-size: 11px;
-  font-weight: bold;
-  color: #64748b;
-  margin-bottom: 6px;
-  align-self: flex-start;
+  display: none !important;
 }
 
+  /* 各画像ラッパーおよび画像自体の枠線・影を除去 */
+.card-preview-container .preview-item,
+.card-preview-container img {
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  background: none !important;
+}
+  
 /* 画像が枠からはみ出さず、アスペクト比を維持して全体表示 */
 .preview-item img {
   width: 100%;
@@ -720,14 +732,12 @@
   </div>
   <div class="modal-body">
     
-<!-- 修正後 -->
+<!-- 修正後：詳細モーダルのプレビュー領域 -->
 <div class="card-preview-container" id="modalPreviewContainer">
   <div class="preview-item" id="p-front-wrapper">
-    <span class="preview-label">表面</span>
     <img id="m-front-img" src="" alt="表面" />
   </div>
   <div class="preview-item" id="p-back-wrapper">
-    <span class="preview-label">裏面</span>
     <img id="m-back-img" src="" alt="裏面" />
   </div>
 </div>
