@@ -1375,6 +1375,17 @@ document.getElementById('searchInput')?.addEventListener('input', (e) => {
   renderCards(filtered);
 });
 
+// Google Driveの共有URLを直リンク（<img src>用）に変換するヘルパー関数
+function formatDriveUrl(url) {
+  if (!url) return "";
+  // Google DriveのURLからファイルID（d/XXXXX/view）を抽出
+  const match = url.match(/\/d\/([^\/]+)/);
+  if (match && match[1]) {
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
+  }
+  return url; // すでに直リンクの場合などはそのまま返す
+}
+
 // Eight風カードの描写
 function renderCards(dataList) {
   const container = document.getElementById('card-container');
@@ -1391,7 +1402,11 @@ function renderCards(dataList) {
     card.className = 'eight-card';
     card.onclick = () => openDetailModal(item);
 
-    const thumbHtml = item.frontUrl ? `<img src="${item.frontUrl}" alt="名刺">` : `<span class="card-thumb-placeholder">No Img</span>`;
+    // ★ここでGoogle DriveのURLを画像用に変換します
+    const imageUrl = formatDriveUrl(item.frontUrl);
+    const thumbHtml = imageUrl 
+      ? `<img src="${imageUrl}" alt="名刺" loading="lazy" style="width:100%; height:100%; object-fit:cover;">` 
+      : `<span class="card-thumb-placeholder">No Img</span>`;
 
     card.innerHTML = `
       <div class="card-thumb-box">${thumbHtml}</div>
@@ -1400,9 +1415,9 @@ function renderCards(dataList) {
         <div class="card-name" style="font-size: 16px; font-weight: bold; color: #1e293b; margin-bottom: 4px;">
           ${item.name || "名称未設定"}
         </div>
-        <p class="card-company">${item.company || "会社名なし"}</p>
-        <div class="card-dept">${[item.department, item.title].filter(Boolean).join(' / ')}</div>
-        <div class="card-date">更新: ${item.updatedAt || item.createdAt}</div>
+        <p class="card-company" style="font-size: 13px; color: #475569; margin: 0 0 2px 0;">${item.company || "会社名なし"}</p>
+        <div class="card-dept" style="font-size: 12px; color: #64748b;">${[item.department, item.title].filter(Boolean).join(' / ')}</div>
+        <div class="card-date" style="font-size: 11px; color: #94a3b8; margin-top: 6px;">更新: ${item.updatedAt || item.createdAt}</div>
       </div>
     `;
     container.appendChild(card);
