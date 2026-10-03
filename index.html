@@ -108,7 +108,7 @@
     color: var(--text-main);
   }
 
-  .-box p.subtitle {
+  .login-box p.subtitle {
     margin: 0 0 24px 0;
     font-size: 13px;
     color: var(--text-muted);
@@ -590,9 +590,9 @@
 /* 読み取り専用時のスタイル（閲覧モード用） */
 #detail-modal input[readonly],
 #detail-modal textarea[readonly] {
-  background-color: #f8fafc;
-  border-color: #e2e8f0;
-  color: #334155;
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
   cursor: default;
 }
 
@@ -672,7 +672,7 @@
 
 
 
-<div id="page-" class="page">
+<div id="page-login" class="page">
   <div class="-box">
     <h2>酒ゃビック名刺管理</h2>
     <p class="subtitle">アカウント情報を入力してログイン</p>
@@ -802,7 +802,7 @@
   <!-- 【閲覧モード時のボタン群】 -->
   <div id="view-buttons" style="display: flex; gap: 10px;">
     <button type="button" onclick="enableEditMode()" style="background:#3b82f6; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">編集</button>
-    <button type="button" onclick="()" style="background:#ef4444; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">削除</button>
+    <button type="button" onclick="deleteCard()" style="background:#ef4444; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">削除</button>
     <button type="button" onclick="closeDetailModal()" style="background:#94a3b8; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">閉じる</button>
   </div>
 
