@@ -728,10 +728,10 @@ let lastDetectedQuad = null;
 let allCardsData = []; // スプレッドシートから取得した名刺データ全件
 let currentSelectedItem = null; // 現在選択中のカードデータ（編集キャンセル時用）
 
+// 画面回転イベント（一箇所に集約）
 window.addEventListener('resize', checkOrientation);
 window.addEventListener('orientationchange', checkOrientation);
 
-  
 async function enforcePortraitOrientation() {
   if (screen.orientation && screen.orientation.lock) {
     try {
@@ -761,9 +761,6 @@ function checkOrientation() {
   }
 }
 
-window.addEventListener('resize', checkOrientation);
-window.addEventListener('orientationchange', checkOrientation);
-
 // ログイン処理
 document.getElementById('loginBtn')?.addEventListener('click', async () => {
   const loginBtn = document.getElementById('loginBtn');
@@ -779,8 +776,6 @@ document.getElementById('loginBtn')?.addEventListener('click', async () => {
   const originalText = loginBtn.textContent;
   loginBtn.textContent = "ログイン処理中...";
   loginBtn.style.opacity = "0.7";
-  
-  
 
   try {
     const payload = { action: "login", id: id, pass: pass };
@@ -788,14 +783,13 @@ document.getElementById('loginBtn')?.addEventListener('click', async () => {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
-      redirect: 'follow' // ← 追加
+      redirect: 'follow'
     });
 
     const result = await response.json();
 
     if (result.success) {
       sessionStorage.setItem('isLoggedIn', 'true');
-      // ↓ この行を追加して userCode を保存します
       sessionStorage.setItem('userCode', result.userCode || id);
       sessionStorage.setItem('userName', result.userName || id);
       sessionStorage.setItem('loginTime', new Date().getTime().toString());
@@ -815,12 +809,11 @@ document.getElementById('loginBtn')?.addEventListener('click', async () => {
     loginBtn.style.opacity = "1";
   }
 });
-  
+
 // ---------------------------------------------------------
 // ページ切り替え処理（カメラ制御を追加）
 // ---------------------------------------------------------
 function showPage(pageId) {
-  // すべてのページを非表示
   document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
   
   const targetPage = document.getElementById(pageId);
@@ -830,48 +823,33 @@ function showPage(pageId) {
     return;
   }
 
-  // ナビゲーションの表示更新
   document.querySelectorAll('#bottom-nav button').forEach(btn => btn.classList.remove('active'));
   if (pageId === 'page-camera') document.getElementById('nav-camera')?.classList.add('active');
   if (pageId === 'page-search') document.getElementById('nav-search')?.classList.add('active');
 
-  // ★【変更点】ページの切り替えに応じてカメラのON/OFFを切り替え
   if (pageId === 'page-camera') {
-    // 撮影ページ：カメラを起動する
     startCamera();
   } else {
-    // 撮影ページ以外（検索ページ等）：カメラを完全停止（オフ）する
     stopCamera();
   }
 
-  // 検索ページ表示時：最新データを取得
   if (pageId === 'page-search') {
     fetchCardsData();
   }
 }
 
-// ---------------------------------------------------------
-// カメラ停止関数（新規追加）
-// ---------------------------------------------------------
 function stopCamera() {
-  isDetecting = false; // 検知ループを止める
-  
-  // カメラのストリームを完全に停止する
+  isDetecting = false;
   if (video && video.srcObject) {
     const stream = video.srcObject;
     const tracks = stream.getTracks();
-    tracks.forEach(track => track.stop()); // 各トラック（映像）を個別に停止
-    video.srcObject = null; // ビデオエレメントをクリア
+    tracks.forEach(track => track.stop());
+    video.srcObject = null;
   }
 }
 
-// ---------------------------------------------------------
-// カメラ起動関数（修正）
-// ---------------------------------------------------------
 async function startCamera() {
   await enforcePortraitOrientation();
-  
-  // すでに動いている場合は重複起動しない
   if (video.srcObject) return;
 
   const constraints = {
@@ -897,32 +875,41 @@ async function startCamera() {
   }
 }
 
+// ひらがな・カタカナ互換ヘルパー
+function hiraToKata(str) {
+  return str.replace(/[\u3041-\u3096]/g, m => String.fromCharCode(m.charCodeAt(0) + 0x60));
+}
+function kataToHira(str) {
+  return str.replace(/[\u30a1-\u30f6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
+}
+
 // ---------------------------------------------------------
-// 検索バー入力イベント（mockDataではなくallCardsDataから検索）
+// 検索バー入力イベント（一箇所に集約・ひらがなカタカナ・あいまい対応）
 // ---------------------------------------------------------
 document.getElementById('searchInput')?.addEventListener('input', (e) => {
   const query = e.target.value.toLowerCase().trim();
-  
   if (!query) {
     renderCards(allCardsData);
     return;
   }
 
-  // 社名・氏名・かな・部署・メール等からあいまい検索
-  const filtered = allCardsData.filter(item => {
+  const qKata = hiraToKata(query);
+  const qHira = kataToHira(query);
+
+  const filtered = allCardsData.filter(card => {
     const textGroup = [
-      item.name, item.nameKana, item.company, item.companyKana, 
-      item.department, item.title, item.email, item.phone
+      card.name, card.nameKana, card.company, card.companyKana,
+      card.department, card.title, card.email, card.phone
     ].join(' ').toLowerCase();
 
-    return textGroup.includes(query);
+    return textGroup.includes(query) || textGroup.includes(qKata) || textGroup.includes(qHira);
   });
 
   renderCards(filtered);
 });
 
 // --------------------------------------------------
-// OpenCV 4頂点検知（元の認識ロジックそのまま）
+// OpenCV 4頂点検知
 // --------------------------------------------------
 function findCardQuad(srcMat) {
   let gray = new cv.Mat();
@@ -931,7 +918,6 @@ function findCardQuad(srcMat) {
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
 
-  // コントラスト強調 + エッジ検出
   cv.cvtColor(srcMat, gray, cv.COLOR_RGBA2GRAY);
   cv.equalizeHist(gray, equalized);
   cv.Canny(equalized, edges, 70, 200);
@@ -1016,7 +1002,7 @@ function detectLoop() {
       if (captureBtn) captureBtn.classList.remove('active');
     }
   } finally {
-    fullMat.delete(); // メモリリークを確実に防止
+    fullMat.delete();
   }
 
   setTimeout(() => requestAnimationFrame(detectLoop), 200);
@@ -1086,17 +1072,15 @@ function cropFallbackROI(srcMat) {
   roi.delete();
 }
 
-// 短いカードIDを生成する関数（例: "260929-a8f"）
 function generateShortCardId() {
   const now = new Date();
   const yy = String(now.getFullYear()).slice(-2);
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const dd = String(now.getDate()).padStart(2, '0');
-  const rand = Math.random().toString(36).substring(2, 5); // ランダム英数字3文字
+  const rand = Math.random().toString(36).substring(2, 5);
   return `${yy}${mm}${dd}-${rand}`;
 }
   
-// シャッターボタンタップ時
 document.getElementById('capture-btn').addEventListener('click', async () => {
   if (!globalCardId) globalCardId = generateShortCardId();
   isDetecting = false;
@@ -1127,7 +1111,7 @@ document.getElementById('capture-btn').addEventListener('click', async () => {
   const outputCanvas = document.getElementById('outputCanvas');
   const dataUrl = outputCanvas.toDataURL('image/jpeg', 0.9);
   
-if (isFrontSide) {
+  if (isFrontSide) {
     capturedImages.front = dataUrl;
     
     const guidePreview = document.getElementById('guidePreview');
@@ -1148,14 +1132,12 @@ if (isFrontSide) {
       previewBack.src = dataUrl;
     }
 
-    // 裏面撮影完了時は単体ガイドプレビューを隠し、表裏縦並びコンテナを表示
     const guidePreview = document.getElementById('guidePreview');
     if (guidePreview) guidePreview.style.display = 'none';
 
     const previewContainer = document.getElementById('previewContainer');
     if (previewContainer) previewContainer.style.display = 'flex';
   }
-  
   
   video.style.display = 'none';
   if (outputCanvas) outputCanvas.style.display = 'none';
@@ -1257,8 +1239,6 @@ function resetPreview() {
 }
 
 async function uploadAllImages() {
-  const cloudRunUrl = 'https://upload-meishi-function-769951420007.asia-northeast2.run.app';
-// セッションからユーザーコードを取得（未保持の場合は'unknown'）
   const userCode = sessionStorage.getItem('userCode') || 'unknown';
   
   if (capturedImages.front) {
@@ -1266,11 +1246,11 @@ async function uploadAllImages() {
       base64Data: capturedImages.front.split(',')[1],
       fileName: `card_${globalCardId}_${userCode}_front.jpg`
     };
-    const res1 = await fetch(cloudRunUrl, {
+    const res1 = await fetch(CLOUD_RUN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(frontPayload),
-      redirect: 'follow' // ← 追加
+      redirect: 'follow'
     });
     if (!res1.ok) throw new Error("表面送信失敗: " + await res1.text());
   }
@@ -1280,7 +1260,7 @@ async function uploadAllImages() {
       base64Data: capturedImages.back.split(',')[1],
       fileName: `card_${globalCardId}_${userCode}_back.jpg`
     };
-    const res2 = await fetch(cloudRunUrl, {
+    const res2 = await fetch(CLOUD_RUN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(backPayload)
@@ -1322,7 +1302,6 @@ window.addEventListener('load', () => {
   const loginTime = sessionStorage.getItem('loginTime');
   const now = new Date().getTime();
   
-  // 1時間以上経過していたらセッションクリア
   if (loginTime && (now - Number(loginTime) > 3600000)) {
     sessionStorage.clear();
   }
@@ -1336,9 +1315,6 @@ window.addEventListener('load', () => {
   }
 });
 
-// ---------------------------------------------------------
-// 名刺データ取得処理（検索ページ用）
-// ---------------------------------------------------------
 async function fetchCardsData() {
   const container = document.getElementById('card-container');
   if (!container) return;
@@ -1350,7 +1326,7 @@ async function fetchCardsData() {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: "getCards" }),
-      redirect: 'follow' // GASのリダイレクトを確実に追跡
+      redirect: 'follow'
     });
 
     const result = await res.json();
@@ -1374,50 +1350,16 @@ async function fetchCardsData() {
       </div>`;
   }
 }
-  
-// ひらがな・カタカナ互換ヘルパー
-function hiraToKata(str) {
-  return str.replace(/[\u3041-\u3096]/g, m => String.fromCharCode(m.charCodeAt(0) + 0x60));
-}
-function kataToHira(str) {
-  return str.replace(/[\u30a1-\u30f6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
-}
 
-// リアルタイムあいまい検索
-document.getElementById('searchInput')?.addEventListener('input', (e) => {
-  const query = e.target.value.toLowerCase().trim();
-  if (!query) {
-    renderCards(allCardsData);
-    return;
-  }
-
-  const qKata = hiraToKata(query);
-  const qHira = kataToHira(query);
-
-  const filtered = allCardsData.filter(card => {
-    const textGroup = [
-      card.name, card.nameKana, card.company, card.companyKana,
-      card.department, card.title, card.email, card.phone
-    ].join(' ').toLowerCase();
-
-    return textGroup.includes(query) || textGroup.includes(qKata) || textGroup.includes(qHira);
-  });
-
-  renderCards(filtered);
-});
-
-// Google Driveの共有URLを直リンク（<img src>用）に変換するヘルパー関数
 function formatDriveUrl(url) {
   if (!url) return "";
-  // Google DriveのURLからファイルID（d/XXXXX/view）を抽出
   const match = url.match(/\/d\/([^\/]+)/);
   if (match && match[1]) {
     return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
   }
-  return url; // すでに直リンクの場合などはそのまま返す
+  return url;
 }
 
-// Eight風カードの描写
 function renderCards(dataList) {
   const container = document.getElementById('card-container');
   if (!container) return;
@@ -1433,7 +1375,6 @@ function renderCards(dataList) {
     card.className = 'eight-card';
     card.onclick = () => openDetailModal(item);
 
-    // ★ここでGoogle DriveのURLを画像用に変換します
     const imageUrl = formatDriveUrl(item.frontUrl);
     const thumbHtml = imageUrl 
       ? `<img src="${imageUrl}" alt="名刺" loading="lazy" style="width:100%; height:100%; object-fit:cover;">` 
@@ -1454,15 +1395,10 @@ function renderCards(dataList) {
     container.appendChild(card);
   });
 }
-  
-// 現在選択中のカードデータ（「取消」時に元に戻す用）
-let currentSelectedItem = null;
 
-// モーダル表示（初期状態：閲覧モード）
 function openDetailModal(item) {
-  currentSelectedItem = item; // データを保持
+  currentSelectedItem = item;
 
-  // 各フォームに値をセット
   document.getElementById('edit-rowIndex').value = item.rowIndex || '';
   document.getElementById('edit-company').value = item.company || '';
   document.getElementById('edit-companyKana').value = item.companyKana || '';
@@ -1476,7 +1412,6 @@ function openDetailModal(item) {
   document.getElementById('edit-zipCode').value = item.zipCode || '';
   document.getElementById('edit-address').value = item.address || '';
 
-  // 画像のセット
   const fImg = document.getElementById('m-front-img');
   const bImg = document.getElementById('m-back-img');
   const frontSrc = formatDriveUrl(item.frontUrl);
@@ -1485,17 +1420,14 @@ function openDetailModal(item) {
   if (frontSrc) { fImg.src = frontSrc; fImg.style.display = "block"; } else { fImg.style.display = "none"; }
   if (backSrc) { bImg.src = backSrc; bImg.style.display = "block"; } else { bImg.style.display = "none"; }
 
-  // 初期は「閲覧モード」にする
   setFormReadOnly(true);
-
   document.getElementById('detail-modal').style.display = 'flex';
 }
 
-// フォームの読み取り専用（readonly）切替
 function setFormReadOnly(isReadOnly) {
   const inputs = document.querySelectorAll('#detail-modal input, #detail-modal textarea');
   inputs.forEach(input => {
-    if (input.id !== 'edit-rowIndex') { // hidden要素以外
+    if (input.id !== 'edit-rowIndex') {
       if (isReadOnly) {
         input.setAttribute('readonly', 'readonly');
       } else {
@@ -1504,20 +1436,17 @@ function setFormReadOnly(isReadOnly) {
     }
   });
 
-  // ボタンの表示切替
   document.getElementById('view-buttons').style.display = isReadOnly ? 'flex' : 'none';
   document.getElementById('edit-buttons').style.display = isReadOnly ? 'none' : 'flex';
 }
 
-// 「編集」ボタンを押した時
 function enableEditMode() {
   setFormReadOnly(false);
 }
 
-// 「取消」ボタンを押した時（元のデータに戻して閲覧モードへ）
 function cancelEditMode() {
   if (currentSelectedItem) {
-    openDetailModal(currentSelectedItem); // 初期データで再セット
+    openDetailModal(currentSelectedItem);
   } else {
     setFormReadOnly(true);
   }
@@ -1528,7 +1457,6 @@ function closeDetailModal() {
   currentSelectedItem = null;
 }
 
-// 「保存」処理
 async function saveCardEdit() {
   const saveBtn = document.getElementById('saveCardBtn');
   if (saveBtn) {
@@ -1564,7 +1492,7 @@ async function saveCardEdit() {
     if (result.success) {
       alert("更新を保存しました");
       closeDetailModal();
-      fetchCardsData(); // 一覧を再取得
+      fetchCardsData();
     } else {
       alert("更新失敗: " + result.message);
     }
@@ -1578,7 +1506,6 @@ async function saveCardEdit() {
   }
 }
 
-// 「削除」処理
 async function deleteCard() {
   const rowIndex = document.getElementById('edit-rowIndex').value;
   const name = document.getElementById('edit-name').value || 'この名刺';
@@ -1602,7 +1529,7 @@ async function deleteCard() {
     if (result.success) {
       alert("データを削除しました");
       closeDetailModal();
-      fetchCardsData(); // 一覧を再取得
+      fetchCardsData();
     } else {
       alert("削除失敗: " + result.message);
     }
@@ -1610,9 +1537,6 @@ async function deleteCard() {
     alert("通信エラーが発生しました");
   }
 }
-
-
-
 </script>
 </body>
 </html>
