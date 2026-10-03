@@ -49,31 +49,24 @@
     box-sizing: border-box;
   }
 
- /* 通常（縦向きや他ページ表示時）は非表示 */
-#orientation-warning {
-  display: none;
-}
-
-/* 「カメラ画面（#page-camera）が表示されている」かつ「横向き」の時だけ全画面で警告表示 */
-@media screen and (orientation: landscape) {
-  /* page-camera に active クラスがついている場合 */
-  #page-camera.active ~ #orientation-warning,
-  /* または style="display: block" 等でカメラ画面が表示されている場合 */
-  #page-camera:not([style*="display: none"]) ~ #orientation-warning {
-    display: flex;
+/* 縦画面警告オーバーレイ */
+  #orientation-warning {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
     background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
     z-index: 9999;
+    display: none;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    color: #fff;
+    text-align: center;
+    color: #ffffff;
+    padding: 20px;
   }
-}
 
   /* ログイン */
   #page-login {
@@ -665,11 +658,7 @@
 </head>
 <body>
 
-<div id="orientation-warning">
-  <div style="font-size: 48px; margin-bottom: 16px;">📱</div>
-  <p style="font-size: 20px; font-weight: 700; margin: 0 0 10px 0;">画面を縦向きにしてください</p>
-  <p style="font-size: 14px; color: #94a3b8; margin: 0;">本システムは縦向き表示専用です</p>
-</div>
+
 
 <div id="page-login" class="page">
   <div class="login-box">
@@ -715,6 +704,12 @@
       </div>
     </div>
   </div>
+
+<div id="orientation-warning">
+  <div style="font-size: 48px; margin-bottom: 16px;">📱</div>
+  <p style="font-size: 20px; font-weight: 700; margin: 0 0 10px 0;">画面を縦向きにしてください</p>
+  <p style="font-size: 14px; color: #94a3b8; margin: 0;">本システムは縦向き表示専用です</p>
+</div>  
 </div>
   
 <div id="page-search" class="page">
