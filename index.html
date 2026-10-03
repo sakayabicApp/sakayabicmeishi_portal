@@ -728,7 +728,10 @@ let lastDetectedQuad = null;
 let allCardsData = []; // スプレッドシートから取得した名刺データ全件
 let currentSelectedItem = null; // 現在選択中のカードデータ（編集キャンセル時用）
 
+window.addEventListener('resize', checkOrientation);
+window.addEventListener('orientationchange', checkOrientation);
 
+  
 async function enforcePortraitOrientation() {
   if (screen.orientation && screen.orientation.lock) {
     try {
