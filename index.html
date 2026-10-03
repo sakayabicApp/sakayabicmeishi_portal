@@ -720,17 +720,17 @@
   </div>
   <div class="modal-body">
     
-    <!-- ★ここを差し替え：画像プレビューエリア（コンテナとラッパーを追加） -->
-    <div class="card-preview-container" id="previewContainer">
-      <div class="preview-item" id="p-front-wrapper">
-        <span class="preview-label">表面</span>
-        <img id="m-front-img" src="" alt="表面" />
-      </div>
-      <div class="preview-item" id="p-back-wrapper">
-        <span class="preview-label">裏面</span>
-        <img id="m-back-img" src="" alt="裏面"  />
-      </div>
-    </div>
+<!-- 修正後 -->
+<div class="card-preview-container" id="modalPreviewContainer">
+  <div class="preview-item" id="p-front-wrapper">
+    <span class="preview-label">表面</span>
+    <img id="m-front-img" src="" alt="表面" />
+  </div>
+  <div class="preview-item" id="p-back-wrapper">
+    <span class="preview-label">裏面</span>
+    <img id="m-back-img" src="" alt="裏面" />
+  </div>
+</div>
 
     <input type="hidden" id="edit-rowIndex">
     <div class="form-group">
@@ -1543,7 +1543,7 @@ function openDetailModal(item) {
   const bImg = document.getElementById('m-back-img');
   const fWrapper = document.getElementById('p-front-wrapper');
   const bWrapper = document.getElementById('p-back-wrapper');
-  const container = document.getElementById('previewContainer');
+  const container = document.getElementById('modalPreviewContainer');
 
   const frontSrc = formatDriveUrl(item.frontUrl);
   const backSrc = formatDriveUrl(item.backUrl);
