@@ -663,13 +663,19 @@
   <div class="login-box">
     <h2>酒ゃビック名刺管理</h2>
     <p class="subtitle">アカウント情報を入力してログイン</p>
-    <div class="input-group">
-      <input type="text" id="loginId" placeholder="ユーザーID">
-    </div>
-    <div class="input-group">
-      <input type="password" id="loginPass" placeholder="パスワード">
-    </div>
-    <button id="loginBtn" class="btn-primary">ログイン</button>
+    
+    <!-- ★ form タグで囲む -->
+    <form onsubmit="event.preventDefault(); handleLogin();">
+      <div class="input-group">
+        <input type="text" id="loginId" placeholder="ユーザーID" autocomplete="username">
+      </div>
+      <div class="input-group">
+        <input type="password" id="loginPass" placeholder="パスワード" autocomplete="current-password">
+      </div>
+      <!-- type="submit" に変更 -->
+      <button type="submit" id="loginBtn" class="btn-primary">ログイン</button>
+    </form>
+    
   </div>
 </div>
   
@@ -1575,6 +1581,26 @@ function openDetailModal(item) {
   }, 50);
 }
 
+// モーダル内の入力項目を読み取り専用 / 編集可能に切り替える関数
+function setFormReadOnly(isReadOnly) {
+  const inputs = document.querySelectorAll('#detail-modal input, #detail-modal textarea');
+  inputs.forEach(input => {
+    // hiddenのrowIndex以外を対象に制御
+    if (input.id !== 'edit-rowIndex') {
+      if (isReadOnly) {
+        input.setAttribute('readonly', 'readonly');
+      } else {
+        input.removeAttribute('readonly');
+      }
+    }
+  });
+
+  // ボタンの表示制御（閲覧時と編集時で切り替え）
+  const viewBtns = document.getElementById('view-buttons');
+  const editBtns = document.getElementById('edit-buttons');
+  if (viewBtns) viewBtns.style.display = isReadOnly ? 'flex' : 'none';
+  if (editBtns) editBtns.style.display = isReadOnly ? 'none' : 'flex';
+}
   
 function enableEditMode() {
   setFormReadOnly(false);
