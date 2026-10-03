@@ -1552,18 +1552,20 @@ function openDetailModal(item) {
   const hasBack = Boolean(backSrc);
 
   // 表面の表示切替
-  if (hasFront) {
+  if (hasFront && fImg) {
     fImg.src = frontSrc;
-    fWrapper.style.display = "flex";
-  } else {
+    fImg.style.display = "block";  // ★ここで img タグ自体の display:none を解除！
+    if (fWrapper) fWrapper.style.display = "flex";
+  } else if (fWrapper) {
     fWrapper.style.display = "none";
   }
 
   // 裏面の表示切替
-  if (hasBack) {
+  if (hasBack && bImg) {
     bImg.src = backSrc;
-    bWrapper.style.display = "flex";
-  } else {
+    bImg.style.display = "block";  // ★ここで img タグ自体の display:none を解除！
+    if (bWrapper) bWrapper.style.display = "flex";
+  } else if (bWrapper) {
     bWrapper.style.display = "none";
   }
 
