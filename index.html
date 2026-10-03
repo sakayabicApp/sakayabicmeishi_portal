@@ -583,6 +583,70 @@
   color: #334155;
   cursor: default;
 }
+
+/* 基本スタイル */
+.card-preview-container {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+}
+
+.preview-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.preview-label {
+  font-size: 11px;
+  font-weight: bold;
+  color: #64748b;
+  margin-bottom: 6px;
+  align-self: flex-start;
+}
+
+/* 画像が枠からはみ出さず、アスペクト比を維持して全体表示 */
+.preview-item img {
+  width: 100%;
+  height: auto;
+  max-height: 260px;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  background-color: #ffffff;
+}
+
+/* ---------------------------------------------------------
+   レスポンシブ切り替えルール
+   --------------------------------------------------------- */
+
+/* ① デフォルト（スマホ 768px以下） */
+@media (max-width: 768px) {
+  /* 表裏両方ある場合は縦2行表示 */
+  .card-preview-container.has-both {
+    grid-template-columns: 1fr;
+  }
+
+  /* 表面のみ（または裏面のみ）の場合は2列配置にして巨大化を防止 */
+  .card-preview-container.has-single {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ② 769px以上（タブレット・PC） */
+@media (min-width: 769px) {
+  /* 表裏の有無にかかわらず常に2列表示 */
+  .card-preview-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}  
   
 </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
@@ -650,9 +714,17 @@
     <button class="close-btn" onclick="closeDetailModal()">&times;</button>
   </div>
   <div class="modal-body">
-    <div class="modal-images">
-      <img id="m-front-img" class="modal-img-card" alt="表面" style="display:none;" />
-      <img id="m-back-img" class="modal-img-card" alt="裏面" style="display:none;" />
+    
+    <!-- ★ここを差し替え：画像プレビューエリア（コンテナとラッパーを追加） -->
+    <div class="card-preview-container" id="previewContainer">
+      <div class="preview-item" id="p-front-wrapper">
+        <span class="preview-label">表面</span>
+        <img id="m-front-img" src="" alt="表面" style="display:none;" />
+      </div>
+      <div class="preview-item" id="p-back-wrapper">
+        <span class="preview-label">裏面</span>
+        <img id="m-back-img" src="" alt="裏面" style="display:none;" />
+      </div>
     </div>
 
     <input type="hidden" id="edit-rowIndex">
@@ -1456,39 +1528,54 @@ function openDetailModal(item) {
   document.getElementById('edit-zipCode').value = item.zipCode || '';
   document.getElementById('edit-address').value = item.address || '';
 
-  const fImg = document.getElementById('m-front-img');
+ const fImg = document.getElementById('m-front-img');
   const bImg = document.getElementById('m-back-img');
+  const fWrapper = document.getElementById('p-front-wrapper');
+  const bWrapper = document.getElementById('p-back-wrapper');
+  const container = document.getElementById('previewContainer');
+
   const frontSrc = formatDriveUrl(item.frontUrl);
   const backSrc = formatDriveUrl(item.backUrl);
 
-  if (frontSrc) { fImg.src = frontSrc; fImg.style.display = "block"; } else { fImg.style.display = "none"; }
-  if (backSrc) { bImg.src = backSrc; bImg.style.display = "block"; } else { bImg.style.display = "none"; }
+  const hasFront = Boolean(frontSrc);
+  const hasBack = Boolean(backSrc);
+
+  // 表面の表示切替
+  if (hasFront) {
+    fImg.src = frontSrc;
+    fWrapper.style.display = "flex";
+  } else {
+    fWrapper.style.display = "none";
+  }
+
+  // 裏面の表示切替
+  if (hasBack) {
+    bImg.src = backSrc;
+    bWrapper.style.display = "flex";
+  } else {
+    bWrapper.style.display = "none";
+  }
+
+  // クラスの掛け替え（レイアウト切り替え用）
+  if (container) {
+    container.classList.remove('has-both', 'has-single');
+    if (hasFront && hasBack) {
+      container.classList.add('has-both');   // スマホで2行表示
+    } else {
+      container.classList.add('has-single'); // スマホでも2列サイズに収める
+    }
+  }
 
   setFormReadOnly(true);
   document.getElementById('detail-modal').style.display = 'flex';
 
-  // ★ モーダル表示後にレンダリングが完了してから高さを自動調整
+  // textarea高さの自動調整
   setTimeout(() => {
     adjustAllModalTextareas();
   }, 50);
 }
 
-function setFormReadOnly(isReadOnly) {
-  const inputs = document.querySelectorAll('#detail-modal input, #detail-modal textarea');
-  inputs.forEach(input => {
-    if (input.id !== 'edit-rowIndex') {
-      if (isReadOnly) {
-        input.setAttribute('readonly', 'readonly');
-      } else {
-        input.removeAttribute('readonly');
-      }
-    }
-  });
-
-  document.getElementById('view-buttons').style.display = isReadOnly ? 'flex' : 'none';
-  document.getElementById('edit-buttons').style.display = isReadOnly ? 'none' : 'flex';
-}
-
+  
 function enableEditMode() {
   setFormReadOnly(false);
   // 編集モード切り替え時にも高さを再計算
