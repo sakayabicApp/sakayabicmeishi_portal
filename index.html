@@ -42,12 +42,17 @@
   }
 
   .page {
-    height: calc(100vh - 65px);
-    width: 100vw;
-    overflow-y: auto;
-    display: none;
-    box-sizing: border-box;
-  }
+  height: calc(100vh - 65px);
+  width: 100vw;
+  overflow-y: auto;
+  display: none; /* 基本は非表示 */
+  box-sizing: border-box;
+}
+
+/* アクティブなページを表示するクラスを追加 */
+.page.active {
+  display: block;
+}
 
 /* 縦画面警告オーバーレイ */
   #orientation-warning {
@@ -70,14 +75,21 @@
 
   /* ログイン */
   #page-login {
-    height: 100vh;
-    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 24px;
-  }
+  height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+  /* display: flex は JS 側または active 時に適用するように変更 */
+}
 
+#page-login.active {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+}
+
+#page-camera.active {
+  display: block !important;
+  height: calc(100vh - 65px);
+}
   .login-box {
     width: 100%;
     max-width: 380px;
@@ -96,7 +108,7 @@
     color: var(--text-main);
   }
 
-  .login-box p.subtitle {
+  .-box p.subtitle {
     margin: 0 0 24px 0;
     font-size: 13px;
     color: var(--text-muted);
@@ -660,8 +672,8 @@
 
 
 
-<div id="page-login" class="page">
-  <div class="login-box">
+<div id="page-" class="page">
+  <div class="-box">
     <h2>酒ゃビック名刺管理</h2>
     <p class="subtitle">アカウント情報を入力してログイン</p>
     
@@ -790,7 +802,7 @@
   <!-- 【閲覧モード時のボタン群】 -->
   <div id="view-buttons" style="display: flex; gap: 10px;">
     <button type="button" onclick="enableEditMode()" style="background:#3b82f6; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">編集</button>
-    <button type="button" onclick="deleteCard()" style="background:#ef4444; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">削除</button>
+    <button type="button" onclick="()" style="background:#ef4444; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">削除</button>
     <button type="button" onclick="closeDetailModal()" style="background:#94a3b8; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">閉じる</button>
   </div>
 
@@ -926,11 +938,17 @@ document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
 // ページ切り替え処理（カメラ制御を追加）
 // ---------------------------------------------------------
 function showPage(pageId) {
-  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  // すべてのページの active クラスを除去し非表示にする
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = 'none';
+  });
   
   const targetPage = document.getElementById(pageId);
   if (targetPage) {
-    targetPage.style.display = 'block';
+    targetPage.classList.add('active');
+    // page-login の場合は flex、それ以外は block
+    targetPage.style.display = (pageId === 'page-login') ? 'flex' : 'block';
   } else {
     return;
   }
