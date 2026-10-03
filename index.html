@@ -1442,11 +1442,28 @@ function openDetailModal(item) {
   const fImg = document.getElementById('m-front-img');
   const bImg = document.getElementById('m-back-img');
 
-  if (item.frontUrl) { fImg.src = item.frontUrl; fImg.style.display = "block"; } else { fImg.style.display = "none"; }
-  if (item.backUrl) { bImg.src = item.backUrl; bImg.style.display = "block"; } else { bImg.style.display = "none"; }
+  // ★Google Drive URLを直リンクに変換してセット
+  const frontSrc = formatDriveUrl(item.frontUrl);
+  const backSrc = formatDriveUrl(item.backUrl);
+
+ if (frontSrc) { 
+    fImg.src = frontSrc; 
+    fImg.style.display = "block"; 
+  } else { 
+    fImg.style.display = "none"; 
+  }
+
+  if (backSrc) { 
+    bImg.src = backSrc; 
+    bImg.style.display = "block"; 
+  } else { 
+    bImg.style.display = "none"; 
+  }
 
   document.getElementById('detail-modal').style.display = 'flex';
 }
+
+
 
 function closeDetailModal() {
   document.getElementById('detail-modal').style.display = 'none';
