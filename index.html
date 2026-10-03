@@ -344,10 +344,10 @@
     width: 100vw;
     height: 65px;
     background: #1e293b;
-    display: none;
+    display: flex;
     justify-content: space-around;
     align-items: center;
-    z-index: 100;
+    z-index: 1000;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
@@ -375,6 +375,45 @@
     color: #ffffff;
     font-weight: bold;
   }
+
+  /* 2. 横向き検出時に警告オーバーレイを自動表示 */
+@media screen and (orientation: landscape) {
+  #orientation-warning {
+    display: flex !important; /* 横向き時に強制表示 */
+  }
+}
+
+/* 3. スマホ回転アニメーションの追加 */
+.phone-icon-anim {
+  width: 32px;
+  height: 56px;
+  border: 3px solid #38bdf8;
+  border-radius: 6px;
+  position: relative;
+  margin-bottom: 20px;
+  animation: rotatePhone 2s infinite ease-in-out;
+}
+
+.phone-icon-anim::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #38bdf8;
+}
+
+@keyframes rotatePhone {
+  0% {
+    transform: rotate(-90deg);
+  }
+  50%, 100% {
+    transform: rotate(0deg);
+  }
+}
 
   /* 検索画面CSS */
   .search-header { padding: 16px; }
@@ -673,7 +712,7 @@
 
 
 <div id="page-login" class="page">
-  <div class="-box">
+  <div class="login-box">
     <h2>酒ゃビック名刺管理</h2>
     <p class="subtitle">アカウント情報を入力してログイン</p>
     
@@ -718,10 +757,11 @@
   </div>
 
 <div id="orientation-warning">
-  <div style="font-size: 48px; margin-bottom: 16px;">📱</div>
+  <!-- 絵文字の代わりにCSSアニメーションのスマホ枠を配置 -->
+  <div class="phone-icon-anim"></div>
   <p style="font-size: 20px; font-weight: 700; margin: 0 0 10px 0;">画面を縦向きにしてください</p>
   <p style="font-size: 14px; color: #94a3b8; margin: 0;">本システムは縦向き表示専用です</p>
-</div>  
+</div>
 </div>
   
 <div id="page-search" class="page">
