@@ -724,11 +724,11 @@
     <div class="card-preview-container" id="previewContainer">
       <div class="preview-item" id="p-front-wrapper">
         <span class="preview-label">表面</span>
-        <img id="m-front-img" src="" alt="表面" style="display:none;" />
+        <img id="m-front-img" src="" alt="表面" />
       </div>
       <div class="preview-item" id="p-back-wrapper">
         <span class="preview-label">裏面</span>
-        <img id="m-back-img" src="" alt="裏面" style="display:none;" />
+        <img id="m-back-img" src="" alt="裏面"  />
       </div>
     </div>
 
@@ -1552,20 +1552,20 @@ function openDetailModal(item) {
   const hasBack = Boolean(backSrc);
 
   // 表面の表示切替
-  if (hasFront && fImg) {
+  if (hasFront) {
     fImg.src = frontSrc;
-    fImg.style.display = "block";  // ★ここで img タグ自体の display:none を解除！
-    if (fWrapper) fWrapper.style.display = "flex";
-  } else if (fWrapper) {
+    fImg.style.display = "block"; // ★ ここを追加！（非表示を解除）
+    fWrapper.style.display = "flex";
+  } else {
     fWrapper.style.display = "none";
   }
 
   // 裏面の表示切替
-  if (hasBack && bImg) {
+  if (hasBack) {
     bImg.src = backSrc;
-    bImg.style.display = "block";  // ★ここで img タグ自体の display:none を解除！
-    if (bWrapper) bWrapper.style.display = "flex";
-  } else if (bWrapper) {
+    bImg.style.display = "block"; // ★ ここを追加！（非表示を解除）
+    bWrapper.style.display = "flex";
+  } else {
     bWrapper.style.display = "none";
   }
 
