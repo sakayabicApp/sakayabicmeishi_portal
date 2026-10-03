@@ -541,6 +541,25 @@
     border-top: 1px solid #334155;
     background: #0f172a;
   }
+
+  /* 詳細モーダル内の入力・表示フィールドの折り返し対応 */
+#detail-modal input,
+#detail-modal textarea,
+#detail-modal .info-text {
+  width: 100%;
+  box-sizing: border-box;
+  word-break: break-all;      /* 長い英数字・メールアドレス等を枠内で自動折り返し */
+  overflow-wrap: anywhere;
+}
+
+/* 読み取り専用時のスタイル（閲覧モード用） */
+#detail-modal input[readonly],
+#detail-modal textarea[readonly] {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+  color: #334155;
+  cursor: default;
+}
   
 </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
@@ -659,9 +678,23 @@
       <input type="text" id="edit-address">
     </div>
   </div>
-  <div class="modal-footer">
-    <button class="btn-primary" id="saveCardBtn" onclick="saveCardEdit()">変更を保存する</button>
+<!-- 詳細モーダル内の下部ボタンエリア例 -->
+<div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+  
+  <!-- 【閲覧モード時のボタン群】 -->
+  <div id="view-buttons" style="display: flex; gap: 10px;">
+    <button type="button" onclick="enableEditMode()" style="background:#3b82f6; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">編集</button>
+    <button type="button" onclick="deleteCard()" style="background:#ef4444; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">削除</button>
+    <button type="button" onclick="closeDetailModal()" style="background:#94a3b8; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">閉じる</button>
   </div>
+
+  <!-- 【編集モード時のボタン群（初期は非表示）】 -->
+  <div id="edit-buttons" style="display: none; gap: 10px;">
+    <button type="button" id="saveCardBtn" onclick="saveCardEdit()" style="background:#10b981; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">保存</button>
+    <button type="button" onclick="cancelEditMode()" style="background:#64748b; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">取消</button>
+  </div>
+
+</div>
 </div>  
 <nav id="bottom-nav">
   <button id="nav-camera" class="active" onclick="showPage('page-camera')">
@@ -691,7 +724,9 @@ let capturedImages = { front: null, back: null };
 
 let isDetected = false;
 let lastDetectedQuad = null;
-let allCardsData = []; // スプレッドシートから取得した名刺データ全件  
+let allCardsData = []; // スプレッドシートから取得した名刺データ全件
+// 現在選択中のカードデータ（「取消」時に元に戻す用）
+let currentSelectedItem = null;  
 
 
 async function enforcePortraitOrientation() {
@@ -1424,62 +1459,92 @@ function renderCards(dataList) {
   });
 }
   
-// モーダル表示と編集データのセット
-function openDetailModal(item) {
-  document.getElementById('edit-rowIndex').value = item.rowIndex;
-  document.getElementById('edit-company').value = item.company;
-  document.getElementById('edit-companyKana').value = item.companyKana;
-  document.getElementById('edit-name').value = item.name;
-  document.getElementById('edit-nameKana').value = item.nameKana;
-  document.getElementById('edit-department').value = item.department;
-  document.getElementById('edit-title').value = item.title;
-  document.getElementById('edit-phone').value = item.phone;
-  document.getElementById('edit-mobile').value = item.mobile;
-  document.getElementById('edit-email').value = item.email;
-  document.getElementById('edit-zipCode').value = item.zipCode;
-  document.getElementById('edit-address').value = item.address;
+// 現在選択中のカードデータ（「取消」時に元に戻す用）
+let currentSelectedItem = null;
 
+// モーダル表示（初期状態：閲覧モード）
+function openDetailModal(item) {
+  currentSelectedItem = item; // データを保持
+
+  // 各フォームに値をセット
+  document.getElementById('edit-rowIndex').value = item.rowIndex || '';
+  document.getElementById('edit-company').value = item.company || '';
+  document.getElementById('edit-companyKana').value = item.companyKana || '';
+  document.getElementById('edit-name').value = item.name || '';
+  document.getElementById('edit-nameKana').value = item.nameKana || '';
+  document.getElementById('edit-department').value = item.department || '';
+  document.getElementById('edit-title').value = item.title || '';
+  document.getElementById('edit-phone').value = item.phone || '';
+  document.getElementById('edit-mobile').value = item.mobile || '';
+  document.getElementById('edit-email').value = item.email || '';
+  document.getElementById('edit-zipCode').value = item.zipCode || '';
+  document.getElementById('edit-address').value = item.address || '';
+
+  // 画像のセット
   const fImg = document.getElementById('m-front-img');
   const bImg = document.getElementById('m-back-img');
-
-  // ★Google Drive URLを直リンクに変換してセット
   const frontSrc = formatDriveUrl(item.frontUrl);
   const backSrc = formatDriveUrl(item.backUrl);
 
- if (frontSrc) { 
-    fImg.src = frontSrc; 
-    fImg.style.display = "block"; 
-  } else { 
-    fImg.style.display = "none"; 
-  }
+  if (frontSrc) { fImg.src = frontSrc; fImg.style.display = "block"; } else { fImg.style.display = "none"; }
+  if (backSrc) { bImg.src = backSrc; bImg.style.display = "block"; } else { bImg.style.display = "none"; }
 
-  if (backSrc) { 
-    bImg.src = backSrc; 
-    bImg.style.display = "block"; 
-  } else { 
-    bImg.style.display = "none"; 
-  }
+  // 初期は「閲覧モード」にする
+  setFormReadOnly(true);
 
   document.getElementById('detail-modal').style.display = 'flex';
 }
 
+// フォームの読み取り専用（readonly）切替
+function setFormReadOnly(isReadOnly) {
+  const inputs = document.querySelectorAll('#detail-modal input, #detail-modal textarea');
+  inputs.forEach(input => {
+    if (input.id !== 'edit-rowIndex') { // hidden要素以外
+      if (isReadOnly) {
+        input.setAttribute('readonly', 'readonly');
+      } else {
+        input.removeAttribute('readonly');
+      }
+    }
+  });
 
+  // ボタンの表示切替
+  document.getElementById('view-buttons').style.display = isReadOnly ? 'flex' : 'none';
+  document.getElementById('edit-buttons').style.display = isReadOnly ? 'none' : 'flex';
+}
+
+// 「編集」ボタンを押した時
+function enableEditMode() {
+  setFormReadOnly(false);
+}
+
+// 「取消」ボタンを押した時（元のデータに戻して閲覧モードへ）
+function cancelEditMode() {
+  if (currentSelectedItem) {
+    openDetailModal(currentSelectedItem); // 初期データで再セット
+  } else {
+    setFormReadOnly(true);
+  }
+}
 
 function closeDetailModal() {
   document.getElementById('detail-modal').style.display = 'none';
+  currentSelectedItem = null;
 }
 
-// 変更の保存処理（GASへ送信）
+// 「保存」処理
 async function saveCardEdit() {
   const saveBtn = document.getElementById('saveCardBtn');
-  saveBtn.disabled = true;
-  saveBtn.textContent = "保存中...";
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = "保存中...";
+  }
 
   const payload = {
     action: "updateCard",
-    rowIndex: document.getElementById('edit-rowIndex').value,
-    userCode: sessionStorage.getItem('userCode') || 'unknown',
-    userName: sessionStorage.getItem('userName') || '不明',
+    rowIndex: Number(document.getElementById('edit-rowIndex').value),
+    updaterCode: sessionStorage.getItem('userCode') || 'unknown',
+    updaterName: sessionStorage.getItem('userName') || '不明',
     company: document.getElementById('edit-company').value,
     companyKana: document.getElementById('edit-companyKana').value,
     name: document.getElementById('edit-name').value,
@@ -1510,11 +1575,165 @@ async function saveCardEdit() {
   } catch (e) {
     alert("通信エラーが発生しました");
   } finally {
-    saveBtn.disabled = false;
-    saveBtn.textContent = "変更を保存する";
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "保存";
+    }
   }
 }
-  
+
+// 「削除」処理
+async function deleteCard() {
+  const rowIndex = document.getElementById('edit-rowIndex').value;
+  const name = document.getElementById('edit-name').value || 'この名刺';
+
+  if (!confirm(`「${name}」のデータを削除してもよろしいですか？\n※この操作は取り消せません。`)) {
+    return;
+  }
+
+  const payload = {
+    action: "deleteCard",
+    rowIndex: Number(rowIndex)
+  };
+
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (result.success) {
+      alert("データを削除しました");
+      closeDetailModal();
+      fetchCardsData(); // 一覧を再取得
+    } else {
+      alert("削除失敗: " + result.message);
+    }
+  } catch (e) {
+    alert("通信エラーが発生しました");
+  }
+}
+
+// フォームの読み取り専用（readonly）切替
+function setFormReadOnly(isReadOnly) {
+  const inputs = document.querySelectorAll('#detail-modal input, #detail-modal textarea');
+  inputs.forEach(input => {
+    if (input.id !== 'edit-rowIndex') { // hidden要素以外
+      if (isReadOnly) {
+        input.setAttribute('readonly', 'readonly');
+      } else {
+        input.removeAttribute('readonly');
+      }
+    }
+  });
+
+  // ボタンの表示切替
+  document.getElementById('view-buttons').style.display = isReadOnly ? 'flex' : 'none';
+  document.getElementById('edit-buttons').style.display = isReadOnly ? 'none' : 'flex';
+}
+
+// 「編集」ボタンを押した時
+function enableEditMode() {
+  setFormReadOnly(false);
+}
+
+// 「取消」ボタンを押した時（元のデータに戻して閲覧モードへ）
+function cancelEditMode() {
+  if (currentSelectedItem) {
+    openDetailModal(currentSelectedItem); // 初期データで再セット
+  } else {
+    setFormReadOnly(true);
+  }
+}
+
+function closeDetailModal() {
+  document.getElementById('detail-modal').style.display = 'none';
+  currentSelectedItem = null;
+}
+
+// 「保存」処理
+async function saveCardEdit() {
+  const saveBtn = document.getElementById('saveCardBtn');
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = "保存中...";
+  }
+
+  const payload = {
+    action: "updateCard",
+    rowIndex: Number(document.getElementById('edit-rowIndex').value),
+    updaterCode: sessionStorage.getItem('userCode') || 'unknown',
+    updaterName: sessionStorage.getItem('userName') || '不明',
+    company: document.getElementById('edit-company').value,
+    companyKana: document.getElementById('edit-companyKana').value,
+    name: document.getElementById('edit-name').value,
+    nameKana: document.getElementById('edit-nameKana').value,
+    department: document.getElementById('edit-department').value,
+    title: document.getElementById('edit-title').value,
+    phone: document.getElementById('edit-phone').value,
+    mobile: document.getElementById('edit-mobile').value,
+    email: document.getElementById('edit-email').value,
+    zipCode: document.getElementById('edit-zipCode').value,
+    address: document.getElementById('edit-address').value
+  };
+
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (result.success) {
+      alert("更新を保存しました");
+      closeDetailModal();
+      fetchCardsData(); // 一覧を再取得
+    } else {
+      alert("更新失敗: " + result.message);
+    }
+  } catch (e) {
+    alert("通信エラーが発生しました");
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "保存";
+    }
+  }
+}
+
+// 「削除」処理
+async function deleteCard() {
+  const rowIndex = document.getElementById('edit-rowIndex').value;
+  const name = document.getElementById('edit-name').value || 'この名刺';
+
+  if (!confirm(`「${name}」のデータを削除してもよろしいですか？\n※この操作は取り消せません。`)) {
+    return;
+  }
+
+  const payload = {
+    action: "deleteCard",
+    rowIndex: Number(rowIndex)
+  };
+
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (result.success) {
+      alert("データを削除しました");
+      closeDetailModal();
+      fetchCardsData(); // 一覧を再取得
+    } else {
+      alert("削除失敗: " + result.message);
+    }
+  } catch (e) {
+    alert("通信エラーが発生しました");
+  }
+}  
 </script>
 </body>
 </html>
