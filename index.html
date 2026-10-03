@@ -716,7 +716,8 @@ const backCaptureBtn = document.getElementById('backCaptureBtn');
 const retryBackBtn = document.getElementById('retryBackBtn');
 const retryAllBtn = document.getElementById('retryAllBtn');
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyya3RzVXc9pdWUCNhBaJN-F7_ShidH16FVFuL5VMh1CFLDifyAnUBkM-Z987FKb8o0/exec"; 
-  
+const CLOUD_RUN_URL = "https://upload-meishi-function-769951420007.asia-northeast2.run.app";
+
 let isDetecting = true;
 let globalCardId = null; 
 let isFrontSide = true; 
@@ -725,8 +726,7 @@ let capturedImages = { front: null, back: null };
 let isDetected = false;
 let lastDetectedQuad = null;
 let allCardsData = []; // スプレッドシートから取得した名刺データ全件
-// 現在選択中のカードデータ（「取消」時に元に戻す用）
-let currentSelectedItem = null;  
+let currentSelectedItem = null; // 現在選択中のカードデータ（編集キャンセル時用）
 
 
 async function enforcePortraitOrientation() {
