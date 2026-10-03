@@ -1681,6 +1681,12 @@ function setFormReadOnly(isReadOnly) {
     }
   });
 
+  // ★ 追加・補強: フッター要素自体を確実に表示状態にする
+  const modalFooter = document.querySelector('#detail-modal .modal-footer');
+  if (modalFooter) {
+    modalFooter.style.display = 'flex';
+  }
+
   // ボタンの表示制御（閲覧時と編集時で切り替え）
   const viewBtns = document.getElementById('view-buttons');
   const editBtns = document.getElementById('edit-buttons');
