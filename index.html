@@ -664,15 +664,14 @@
     <h2>酒ゃビック名刺管理</h2>
     <p class="subtitle">アカウント情報を入力してログイン</p>
     
-    <!-- ★ form タグで囲む -->
-    <form onsubmit="event.preventDefault(); handleLogin();">
+    <!-- id="loginForm" を追加 -->
+    <form id="loginForm">
       <div class="input-group">
         <input type="text" id="loginId" placeholder="ユーザーID" autocomplete="username">
       </div>
       <div class="input-group">
         <input type="password" id="loginPass" placeholder="パスワード" autocomplete="current-password">
       </div>
-      <!-- type="submit" に変更 -->
       <button type="submit" id="loginBtn" class="btn-primary">ログイン</button>
     </form>
     
@@ -863,8 +862,11 @@ function checkOrientation() {
   }
 }
 
-// ログイン処理
-document.getElementById('loginBtn')?.addEventListener('click', async () => {
+
+// ログイン処理関数
+async function handleLogin(e) {
+  if (e) e.preventDefault(); // フォーム送信による画面リロード（再読み込み）を防止
+
   const loginBtn = document.getElementById('loginBtn');
   const id = document.getElementById('loginId').value.trim();
   const pass = document.getElementById('loginPass').value.trim();
@@ -910,7 +912,10 @@ document.getElementById('loginBtn')?.addEventListener('click', async () => {
     loginBtn.textContent = originalText;
     loginBtn.style.opacity = "1";
   }
-});
+}
+
+// フォーム送信イベントの設定（Enterキー送信 & ボタンクリック両対応）
+document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
 
 // ---------------------------------------------------------
 // ページ切り替え処理（カメラ制御を追加）
