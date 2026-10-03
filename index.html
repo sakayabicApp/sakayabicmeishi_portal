@@ -1396,9 +1396,9 @@ function renderCards(dataList) {
     card.innerHTML = `
       <div class="card-thumb-box">${thumbHtml}</div>
       <div class="card-info">
-        <div class="card-name">
+        ${item.nameKana ? `<div class="card-kana" style="font-size: 11px; color: #64748b; line-height: 1.2;">${item.nameKana}</div>` : ''}
+        <div class="card-name" style="font-size: 16px; font-weight: bold; color: #1e293b; margin-bottom: 4px;">
           ${item.name || "名称未設定"}
-          ${item.nameKana ? `<span class="card-kana">${item.nameKana}</span>` : ''}
         </div>
         <p class="card-company">${item.company || "会社名なし"}</p>
         <div class="card-dept">${[item.department, item.title].filter(Boolean).join(' / ')}</div>
@@ -1408,7 +1408,7 @@ function renderCards(dataList) {
     container.appendChild(card);
   });
 }
-
+  
 // モーダル表示と編集データのセット
 function openDetailModal(item) {
   document.getElementById('edit-rowIndex').value = item.rowIndex;
