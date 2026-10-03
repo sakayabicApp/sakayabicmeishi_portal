@@ -981,50 +981,41 @@ function findCardQuad(srcMat) {
 // --------------------------------------------------
 function detectLoop() {
   if (!isDetecting) return;
-  if (!video || video.readyState !== 4) {
+  if (!video || video.readyState !== 4 || video.style.display === 'none') {
     setTimeout(() => requestAnimationFrame(detectLoop), 200);
     return;
   }
-  if (video.style.display === 'none') return;
 
   let fullMat = cv.imread(video);
-  let quad = findCardQuad(fullMat);
+  try {
+    let quad = findCardQuad(fullMat);
 
-  const statusEl = document.getElementById('status-message');
-  const guideEl = document.getElementById('guide-frame');
-  const captureBtn = document.getElementById('capture-btn');
+    const statusEl = document.getElementById('status-message');
+    const guideEl = document.getElementById('guide-frame');
 
-  if (quad) {
-    isDetected = true;
-    lastDetectedQuad = quad;
-
-    if (guideEl) {
-      guideEl.classList.add('detected');
+    if (quad) {
+      isDetected = true;
+      lastDetectedQuad = quad;
+      if (guideEl) guideEl.classList.add('detected');
+      if (statusEl) {
+        statusEl.classList.add('detected');
+        statusEl.textContent = '名刺を検知しました (ボタンを押して撮影)';
+      }
+      if (captureBtn) captureBtn.classList.add('active');
+    } else {
+      isDetected = false;
+      lastDetectedQuad = null;
+      if (guideEl) guideEl.classList.remove('detected');
+      if (statusEl) {
+        statusEl.classList.remove('detected');
+        statusEl.textContent = 'ガイド枠内に合わせてください (タップで手動撮影)';
+      }
+      if (captureBtn) captureBtn.classList.remove('active');
     }
-    if (statusEl) {
-      statusEl.classList.add('detected');
-      statusEl.textContent = '名刺を検知しました (ボタンを押して撮影)';
-    }
-    if (captureBtn) {
-      captureBtn.classList.add('active');
-    }
-  } else {
-    isDetected = false;
-    lastDetectedQuad = null;
-
-    if (guideEl) {
-      guideEl.classList.remove('detected');
-    }
-    if (statusEl) {
-      statusEl.classList.remove('detected');
-      statusEl.textContent = 'ガイド枠内に合わせてください (タップで手動撮影)';
-    }
-    if (captureBtn) {
-      captureBtn.classList.remove('active');
-    }
+  } finally {
+    fullMat.delete(); // メモリリークを確実に防止
   }
 
-  fullMat.delete();
   setTimeout(() => requestAnimationFrame(detectLoop), 200);
 }
 
@@ -1193,13 +1184,15 @@ backCaptureBtn.addEventListener('click', () => {
 retryBackBtn.addEventListener('click', () => {
   isFrontSide = false;
   capturedImages.back = null;
-  document.getElementById('previewBack').src = "";
+  const previewBack = document.getElementById('previewBack');
+  if (previewBack) previewBack.src = "";
   
   const previewContainer = document.getElementById('previewContainer');
   if (previewContainer) previewContainer.style.display = 'none';
 
   const guidePreview = document.getElementById('guidePreview');
   if (guidePreview && capturedImages.front) {
+    guidePreview.src = capturedImages.front;
     guidePreview.style.display = 'block';
   }
 
@@ -1216,7 +1209,7 @@ retryAllBtn.addEventListener('click', () => {
   showCaptureUI();
   isDetecting = true;
   detectLoop();
-}); 
+});
 
 function showActionUI() {
   captureBtn.style.display = 'none';
@@ -1387,7 +1380,7 @@ function kataToHira(str) {
   return str.replace(/[\u30a1-\u30f6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
 }
 
-// リアルタイム検索処理（ひらがな・カタカナ・漢字対応）
+// リアルタイムあいまい検索
 document.getElementById('searchInput')?.addEventListener('input', (e) => {
   const query = e.target.value.toLowerCase().trim();
   if (!query) {
@@ -1615,125 +1608,8 @@ async function deleteCard() {
   }
 }
 
-// フォームの読み取り専用（readonly）切替
-function setFormReadOnly(isReadOnly) {
-  const inputs = document.querySelectorAll('#detail-modal input, #detail-modal textarea');
-  inputs.forEach(input => {
-    if (input.id !== 'edit-rowIndex') { // hidden要素以外
-      if (isReadOnly) {
-        input.setAttribute('readonly', 'readonly');
-      } else {
-        input.removeAttribute('readonly');
-      }
-    }
-  });
 
-  // ボタンの表示切替
-  document.getElementById('view-buttons').style.display = isReadOnly ? 'flex' : 'none';
-  document.getElementById('edit-buttons').style.display = isReadOnly ? 'none' : 'flex';
-}
 
-// 「編集」ボタンを押した時
-function enableEditMode() {
-  setFormReadOnly(false);
-}
-
-// 「取消」ボタンを押した時（元のデータに戻して閲覧モードへ）
-function cancelEditMode() {
-  if (currentSelectedItem) {
-    openDetailModal(currentSelectedItem); // 初期データで再セット
-  } else {
-    setFormReadOnly(true);
-  }
-}
-
-function closeDetailModal() {
-  document.getElementById('detail-modal').style.display = 'none';
-  currentSelectedItem = null;
-}
-
-// 「保存」処理
-async function saveCardEdit() {
-  const saveBtn = document.getElementById('saveCardBtn');
-  if (saveBtn) {
-    saveBtn.disabled = true;
-    saveBtn.textContent = "保存中...";
-  }
-
-  const payload = {
-    action: "updateCard",
-    rowIndex: Number(document.getElementById('edit-rowIndex').value),
-    updaterCode: sessionStorage.getItem('userCode') || 'unknown',
-    updaterName: sessionStorage.getItem('userName') || '不明',
-    company: document.getElementById('edit-company').value,
-    companyKana: document.getElementById('edit-companyKana').value,
-    name: document.getElementById('edit-name').value,
-    nameKana: document.getElementById('edit-nameKana').value,
-    department: document.getElementById('edit-department').value,
-    title: document.getElementById('edit-title').value,
-    phone: document.getElementById('edit-phone').value,
-    mobile: document.getElementById('edit-mobile').value,
-    email: document.getElementById('edit-email').value,
-    zipCode: document.getElementById('edit-zipCode').value,
-    address: document.getElementById('edit-address').value
-  };
-
-  try {
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    });
-    const result = await res.json();
-    if (result.success) {
-      alert("更新を保存しました");
-      closeDetailModal();
-      fetchCardsData(); // 一覧を再取得
-    } else {
-      alert("更新失敗: " + result.message);
-    }
-  } catch (e) {
-    alert("通信エラーが発生しました");
-  } finally {
-    if (saveBtn) {
-      saveBtn.disabled = false;
-      saveBtn.textContent = "保存";
-    }
-  }
-}
-
-// 「削除」処理
-async function deleteCard() {
-  const rowIndex = document.getElementById('edit-rowIndex').value;
-  const name = document.getElementById('edit-name').value || 'この名刺';
-
-  if (!confirm(`「${name}」のデータを削除してもよろしいですか？\n※この操作は取り消せません。`)) {
-    return;
-  }
-
-  const payload = {
-    action: "deleteCard",
-    rowIndex: Number(rowIndex)
-  };
-
-  try {
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    });
-    const result = await res.json();
-    if (result.success) {
-      alert("データを削除しました");
-      closeDetailModal();
-      fetchCardsData(); // 一覧を再取得
-    } else {
-      alert("削除失敗: " + result.message);
-    }
-  } catch (e) {
-    alert("通信エラーが発生しました");
-  }
-}  
 </script>
 </body>
 </html>
