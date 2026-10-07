@@ -198,24 +198,27 @@
     box-shadow: 0 0 20px rgba(16, 185, 129, 0.8) !important;
   }
 
+ /* カメラ画面上のステータスメッセージ（ライトモード半透明） */
   #status-message {
     position: relative;
     z-index: 12;
     margin-top: 25px;
-    background: rgba(15, 23, 42, 0.85);
+    background: rgba(255, 255, 255, 0.9); /* 白の半透明背景 */
     backdrop-filter: blur(8px);
-    color: #ffffff;
+    color: #0f172a;                       /* 文字色：濃いネイビー */
     padding: 8px 20px;
     border-radius: 30px;
     font-size: 14px;
     font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     transition: all 0.2s ease;
   }
 
+  /* 名刺検知時のステータスメッセージ（緑色ベース） */
   #status-message.detected {
-    background: rgba(16, 185, 129, 0.9);
-    color: #ffffff;
-  }   
+    background: rgba(16, 185, 129, 0.95); /* 緑色背景 */
+    color: #ffffff;                        /* 文字色：白 */
+  } 
 
  /* 撮影後のガイドプレビュー（表面単体表示時） */
   #guidePreview {
@@ -416,10 +419,36 @@
 }
 
   /* 検索画面CSS */
-  .search-header { padding: 16px; }
-  .search-header input {
-    width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid #334155; background: #1e293b; color: #fff;
+  /* 検索ヘッダー＆入力欄（ライトモード） */
+  .search-header {
+    position: sticky;
+    top: 0;
+    background: #f8fafc; /* 背景と同色の明るいグレー */
+    padding: 16px;
+    z-index: 20;
+    border-bottom: 1px solid #e2e8f0;
   }
+  .search-header input {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 25px;
+    border: 1.5px solid #cbd5e1;
+    background: #ffffff;        /* 入力欄背景：白 */
+    color: #0f172a;           /* 文字色：濃いネイビー */
+    font-size: 16px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    transition: all 0.2s ease;
+  }
+
+  .search-header input::placeholder {
+    color: #94a3b8;           /* プレースホルダー文字色：薄いグレー */
+  }
+
+  .search-header input:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  }
+  
   #card-container { padding: 0 16px; }
   .card {
     background: #1e293b; color: #fff; padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px;
@@ -429,24 +458,7 @@
   .card p { margin: 0; font-size: 13px; color: #94a3b8; }
   .detail-btn { background: var(--primary); color: #fff; border: none; padding: 8px 14px; border-radius: 6px; }
 
-  /* 検索画面CSS (Eight風デザイン) */
-  .search-header {
-    position: sticky;
-    top: 0;
-    background: var(--bg-dark);
-    padding: 16px;
-    z-index: 20;
-    border-bottom: 1px solid #334155;
-  }
-  .search-header input {
-    width: 100%;
-    padding: 14px 16px;
-    border-radius: 25px;
-    border: 1px solid #334155;
-    background: #1e293b;
-    color: #fff;
-    font-size: 15px;
-  }
+   
   #card-container {
     padding: 12px 16px 80px 16px;
   }
