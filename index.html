@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>酒ゃビック名刺管理システム</title>
 <style>
-  :root {
+ :root {
     --primary: #4f46e5;
     --primary-hover: #4338ca;
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #ef4444;
-    --bg-dark: #0f172a;
+    --bg-dark: #f8fafc;
     --bg-card: #ffffff;
-    --text-main: #1e293b;
+    --text-main: #0f172a;
     --text-muted: #64748b;
     --radius-lg: 20px;
     --radius-md: 12px;
@@ -42,12 +42,12 @@
   }
 
   .page {
-  height: calc(100vh - 65px);
-  width: 100vw;
-  overflow-y: auto;
-  display: none; /* 基本は非表示 */
-  box-sizing: border-box;
-}
+    height: calc(100vh - 65px);
+    width: 100vw;
+    overflow-y: auto;
+    display: none;
+    box-sizing: border-box;
+  }
 
 /* アクティブなページを表示するクラスを追加 */
 .page.active {
@@ -73,23 +73,16 @@
     padding: 20px;
   }
 
-  /* ログイン */
+/* ログイン */
   #page-login {
-  height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-  /* display: flex は JS 側または active 時に適用するように変更 */
-}
+    height: 100vh;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+  }
 
-#page-login.active {
-  display: flex !important;
-  justify-content: center;
-  align-items: center;
-}
-
-#page-camera.active {
-  display: block !important;
-  height: calc(100vh - 65px);
-}
   .login-box {
     width: 100%;
     max-width: 380px;
@@ -97,7 +90,7 @@
     backdrop-filter: blur(12px);
     padding: 36px 28px;
     border-radius: var(--radius-lg);
-    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
     text-align: center;
   }
 
@@ -123,9 +116,9 @@
     width: 100%;
     padding: 14px 16px;
     font-size: 15px;
-    border: 1.5px solid #e2e8f0;
+    border: 1.5px solid #cbd5e1;
     border-radius: var(--radius-md);
-    background: #f8fafc;
+    background: #ffffff;
     transition: all 0.2s;
   }
 
@@ -266,7 +259,7 @@
   /* コントロール（ボタン類）のレイヤー設定 */
   #controls {
     position: absolute;
-    bottom: 30px;
+    bottom: 50px;
     left: 0;
     z-index: 30; /* プレビューより前面に表示 */
     width: 100%;
@@ -343,12 +336,12 @@
     left: 0;
     width: 100vw;
     height: 65px;
-    background: #1e293b;
-    display: flex;
+    background: #ffffff;
+    display: none;
     justify-content: space-around;
     align-items: center;
     z-index: 100;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid #e2e8f0;
   }
 
   #bottom-nav button {
@@ -356,7 +349,7 @@
     height: 100%;
     background: transparent;
     border: none;
-    color: #94a3b8;
+    color: #64748b;
     font-size: 12px;
     display: flex;
     flex-direction: column;
@@ -372,354 +365,23 @@
   }
 
   #bottom-nav button.active {
-    color: #ffffff;
+    color: var(--primary);
     font-weight: bold;
   }
-
-  /* 2. 横向き検出時に警告オーバーレイを自動表示 */
-@media screen and (orientation: landscape) {
-  #orientation-warning {
-    display: flex !important; /* 横向き時に強制表示 */
-  }
-}
-
-/* 3. スマホ回転アニメーションの追加 */
-.phone-icon-anim {
-  width: 32px;
-  height: 56px;
-  border: 3px solid #38bdf8;
-  border-radius: 6px;
-  position: relative;
-  margin-bottom: 20px;
-  animation: rotatePhone 2s infinite ease-in-out;
-}
-
-.phone-icon-anim::after {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: #38bdf8;
-}
-
-@keyframes rotatePhone {
-  0% {
-    transform: rotate(-90deg);
-  }
-  50%, 100% {
-    transform: rotate(0deg);
-  }
-}
 
   /* 検索画面CSS */
   .search-header { padding: 16px; }
   .search-header input {
-    width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid #334155; background: #1e293b; color: #fff;
+    width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid #cbd5e1; background: #ffffff; color: var(--text-main); font-size: 16px;
   }
   #card-container { padding: 0 16px; }
   .card {
-    background: #1e293b; color: #fff; padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px;
-    display: flex; justify-content: space-between; align-items: center;
+    background: #ffffff; color: var(--text-main); padding: 18px; border-radius: var(--radius-md); margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: center; border: 1px solid #e2e8f0; box-shadow: var(--shadow-sm);
   }
-  .card h3 { margin: 0 0 4px 0; font-size: 16px; }
-  .card p { margin: 0; font-size: 13px; color: #94a3b8; }
-  .detail-btn { background: var(--primary); color: #fff; border: none; padding: 8px 14px; border-radius: 6px; }
-
-  /* 検索画面CSS (Eight風デザイン) */
-  .search-header {
-    position: sticky;
-    top: 0;
-    background: var(--bg-dark);
-    padding: 16px;
-    z-index: 20;
-    border-bottom: 1px solid #334155;
-  }
-  .search-header input {
-    width: 100%;
-    padding: 14px 16px;
-    border-radius: 25px;
-    border: 1px solid #334155;
-    background: #1e293b;
-    color: #fff;
-    font-size: 15px;
-  }
-  #card-container {
-    padding: 12px 16px 80px 16px;
-  }
-
-  /* Eight風カードスタイリング */
-  .eight-card {
-    background: var(--bg-card);
-    border-radius: var(--radius-md);
-    padding: 12px 14px;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    box-shadow: var(--shadow-sm);
-    cursor: pointer;
-    border: 1px solid #334155;
-    transition: transform 0.1s ease;
-  }
-  .eight-card:active {
-    transform: scale(0.98);
-  }
-  .card-thumb-box {
-    width: 72px;
-    height: 44px;
-    border-radius: 6px;
-    overflow: hidden;
-    background: #0f172a;
-    flex-shrink: 0;
-    border: 1px solid #475569;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .card-thumb-box img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .card-thumb-placeholder {
-    font-size: 11px;
-    color: #64748b;
-  }
-  .card-info {
-    flex: 1;
-    overflow: hidden;
-  }
-  .card-name {
-    font-size: 16px;
-    font-weight: 700;
-    color: #f8fafc;
-    margin: 0 0 2px 0;
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-  }
-  .card-kana {
-    font-size: 11px;
-    color: #94a3b8;
-    font-weight: normal;
-  }
-  .card-company {
-    font-size: 13px;
-    color: #cbd5e1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin: 0;
-  }
-  .card-dept {
-    font-size: 11px;
-    color: #94a3b8;
-    margin-top: 2px;
-  }
-  .card-date {
-    font-size: 10px;
-    color: #64748b;
-    margin-top: 4px;
-  }
-
-/* モーダル全体：画面いっぱいに広げ、枠外へのあふれを防ぐ */
-#detail-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  max-height: 100vh;
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(10px);
-  z-index: 200; /* ナビ(100)より上 */
-  display: none; /* JSで flex に切り替え */
-  flex-direction: column;
-  overflow: hidden; /* ★重要：モーダル自体のスクロールを禁止 */
-}
-
-/* ヘッダー：上部に固定 */
-.modal-header {
-  height: 56px;
-  padding: 0 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #334155;
-  flex-shrink: 0; /* 高さを潰さない */
-}
-
-/* ボディ（入力フォーム）：ここだけをスクロールさせる */
-.modal-body {
-  flex: 1;
-  min-height: 0; /* ★重要：これがないとフッターが画面下に押し出されます */
-  overflow-y: auto; /* フォーム部分のみスクロール可能にする */
-  padding: 16px;
-}
-
-/* フッター（ボタンエリア）：画面下に常に固定 */
-.modal-footer {
-  flex-shrink: 0; /* ★重要：フッターが押し出されたり潰れたりするのを防ぐ */
-  background: #0f172a;
-  padding: 12px 16px;
-  border-top: 1px solid #334155;
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 0; /* ★HTML内の margin-top: 20px を打ち消すため 0 に設定 */
-}
-  .modal-header h3 { margin: 0; font-size: 17px; }
-  .close-btn { background: none; border: none; color: #94a3b8; font-size: 24px; cursor: pointer; }
-
-  .modal-images {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
-    overflow-x: auto;
-  }
-  .modal-img-card {
-    flex: 1;
-    min-width: 140px;
-    height: 90px;
-    border-radius: 8px;
-    object-fit: cover;
-    border: 1px solid #475569;
-    background: #000;
-  }
-  .form-group {
-    margin-bottom: 14px;
-  }
-  .form-group label {
-    display: block;
-    font-size: 12px;
-    color: #94a3b8;
-    margin-bottom: 4px;
-  }
-  .form-group input {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid #334155;
-    background: #1e293b;
-    color: #fff;
-    font-size: 14px;
-  }
-
-  /* 自動伸縮用textareaのスタイル定義 */
-.form-group textarea.auto-resize {
-  width: 100%;
-  resize: none;            /* ユーザーの手動リサイズハンドルを非表示 */
-  overflow: hidden;        /* スクロールバーを非表示 */
-  box-sizing: border-box;
-  min-height: 38px;        /* 初期状態の高さ */
-  line-height: 1.4;
-  padding: 8px 12px;
-  font-family: inherit;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-/* 読み取り専用（閲覧モード）時のスタイル調整 */
-.form-group textarea.auto-resize[readonly] {
-  background-color: #f8fafc;
-  border-color: transparent;
-  color: #334155;
-}
-  
-
-  /* 詳細モーダル内の入力・表示フィールドの折り返し対応 */
-#detail-modal input,
-#detail-modal textarea,
-#detail-modal .info-text {
-  width: 100%;
-  box-sizing: border-box;
-  word-break: break-all;      /* 長い英数字・メールアドレス等を枠内で自動折り返し */
-  overflow-wrap: anywhere;
-}
-
-/* 読み取り専用時のスタイル（閲覧モード用） */
-#detail-modal input[readonly],
-#detail-modal textarea[readonly] {
-  background-color: #1e293b;
-  border-color: #334155;
-  color: #f8fafc;
-  cursor: default;
-}
-
-/* 詳細モーダル内のプレビュー容器・外枠の除去 */
-.card-preview-container {
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-}
-
-.preview-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 10px;
-  box-sizing: border-box;
-}
-
-/* ラベル要素が存在する場合も非表示 */
-.preview-label {
-  display: none !important;
-}
-
-  /* 各画像ラッパーおよび画像自体の枠線・影を除去 */
-.card-preview-container .preview-item,
-.card-preview-container img {
-  border: none !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-  background: none !important;
-}
-  
-/* 画像が枠からはみ出さず、アスペクト比を維持して全体表示 */
-.preview-item img {
-  width: 100%;
-  height: auto;
-  max-height: 260px;
-  object-fit: contain;
-  border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  background-color: #ffffff;
-}
-
-/* ---------------------------------------------------------
-   レスポンシブ切り替えルール
-   --------------------------------------------------------- */
-
-/* ① デフォルト（スマホ 768px以下） */
-@media (max-width: 768px) {
-  /* 表裏両方ある場合は縦2行表示 */
-  .card-preview-container.has-both {
-    grid-template-columns: 1fr;
-  }
-
-  /* 表面のみ（または裏面のみ）の場合は2列配置にして巨大化を防止 */
-  .card-preview-container.has-single {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* ② 769px以上（タブレット・PC） */
-@media (min-width: 769px) {
-  /* 表裏の有無にかかわらず常に2列表示 */
-  .card-preview-container {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}  
-  
+  .card h3 { margin: 0 0 6px 0; font-size: 18px; }
+  .card p { margin: 0; font-size: 15px; color: #64748b; }
+  .detail-btn { background: var(--primary); color: #fff; border: none; padding: 10px 16px; border-radius: 6px; font-size: 15px; }
 </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
 </head>
