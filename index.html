@@ -42,14 +42,19 @@
   }
 
   .page {
-    height: calc(100vh - 65px);
-    width: 100vw;
-    overflow-y: auto;
-    display: none;
-    box-sizing: border-box;
-  }
+  height: calc(100vh - 65px);
+  width: 100vw;
+  overflow-y: auto;
+  display: none; /* 基本は非表示 */
+  box-sizing: border-box;
+}
 
-  /* 縦画面警告オーバーレイ */
+/* アクティブなページを表示するクラスを追加 */
+.page.active {
+  display: block;
+}
+
+/* 縦画面警告オーバーレイ */
   #orientation-warning {
     position: fixed;
     top: 0;
@@ -70,14 +75,21 @@
 
   /* ログイン */
   #page-login {
-    height: 100vh;
-    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 24px;
-  }
+  height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+  /* display: flex は JS 側または active 時に適用するように変更 */
+}
 
+#page-login.active {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+}
+
+#page-camera.active {
+  display: block !important;
+  height: calc(100vh - 65px);
+}
   .login-box {
     width: 100%;
     max-width: 380px;
@@ -332,7 +344,7 @@
     width: 100vw;
     height: 65px;
     background: #1e293b;
-    display: none;
+    display: flex;
     justify-content: space-around;
     align-items: center;
     z-index: 100;
@@ -364,6 +376,45 @@
     font-weight: bold;
   }
 
+  /* 2. 横向き検出時に警告オーバーレイを自動表示 */
+@media screen and (orientation: landscape) {
+  #orientation-warning {
+    display: flex !important; /* 横向き時に強制表示 */
+  }
+}
+
+/* 3. スマホ回転アニメーションの追加 */
+.phone-icon-anim {
+  width: 32px;
+  height: 56px;
+  border: 3px solid #38bdf8;
+  border-radius: 6px;
+  position: relative;
+  margin-bottom: 20px;
+  animation: rotatePhone 2s infinite ease-in-out;
+}
+
+.phone-icon-anim::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #38bdf8;
+}
+
+@keyframes rotatePhone {
+  0% {
+    transform: rotate(-90deg);
+  }
+  50%, 100% {
+    transform: rotate(0deg);
+  }
+}
+
   /* 検索画面CSS */
   .search-header { padding: 16px; }
   .search-header input {
@@ -377,28 +428,321 @@
   .card h3 { margin: 0 0 4px 0; font-size: 16px; }
   .card p { margin: 0; font-size: 13px; color: #94a3b8; }
   .detail-btn { background: var(--primary); color: #fff; border: none; padding: 8px 14px; border-radius: 6px; }
+
+  /* 検索画面CSS (Eight風デザイン) */
+  .search-header {
+    position: sticky;
+    top: 0;
+    background: var(--bg-dark);
+    padding: 16px;
+    z-index: 20;
+    border-bottom: 1px solid #334155;
+  }
+  .search-header input {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 25px;
+    border: 1px solid #334155;
+    background: #1e293b;
+    color: #fff;
+    font-size: 15px;
+  }
+  #card-container {
+    padding: 12px 16px 80px 16px;
+  }
+
+  /* Eight風カードスタイリング */
+  .eight-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    border: 1px solid #334155;
+    transition: transform 0.1s ease;
+  }
+  .eight-card:active {
+    transform: scale(0.98);
+  }
+  .card-thumb-box {
+    width: 72px;
+    height: 44px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #0f172a;
+    flex-shrink: 0;
+    border: 1px solid #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card-thumb-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .card-thumb-placeholder {
+    font-size: 11px;
+    color: #64748b;
+  }
+  .card-info {
+    flex: 1;
+    overflow: hidden;
+  }
+  .card-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0 0 2px 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .card-kana {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: normal;
+  }
+  .card-company {
+    font-size: 13px;
+    color: #cbd5e1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+  }
+  .card-dept {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 2px;
+  }
+  .card-date {
+    font-size: 10px;
+    color: #64748b;
+    margin-top: 4px;
+  }
+
+/* モーダル全体：画面いっぱいに広げ、枠外へのあふれを防ぐ */
+#detail-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  z-index: 200; /* ナビ(100)より上 */
+  display: none; /* JSで flex に切り替え */
+  flex-direction: column;
+  overflow: hidden; /* ★重要：モーダル自体のスクロールを禁止 */
+}
+
+/* ヘッダー：上部に固定 */
+.modal-header {
+  height: 56px;
+  padding: 0 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #334155;
+  flex-shrink: 0; /* 高さを潰さない */
+}
+
+/* ボディ（入力フォーム）：ここだけをスクロールさせる */
+.modal-body {
+  flex: 1;
+  min-height: 0; /* ★重要：これがないとフッターが画面下に押し出されます */
+  overflow-y: auto; /* フォーム部分のみスクロール可能にする */
+  padding: 16px;
+}
+
+/* フッター（ボタンエリア）：画面下に常に固定 */
+.modal-footer {
+  flex-shrink: 0; /* ★重要：フッターが押し出されたり潰れたりするのを防ぐ */
+  background: #0f172a;
+  padding: 12px 16px;
+  border-top: 1px solid #334155;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 0; /* ★HTML内の margin-top: 20px を打ち消すため 0 に設定 */
+}
+  .modal-header h3 { margin: 0; font-size: 17px; }
+  .close-btn { background: none; border: none; color: #94a3b8; font-size: 24px; cursor: pointer; }
+
+  .modal-images {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+  }
+  .modal-img-card {
+    flex: 1;
+    min-width: 140px;
+    height: 90px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid #475569;
+    background: #000;
+  }
+  .form-group {
+    margin-bottom: 14px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    color: #94a3b8;
+    margin-bottom: 4px;
+  }
+  .form-group input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background: #1e293b;
+    color: #fff;
+    font-size: 14px;
+  }
+
+  /* 自動伸縮用textareaのスタイル定義 */
+.form-group textarea.auto-resize {
+  width: 100%;
+  resize: none;            /* ユーザーの手動リサイズハンドルを非表示 */
+  overflow: hidden;        /* スクロールバーを非表示 */
+  box-sizing: border-box;
+  min-height: 38px;        /* 初期状態の高さ */
+  line-height: 1.4;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* 読み取り専用（閲覧モード）時のスタイル調整 */
+.form-group textarea.auto-resize[readonly] {
+  background-color: #f8fafc;
+  border-color: transparent;
+  color: #334155;
+}
+  
+
+  /* 詳細モーダル内の入力・表示フィールドの折り返し対応 */
+#detail-modal input,
+#detail-modal textarea,
+#detail-modal .info-text {
+  width: 100%;
+  box-sizing: border-box;
+  word-break: break-all;      /* 長い英数字・メールアドレス等を枠内で自動折り返し */
+  overflow-wrap: anywhere;
+}
+
+/* 読み取り専用時のスタイル（閲覧モード用） */
+#detail-modal input[readonly],
+#detail-modal textarea[readonly] {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+  cursor: default;
+}
+
+/* 詳細モーダル内のプレビュー容器・外枠の除去 */
+.card-preview-container {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.preview-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+/* ラベル要素が存在する場合も非表示 */
+.preview-label {
+  display: none !important;
+}
+
+  /* 各画像ラッパーおよび画像自体の枠線・影を除去 */
+.card-preview-container .preview-item,
+.card-preview-container img {
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  background: none !important;
+}
+  
+/* 画像が枠からはみ出さず、アスペクト比を維持して全体表示 */
+.preview-item img {
+  width: 100%;
+  height: auto;
+  max-height: 260px;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  background-color: #ffffff;
+}
+
+/* ---------------------------------------------------------
+   レスポンシブ切り替えルール
+   --------------------------------------------------------- */
+
+/* ① デフォルト（スマホ 768px以下） */
+@media (max-width: 768px) {
+  /* 表裏両方ある場合は縦2行表示 */
+  .card-preview-container.has-both {
+    grid-template-columns: 1fr;
+  }
+
+  /* 表面のみ（または裏面のみ）の場合は2列配置にして巨大化を防止 */
+  .card-preview-container.has-single {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ② 769px以上（タブレット・PC） */
+@media (min-width: 769px) {
+  /* 表裏の有無にかかわらず常に2列表示 */
+  .card-preview-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}  
+  
 </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
 </head>
 <body>
 
-<div id="orientation-warning">
-  <div style="font-size: 48px; margin-bottom: 16px;">📱</div>
-  <p style="font-size: 20px; font-weight: 700; margin: 0 0 10px 0;">画面を縦向きにしてください</p>
-  <p style="font-size: 14px; color: #94a3b8; margin: 0;">本システムは縦向き表示専用です</p>
-</div>
+
 
 <div id="page-login" class="page">
   <div class="login-box">
     <h2>酒ゃビック名刺管理</h2>
     <p class="subtitle">アカウント情報を入力してログイン</p>
-    <div class="input-group">
-      <input type="text" id="loginId" placeholder="ユーザーID">
-    </div>
-    <div class="input-group">
-      <input type="password" id="loginPass" placeholder="パスワード">
-    </div>
-    <button id="loginBtn" class="btn-primary">ログイン</button>
+    
+    <!-- id="loginForm" を追加 -->
+    <form id="loginForm">
+      <div class="input-group">
+        <input type="text" id="loginId" placeholder="ユーザーID" autocomplete="username">
+      </div>
+      <div class="input-group">
+        <input type="password" id="loginPass" placeholder="パスワード" autocomplete="current-password">
+      </div>
+      <button type="submit" id="loginBtn" class="btn-primary">ログイン</button>
+    </form>
+    
   </div>
 </div>
   
@@ -427,6 +771,13 @@
       </div>
     </div>
   </div>
+
+<div id="orientation-warning">
+  <!-- 絵文字の代わりにCSSアニメーションのスマホ枠を配置 -->
+  <div class="phone-icon-anim"></div>
+  <p style="font-size: 20px; font-weight: 700; margin: 0 0 10px 0;">画面を縦向きにしてください</p>
+  <p style="font-size: 14px; color: #94a3b8; margin: 0;">本システムは縦向き表示専用です</p>
+</div>
 </div>
   
 <div id="page-search" class="page">
@@ -435,7 +786,90 @@
   </div>
   <div id="card-container"></div>
 </div>
+
+<!-- 詳細・編集モーダル -->
+<div id="detail-modal">
+  <div class="modal-header">
+    <h3>名刺詳細・編集</h3>
+    <button class="close-btn" onclick="closeDetailModal()">&times;</button>
+  </div>
+  <div class="modal-body">
+    
+<!-- 修正後：詳細モーダルのプレビュー領域 -->
+<div class="card-preview-container" id="modalPreviewContainer">
+  <div class="preview-item" id="p-front-wrapper">
+    <img id="m-front-img" src="" alt="表面" />
+  </div>
+  <div class="preview-item" id="p-back-wrapper">
+    <img id="m-back-img" src="" alt="裏面" />
+  </div>
+</div>
+
+    <input type="hidden" id="edit-rowIndex">
+    <div class="form-group">
+      <label>会社名</label>
+      <textarea id="edit-company" class="auto-resize" rows="1"></textarea>
+    </div>
+    <div class="form-group">
+      <label>会社名 (かな)</label>
+      <textarea id="edit-companyKana" class="auto-resize" rows="1"></textarea>
+    </div>
+    <div class="form-group">
+      <label>氏名</label>
+      <textarea id="edit-name" class="auto-resize" rows="1"></textarea>
+    </div>
+    <div class="form-group">
+      <label>氏名 (かな)</label>
+      <textarea id="edit-nameKana" class="auto-resize" rows="1"></textarea>
+    </div>
+    <div class="form-group">
+      <label>部署</label>
+      <textarea id="edit-department" class="auto-resize" rows="1"></textarea>
+    </div>
+    <div class="form-group">
+      <label>役職</label>
+      <textarea id="edit-title" class="auto-resize" rows="1"></textarea>
+    </div>
+    <div class="form-group">
+      <label>電話番号</label>
+      <textarea id="edit-phone" class="auto-resize" rows="1"></textarea>
+    </div>
+    <div class="form-group">
+      <label>携帯電話</label>
+      <textarea id="edit-mobile" class="auto-resize" rows="1"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <textarea id="edit-email" class="auto-resize" rows="1"></textarea>
+    </div>
+    <div class="form-group">
+      <label>郵便番号</label>
+      <textarea id="edit-zipCode" class="auto-resize" rows="1"></textarea>
+    </div>
+    <div class="form-group">
+      <label>住所</label>
+      <textarea id="edit-address" class="auto-resize" rows="1"></textarea>
+    </div>
+  </div>
   
+<!-- 詳細モーダル内の下部ボタンエリア例 -->
+<div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+  
+  <!-- 【閲覧モード時のボタン群】 -->
+  <div id="view-buttons" style="display: flex; gap: 10px;">
+    <button type="button" onclick="enableEditMode()" style="background:#3b82f6; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">編集</button>
+    <button type="button" onclick="deleteCard()" style="background:#ef4444; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">削除</button>
+    <button type="button" onclick="closeDetailModal()" style="background:#94a3b8; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">閉じる</button>
+  </div>
+
+  <!-- 【編集モード時のボタン群（初期は非表示）】 -->
+  <div id="edit-buttons" style="display: none; gap: 10px;">
+    <button type="button" id="saveCardBtn" onclick="saveCardEdit()" style="background:#10b981; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">保存</button>
+    <button type="button" onclick="cancelEditMode()" style="background:#64748b; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">取消</button>
+  </div>
+
+</div>
+</div>  
 <nav id="bottom-nav">
   <button id="nav-camera" class="active" onclick="showPage('page-camera')">
     <span>📷</span> 撮影
@@ -455,6 +889,8 @@ const sendBtn = document.getElementById('sendBtn');
 const backCaptureBtn = document.getElementById('backCaptureBtn');
 const retryBackBtn = document.getElementById('retryBackBtn');
 const retryAllBtn = document.getElementById('retryAllBtn');
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyya3RzVXc9pdWUCNhBaJN-F7_ShidH16FVFuL5VMh1CFLDifyAnUBkM-Z987FKb8o0/exec"; 
+const CLOUD_RUN_URL = "https://upload-meishi-function-769951420007.asia-northeast2.run.app";
 
 let isDetecting = true;
 let globalCardId = null; 
@@ -463,11 +899,12 @@ let capturedImages = { front: null, back: null };
 
 let isDetected = false;
 let lastDetectedQuad = null;
+let allCardsData = []; // スプレッドシートから取得した名刺データ全件
+let currentSelectedItem = null; // 現在選択中のカードデータ（編集キャンセル時用）
 
-const mockData = [
-  { id: 1, name: "山田 太郎", company: "株式会社サンプル", image: "url_to_image" },
-  { id: 2, name: "佐藤 花子", company: "デザイン事務所", image: "url_to_image" }
-];
+// 画面回転イベント（一箇所に集約）
+window.addEventListener('resize', checkOrientation);
+window.addEventListener('orientationchange', checkOrientation);
 
 async function enforcePortraitOrientation() {
   if (screen.orientation && screen.orientation.lock) {
@@ -498,11 +935,11 @@ function checkOrientation() {
   }
 }
 
-window.addEventListener('resize', checkOrientation);
-window.addEventListener('orientationchange', checkOrientation);
 
-// ログイン処理
-document.getElementById('loginBtn')?.addEventListener('click', async () => {
+// ログイン処理関数
+async function handleLogin(e) {
+  if (e) e.preventDefault(); // フォーム送信による画面リロード（再読み込み）を防止
+
   const loginBtn = document.getElementById('loginBtn');
   const id = document.getElementById('loginId').value.trim();
   const pass = document.getElementById('loginPass').value.trim();
@@ -516,22 +953,20 @@ document.getElementById('loginBtn')?.addEventListener('click', async () => {
   const originalText = loginBtn.textContent;
   loginBtn.textContent = "ログイン処理中...";
   loginBtn.style.opacity = "0.7";
-  
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbyya3RzVXc9pdWUCNhBaJN-F7_ShidH16FVFuL5VMh1CFLDifyAnUBkM-Z987FKb8o0/exec"; 
 
   try {
     const payload = { action: "login", id: id, pass: pass };
     const response = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      redirect: 'follow'
     });
 
     const result = await response.json();
 
     if (result.success) {
       sessionStorage.setItem('isLoggedIn', 'true');
-      // ↓ この行を追加して userCode を保存します
       sessionStorage.setItem('userCode', result.userCode || id);
       sessionStorage.setItem('userName', result.userName || id);
       sessionStorage.setItem('loginTime', new Date().getTime().toString());
@@ -550,13 +985,26 @@ document.getElementById('loginBtn')?.addEventListener('click', async () => {
     loginBtn.textContent = originalText;
     loginBtn.style.opacity = "1";
   }
-});
-  
+}
+
+// フォーム送信イベントの設定（Enterキー送信 & ボタンクリック両対応）
+document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
+
+// ---------------------------------------------------------
+// ページ切り替え処理（カメラ制御を追加）
+// ---------------------------------------------------------
 function showPage(pageId) {
-  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  // すべてのページの active クラスを除去し非表示にする
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = 'none';
+  });
+  
   const targetPage = document.getElementById(pageId);
   if (targetPage) {
-    targetPage.style.display = 'block';
+    targetPage.classList.add('active');
+    // page-login の場合は flex、それ以外は block
+    targetPage.style.display = (pageId === 'page-login') ? 'flex' : 'block';
   } else {
     return;
   }
@@ -566,29 +1014,30 @@ function showPage(pageId) {
   if (pageId === 'page-search') document.getElementById('nav-search')?.classList.add('active');
 
   if (pageId === 'page-camera') {
-    if (!video.srcObject) {
-      startCamera();
-    }
-    checkOrientation();
-    if (window.innerWidth <= window.innerHeight) {
-      isDetecting = true;
-      detectLoop();
-    }
+    startCamera();
   } else {
-    isDetecting = false;
+    stopCamera();
+  }
+
+  if (pageId === 'page-search') {
+    fetchCardsData();
   }
 }
 
-document.getElementById('searchInput')?.addEventListener('input', (e) => {
-  const query = e.target.value.toLowerCase();
-  const filtered = mockData.filter(item => 
-    item.name.toLowerCase().includes(query) || item.company.toLowerCase().includes(query)
-  );
-  renderCards(filtered);
-});
+function stopCamera() {
+  isDetecting = false;
+  if (video && video.srcObject) {
+    const stream = video.srcObject;
+    const tracks = stream.getTracks();
+    tracks.forEach(track => track.stop());
+    video.srcObject = null;
+  }
+}
 
 async function startCamera() {
   await enforcePortraitOrientation();
+  if (video.srcObject) return;
+
   const constraints = {
     video: {
       width: { ideal: 1920 },
@@ -596,20 +1045,57 @@ async function startCamera() {
       facingMode: { ideal: "environment" }
     }
   };
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
     video.onloadedmetadata = () => {
       checkOrientation();
       if (window.innerWidth <= window.innerHeight) {
+        isDetecting = true;
         detectLoop();
       }
     };
-  } catch (err) { alert("カメラアクセスを許可してください"); }
+  } catch (err) { 
+    alert("カメラアクセスを許可してください"); 
+  }
 }
 
+// ひらがな・カタカナ互換ヘルパー
+function hiraToKata(str) {
+  return str.replace(/[\u3041-\u3096]/g, m => String.fromCharCode(m.charCodeAt(0) + 0x60));
+}
+function kataToHira(str) {
+  return str.replace(/[\u30a1-\u30f6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
+}
+
+// ---------------------------------------------------------
+// 検索バー入力イベント（一箇所に集約・ひらがなカタカナ・あいまい対応）
+// ---------------------------------------------------------
+document.getElementById('searchInput')?.addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase().trim();
+  if (!query) {
+    renderCards(allCardsData);
+    return;
+  }
+
+  const qKata = hiraToKata(query);
+  const qHira = kataToHira(query);
+
+  const filtered = allCardsData.filter(card => {
+    const textGroup = [
+      card.name, card.nameKana, card.company, card.companyKana,
+      card.department, card.title, card.email, card.phone
+    ].join(' ').toLowerCase();
+
+    return textGroup.includes(query) || textGroup.includes(qKata) || textGroup.includes(qHira);
+  });
+
+  renderCards(filtered);
+});
+
 // --------------------------------------------------
-// OpenCV 4頂点検知（元の認識ロジックそのまま）
+// OpenCV 4頂点検知
 // --------------------------------------------------
 function findCardQuad(srcMat) {
   let gray = new cv.Mat();
@@ -618,7 +1104,6 @@ function findCardQuad(srcMat) {
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
 
-  // コントラスト強調 + エッジ検出
   cv.cvtColor(srcMat, gray, cv.COLOR_RGBA2GRAY);
   cv.equalizeHist(gray, equalized);
   cv.Canny(equalized, edges, 70, 200);
@@ -671,50 +1156,41 @@ function findCardQuad(srcMat) {
 // --------------------------------------------------
 function detectLoop() {
   if (!isDetecting) return;
-  if (!video || video.readyState !== 4) {
+  if (!video || video.readyState !== 4 || video.style.display === 'none') {
     setTimeout(() => requestAnimationFrame(detectLoop), 200);
     return;
   }
-  if (video.style.display === 'none') return;
 
   let fullMat = cv.imread(video);
-  let quad = findCardQuad(fullMat);
+  try {
+    let quad = findCardQuad(fullMat);
 
-  const statusEl = document.getElementById('status-message');
-  const guideEl = document.getElementById('guide-frame');
-  const captureBtn = document.getElementById('capture-btn');
+    const statusEl = document.getElementById('status-message');
+    const guideEl = document.getElementById('guide-frame');
 
-  if (quad) {
-    isDetected = true;
-    lastDetectedQuad = quad;
-
-    if (guideEl) {
-      guideEl.classList.add('detected');
+    if (quad) {
+      isDetected = true;
+      lastDetectedQuad = quad;
+      if (guideEl) guideEl.classList.add('detected');
+      if (statusEl) {
+        statusEl.classList.add('detected');
+        statusEl.textContent = '名刺を検知しました (ボタンを押して撮影)';
+      }
+      if (captureBtn) captureBtn.classList.add('active');
+    } else {
+      isDetected = false;
+      lastDetectedQuad = null;
+      if (guideEl) guideEl.classList.remove('detected');
+      if (statusEl) {
+        statusEl.classList.remove('detected');
+        statusEl.textContent = 'ガイド枠内に合わせてください (タップで手動撮影)';
+      }
+      if (captureBtn) captureBtn.classList.remove('active');
     }
-    if (statusEl) {
-      statusEl.classList.add('detected');
-      statusEl.textContent = '名刺を検知しました (ボタンを押して撮影)';
-    }
-    if (captureBtn) {
-      captureBtn.classList.add('active');
-    }
-  } else {
-    isDetected = false;
-    lastDetectedQuad = null;
-
-    if (guideEl) {
-      guideEl.classList.remove('detected');
-    }
-    if (statusEl) {
-      statusEl.classList.remove('detected');
-      statusEl.textContent = 'ガイド枠内に合わせてください (タップで手動撮影)';
-    }
-    if (captureBtn) {
-      captureBtn.classList.remove('active');
-    }
+  } finally {
+    fullMat.delete();
   }
 
-  fullMat.delete();
   setTimeout(() => requestAnimationFrame(detectLoop), 200);
 }
 
@@ -782,17 +1258,15 @@ function cropFallbackROI(srcMat) {
   roi.delete();
 }
 
-// 短いカードIDを生成する関数（例: "260929-a8f"）
 function generateShortCardId() {
   const now = new Date();
   const yy = String(now.getFullYear()).slice(-2);
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const dd = String(now.getDate()).padStart(2, '0');
-  const rand = Math.random().toString(36).substring(2, 5); // ランダム英数字3文字
+  const rand = Math.random().toString(36).substring(2, 5);
   return `${yy}${mm}${dd}-${rand}`;
 }
   
-// シャッターボタンタップ時
 document.getElementById('capture-btn').addEventListener('click', async () => {
   if (!globalCardId) globalCardId = generateShortCardId();
   isDetecting = false;
@@ -823,7 +1297,7 @@ document.getElementById('capture-btn').addEventListener('click', async () => {
   const outputCanvas = document.getElementById('outputCanvas');
   const dataUrl = outputCanvas.toDataURL('image/jpeg', 0.9);
   
-if (isFrontSide) {
+  if (isFrontSide) {
     capturedImages.front = dataUrl;
     
     const guidePreview = document.getElementById('guidePreview');
@@ -844,14 +1318,12 @@ if (isFrontSide) {
       previewBack.src = dataUrl;
     }
 
-    // 裏面撮影完了時は単体ガイドプレビューを隠し、表裏縦並びコンテナを表示
     const guidePreview = document.getElementById('guidePreview');
     if (guidePreview) guidePreview.style.display = 'none';
 
     const previewContainer = document.getElementById('previewContainer');
     if (previewContainer) previewContainer.style.display = 'flex';
   }
-  
   
   video.style.display = 'none';
   if (outputCanvas) outputCanvas.style.display = 'none';
@@ -883,13 +1355,15 @@ backCaptureBtn.addEventListener('click', () => {
 retryBackBtn.addEventListener('click', () => {
   isFrontSide = false;
   capturedImages.back = null;
-  document.getElementById('previewBack').src = "";
+  const previewBack = document.getElementById('previewBack');
+  if (previewBack) previewBack.src = "";
   
   const previewContainer = document.getElementById('previewContainer');
   if (previewContainer) previewContainer.style.display = 'none';
 
   const guidePreview = document.getElementById('guidePreview');
   if (guidePreview && capturedImages.front) {
+    guidePreview.src = capturedImages.front;
     guidePreview.style.display = 'block';
   }
 
@@ -906,7 +1380,7 @@ retryAllBtn.addEventListener('click', () => {
   showCaptureUI();
   isDetecting = true;
   detectLoop();
-}); 
+});
 
 function showActionUI() {
   captureBtn.style.display = 'none';
@@ -951,8 +1425,6 @@ function resetPreview() {
 }
 
 async function uploadAllImages() {
-  const cloudRunUrl = 'https://upload-meishi-function-769951420007.asia-northeast2.run.app';
-// セッションからユーザーコードを取得（未保持の場合は'unknown'）
   const userCode = sessionStorage.getItem('userCode') || 'unknown';
   
   if (capturedImages.front) {
@@ -960,10 +1432,11 @@ async function uploadAllImages() {
       base64Data: capturedImages.front.split(',')[1],
       fileName: `card_${globalCardId}_${userCode}_front.jpg`
     };
-    const res1 = await fetch(cloudRunUrl, {
+    const res1 = await fetch(CLOUD_RUN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(frontPayload)
+      body: JSON.stringify(frontPayload),
+      redirect: 'follow'
     });
     if (!res1.ok) throw new Error("表面送信失敗: " + await res1.text());
   }
@@ -973,7 +1446,7 @@ async function uploadAllImages() {
       base64Data: capturedImages.back.split(',')[1],
       fileName: `card_${globalCardId}_${userCode}_back.jpg`
     };
-    const res2 = await fetch(cloudRunUrl, {
+    const res2 = await fetch(CLOUD_RUN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(backPayload)
@@ -1017,41 +1490,320 @@ window.addEventListener('load', () => {
   
   if (loginTime && (now - Number(loginTime) > 3600000)) {
     sessionStorage.clear();
+  }
+
+  if (sessionStorage.getItem('isLoggedIn') === 'true') {
+    showPage('page-camera');
+    document.getElementById('bottom-nav').style.display = 'flex';
+  } else {
     showPage('page-login');
-  } else {  
-    renderCards(mockData);
-    if (sessionStorage.getItem('isLoggedIn') === 'true') {
-      showPage('page-camera');
-      document.getElementById('bottom-nav').style.display = 'flex';
-    } else {
-      showPage('page-login');
-      document.getElementById('bottom-nav').style.display = 'none';
-    }
+    document.getElementById('bottom-nav').style.display = 'none';
   }
 });
+
+async function fetchCardsData() {
+  const container = document.getElementById('card-container');
+  if (!container) return;
+
+  container.innerHTML = `<div style="text-align:center; padding: 40px; color: #94a3b8;">読み込み中...</div>`;
+
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: "getCards" }),
+      redirect: 'follow'
+    });
+
+    const result = await res.json();
+
+    if (result.success) {
+      allCardsData = result.cards || [];
+      renderCards(allCardsData);
+    } else {
+      container.innerHTML = `
+        <div style="text-align:center; padding: 20px; color: #ef4444;">
+          <p>取得失敗: ${result.message || 'データが取得できませんでした'}</p>
+          <button onclick="fetchCardsData()" style="margin-top:10px; padding:8px 16px;">再試行</button>
+        </div>`;
+    }
+  } catch (e) {
+    console.error(e);
+    container.innerHTML = `
+      <div style="text-align:center; padding: 20px; color: #ef4444;">
+        <p>通信エラーが発生しました</p>
+        <button onclick="fetchCardsData()" style="margin-top:10px; padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:6px;">再読み込み</button>
+      </div>`;
+  }
+}
+
+function formatDriveUrl(url) {
+  if (!url) return "";
+  const match = url.match(/\/d\/([^\/]+)/);
+  if (match && match[1]) {
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
+  }
+  return url;
+}
 
 function renderCards(dataList) {
   const container = document.getElementById('card-container');
   if (!container) return;
   container.innerHTML = "";
 
+  if (!dataList || dataList.length === 0) {
+    container.innerHTML = `<div style="text-align:center; padding: 40px; color: #64748b;">名刺データが見つかりません</div>`;
+    return;
+  }
+
   dataList.forEach(item => {
     const card = document.createElement('div');
-    card.className = 'card';
+    card.className = 'eight-card';
+    card.onclick = () => openDetailModal(item);
+
+    const imageUrl = formatDriveUrl(item.frontUrl);
+    const thumbHtml = imageUrl 
+      ? `<img src="${imageUrl}" alt="名刺" loading="lazy" style="width:100%; height:100%; object-fit:cover;">` 
+      : `<span class="card-thumb-placeholder">No Img</span>`;
+
     card.innerHTML = `
-      <div>
-        <h3>${item.name}</h3>
-        <p>${item.company}</p>
+      <div class="card-thumb-box">${thumbHtml}</div>
+      <div class="card-info">
+        ${item.nameKana ? `<div class="card-kana" style="font-size: 11px; color: #64748b; line-height: 1.2;">${item.nameKana}</div>` : ''}
+        <div class="card-name" style="font-size: 16px; font-weight: bold; color: #1e293b; margin-bottom: 4px;">
+          ${item.name || "名称未設定"}
+        </div>
+        <p class="card-company" style="font-size: 13px; color: #475569; margin: 0 0 2px 0;">${item.company || "会社名なし"}</p>
+        <div class="card-dept" style="font-size: 12px; color: #64748b;">${[item.department, item.title].filter(Boolean).join(' / ')}</div>
+        <div class="card-date" style="font-size: 11px; color: #94a3b8; margin-top: 6px;">更新: ${item.updatedAt || item.createdAt}</div>
       </div>
-      <button class="detail-btn" onclick="openDetail(${item.id})">詳細</button>
     `;
     container.appendChild(card);
   });
 }
 
-function openDetail(id) {
-  const item = mockData.find(d => d.id === id);
-  alert(`詳細表示: ${item.name} - ${item.company}`);
+// ---------------------------------------------------------
+// textareaの高さ自動調整ヘルパー
+// ---------------------------------------------------------
+function autoResizeTextarea(el) {
+  if (!el) return;
+  // 一旦高度をリセットして正確な scrollHeight を取得
+  el.style.height = 'auto';
+  // 内容に合わせて高度を設定 (最低高さを38px等に指定)
+  el.style.height = Math.max(el.scrollHeight, 38) + 'px';
+}
+
+// すべての編集用textareaの高さを一括調整
+function adjustAllModalTextareas() {
+  const textareas = document.querySelectorAll('#detail-modal textarea');
+  textareas.forEach(ta => autoResizeTextarea(ta));
+}
+  
+// ---------------------------------------------------------
+// 詳細モーダルを開く
+// ---------------------------------------------------------
+function openDetailModal(item) {
+  currentSelectedItem = item;
+
+  document.getElementById('edit-rowIndex').value = item.rowIndex || '';
+  document.getElementById('edit-company').value = item.company || '';
+  document.getElementById('edit-companyKana').value = item.companyKana || '';
+  document.getElementById('edit-name').value = item.name || '';
+  document.getElementById('edit-nameKana').value = item.nameKana || '';
+  document.getElementById('edit-department').value = item.department || '';
+  document.getElementById('edit-title').value = item.title || '';
+  document.getElementById('edit-phone').value = item.phone || '';
+  document.getElementById('edit-mobile').value = item.mobile || '';
+  document.getElementById('edit-email').value = item.email || '';
+  document.getElementById('edit-zipCode').value = item.zipCode || '';
+  document.getElementById('edit-address').value = item.address || '';
+
+ const fImg = document.getElementById('m-front-img');
+  const bImg = document.getElementById('m-back-img');
+  const fWrapper = document.getElementById('p-front-wrapper');
+  const bWrapper = document.getElementById('p-back-wrapper');
+  const container = document.getElementById('modalPreviewContainer');
+
+  const frontSrc = formatDriveUrl(item.frontUrl);
+  const backSrc = formatDriveUrl(item.backUrl);
+
+  const hasFront = Boolean(frontSrc);
+  const hasBack = Boolean(backSrc);
+
+  // 表面の表示切替
+  if (hasFront) {
+    fImg.src = frontSrc;
+    fImg.style.display = "block"; // ★ ここを追加！（非表示を解除）
+    fWrapper.style.display = "flex";
+  } else {
+    fWrapper.style.display = "none";
+  }
+
+  // 裏面の表示切替
+  if (hasBack) {
+    bImg.src = backSrc;
+    bImg.style.display = "block"; // ★ ここを追加！（非表示を解除）
+    bWrapper.style.display = "flex";
+  } else {
+    bWrapper.style.display = "none";
+  }
+
+  // クラスの掛け替え（レイアウト切り替え用）
+  if (container) {
+    container.classList.remove('has-both', 'has-single');
+    if (hasFront && hasBack) {
+      container.classList.add('has-both');   // スマホで2行表示
+    } else {
+      container.classList.add('has-single'); // スマホでも2列サイズに収める
+    }
+  }
+
+  setFormReadOnly(true);
+  document.getElementById('detail-modal').style.display = 'flex';
+
+  // textarea高さの自動調整
+  setTimeout(() => {
+    adjustAllModalTextareas();
+  }, 50);
+}
+
+// モーダル内の入力項目を読み取り専用 / 編集可能に切り替える関数
+function setFormReadOnly(isReadOnly) {
+  const inputs = document.querySelectorAll('#detail-modal input, #detail-modal textarea');
+  inputs.forEach(input => {
+    // hiddenのrowIndex以外を対象に制御
+    if (input.id !== 'edit-rowIndex') {
+      if (isReadOnly) {
+        input.setAttribute('readonly', 'readonly');
+      } else {
+        input.removeAttribute('readonly');
+      }
+    }
+  });
+
+  // ★ 追加・補強: フッター要素自体を確実に表示状態にする
+  const modalFooter = document.querySelector('#detail-modal .modal-footer');
+  if (modalFooter) {
+    modalFooter.style.display = 'flex';
+  }
+
+  // ボタンの表示制御（閲覧時と編集時で切り替え）
+  const viewBtns = document.getElementById('view-buttons');
+  const editBtns = document.getElementById('edit-buttons');
+  if (viewBtns) viewBtns.style.display = isReadOnly ? 'flex' : 'none';
+  if (editBtns) editBtns.style.display = isReadOnly ? 'none' : 'flex';
+}
+  
+function enableEditMode() {
+  setFormReadOnly(false);
+  // 編集モード切り替え時にも高さを再計算
+  setTimeout(() => adjustAllModalTextareas(), 50);
+}
+
+function cancelEditMode() {
+  if (currentSelectedItem) {
+    openDetailModal(currentSelectedItem);
+  } else {
+    setFormReadOnly(true);
+  }
+}
+
+function closeDetailModal() {
+  document.getElementById('detail-modal').style.display = 'none';
+  currentSelectedItem = null;
+}
+
+// ★ リアルタイム入力監視（ユーザーが入力・改行した際にも高さを自動伸縮）
+document.addEventListener('DOMContentLoaded', () => {
+  const modalObj = document.getElementById('detail-modal');
+  if (modalObj) {
+    modalObj.addEventListener('input', (e) => {
+      if (e.target && e.target.tagName.toLowerCase() === 'textarea') {
+        autoResizeTextarea(e.target);
+      }
+    });
+  }
+});  
+
+async function saveCardEdit() {
+  const saveBtn = document.getElementById('saveCardBtn');
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = "保存中...";
+  }
+
+  const payload = {
+    action: "updateCard",
+    rowIndex: Number(document.getElementById('edit-rowIndex').value),
+    updaterCode: sessionStorage.getItem('userCode') || 'unknown',
+    updaterName: sessionStorage.getItem('userName') || '不明',
+    company: document.getElementById('edit-company').value,
+    companyKana: document.getElementById('edit-companyKana').value,
+    name: document.getElementById('edit-name').value,
+    nameKana: document.getElementById('edit-nameKana').value,
+    department: document.getElementById('edit-department').value,
+    title: document.getElementById('edit-title').value,
+    phone: document.getElementById('edit-phone').value,
+    mobile: document.getElementById('edit-mobile').value,
+    email: document.getElementById('edit-email').value,
+    zipCode: document.getElementById('edit-zipCode').value,
+    address: document.getElementById('edit-address').value
+  };
+
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (result.success) {
+      alert("更新を保存しました");
+      closeDetailModal();
+      fetchCardsData();
+    } else {
+      alert("更新失敗: " + result.message);
+    }
+  } catch (e) {
+    alert("通信エラーが発生しました");
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "保存";
+    }
+  }
+}
+
+async function deleteCard() {
+  const rowIndex = document.getElementById('edit-rowIndex').value;
+  const name = document.getElementById('edit-name').value || 'この名刺';
+
+  if (!confirm(`「${name}」様のデータを削除してもよろしいですか？\n※この操作は取り消せません。`)) {
+    return;
+  }
+
+  const payload = {
+    action: "deleteCard",
+    rowIndex: Number(rowIndex)
+  };
+
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (result.success) {
+      alert("データを削除しました");
+      closeDetailModal();
+      fetchCardsData();
+    } else {
+      alert("削除失敗: " + result.message);
+    }
+  } catch (e) {
+    alert("通信エラーが発生しました");
+  }
 }
 </script>
 </body>
