@@ -1733,40 +1733,35 @@ function adjustAllModalTextareas() {
 // 詳細モーダルを開く
 // ---------------------------------------------------------
 function openDetailModal(item) {
-  console.log("モーダルに渡された名刺データ:", item); // ←これでデータのキー名が一目でわかります
+  console.log("モーダルに渡された名刺データ:", item);
   
   currentSelectedItem = item;
 
-  document.getElementById('edit-rowIndex').value = item.rowIndex || '';
-  document.getElementById('edit-company').value = item.company || '';
-  document.getElementById('edit-companyKana').value = item.companyKana || '';
-  document.getElementById('edit-name').value = item.name || '';
-  document.getElementById('edit-nameKana').value = item.nameKana || '';
-  document.getElementById('edit-department').value = item.department || '';
-  document.getElementById('edit-title').value = item.title || '';
-  document.getElementById('edit-phone').value = item.phone || '';
-  document.getElementById('edit-mobile').value = item.mobile || '';
-  document.getElementById('edit-email').value = item.email || '';
-  document.getElementById('edit-zipCode').value = item.zipCode || '';
-  document.getElementById('edit-address').value = item.address || '';
+  // --- 1. フォーム入力欄へ値をセット ---
+  const fields = [
+    'rowIndex', 'company', 'companyKana', 'name', 'nameKana',
+    'department', 'title', 'phone', 'mobile', 'email', 'zipCode', 'address'
+  ];
+  fields.forEach(field => {
+    const el = document.getElementById(`edit-${field}`);
+    if (el) el.value = item[field] || '';
+  });
 
-// --- 登録者・更新者のプロパティ表記揺れに対応 ---
-  // 例: createdBy, created_by, author, user, registrant などを順にチェック
-  const createdBy = item.createdBy || item.created_by || item.author || item.user || item.registrant;
-  const createdAt = item.createdAt || item.created_at || item.createdDate || item.date;
-  const updatedBy = item.updatedBy || item.updated_by || item.editor || item.modifier || createdBy;
-  const updatedAt = item.updatedAt || item.updated_at || item.updatedDate || createdAt;
-  
-  // 値が存在する場合のみ表示（存在しない場合は「-」などシンプルに表示）
-  document.getElementById('detail-createdBy').textContent = createdBy || '-';
-  document.getElementById('detail-createdAt').textContent = createdAt || '-';
-  document.getElementById('detail-updatedBy').textContent = updatedBy || '-';
-  document.getElementById('detail-updatedAt').textContent = updatedAt || '-';
+  // --- 2. 登録・更新情報のセット (編集不可のテキストとしてセット) ---
+  const metaMap = {
+    'detail-createdBy': item.registrarName || '未記録',
+    'detail-createdAt': item.createdAt || '-',
+    'detail-updatedBy': item.updaterName || item.registrarName || '未記録',
+    'detail-updatedAt': item.updatedAt || item.createdAt || '-'
+  };
 
-  // モーダルを表示
-  document.getElementById('detail-modal').style.display = 'flex';
-  
- const fImg = document.getElementById('m-front-img');
+  Object.entries(metaMap).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  });
+
+  // --- 3. 名刺画像プレビューの表示制御 ---
+  const fImg = document.getElementById('m-front-img');
   const bImg = document.getElementById('m-back-img');
   const fWrapper = document.getElementById('p-front-wrapper');
   const bWrapper = document.getElementById('p-back-wrapper');
@@ -1774,39 +1769,30 @@ function openDetailModal(item) {
 
   const frontSrc = formatDriveUrl(item.frontUrl);
   const backSrc = formatDriveUrl(item.backUrl);
-
   const hasFront = Boolean(frontSrc);
   const hasBack = Boolean(backSrc);
 
-  // 表面の表示切替
-  if (hasFront) {
-    fImg.src = frontSrc;
-    fImg.style.display = "block"; // ★ ここを追加！（非表示を解除）
-    fWrapper.style.display = "flex";
-  } else {
-    fWrapper.style.display = "none";
+  // 画像セット＆表示切り替え
+  if (fImg && fWrapper) {
+    fImg.src = frontSrc || '';
+    fImg.style.display = hasFront ? "block" : "none";
+    fWrapper.style.display = hasFront ? "flex" : "none";
   }
 
-  // 裏面の表示切替
-  if (hasBack) {
-    bImg.src = backSrc;
-    bImg.style.display = "block"; // ★ ここを追加！（非表示を解除）
-    bWrapper.style.display = "flex";
-  } else {
-    bWrapper.style.display = "none";
+  if (bImg && bWrapper) {
+    bImg.src = backSrc || '';
+    bImg.style.display = hasBack ? "block" : "none";
+    bWrapper.style.display = hasBack ? "flex" : "none";
   }
 
-  // クラスの掛け替え（レイアウト切り替え用）
+  // レイアウトクラスの切替
   if (container) {
     container.classList.remove('has-both', 'has-single');
-    if (hasFront && hasBack) {
-      container.classList.add('has-both');   // スマホで2行表示
-    } else {
-      container.classList.add('has-single'); // スマホでも2列サイズに収める
-    }
+    container.classList.add(hasFront && hasBack ? 'has-both' : 'has-single');
   }
 
-  setFormReadOnly(true);
+  // --- 4. 閲覧モード初期化 ＆ モーダル表示 ---
+  setFormReadOnly(true); // 初期状態は閲覧専用
   document.getElementById('detail-modal').style.display = 'flex';
 
   // textarea高さの自動調整
@@ -1814,26 +1800,24 @@ function openDetailModal(item) {
     adjustAllModalTextareas();
   }, 50);
 }
-
-// モーダル内の入力項目を読み取り専用 / 編集可能に切り替える関数
+  
 function setFormReadOnly(isReadOnly) {
-  const inputs = document.querySelectorAll('#detail-modal input, #detail-modal textarea');
-  inputs.forEach(input => {
-    // hiddenのrowIndex以外を対象に制御
-    if (input.id !== 'edit-rowIndex') {
-      if (isReadOnly) {
-        input.setAttribute('readonly', 'readonly');
-      } else {
-        input.removeAttribute('readonly');
-      }
-    }
-  });
-
-  // ★ 追加・補強: フッター要素自体を確実に表示状態にする
-  const modalFooter = document.querySelector('#detail-modal .modal-footer');
+  const modalFooter = document.querySelector('.modal-footer');
+  const modalInputs = document.querySelectorAll('#detail-modal input[id^="edit-"], #detail-modal textarea[id^="edit-"]');
+  
+  // フッター要素自体を確実に表示状態にする
   if (modalFooter) {
     modalFooter.style.display = 'flex';
   }
+
+  // フォーム項目の読み取り専用制御（edit-で始まる項目のみ対象）
+  modalInputs.forEach(input => {
+    if (isReadOnly) {
+      input.setAttribute('readonly', 'readonly');
+    } else {
+      input.removeAttribute('readonly');
+    }
+  });
 
   // ボタンの表示制御（閲覧時と編集時で切り替え）
   const viewBtns = document.getElementById('view-buttons');
