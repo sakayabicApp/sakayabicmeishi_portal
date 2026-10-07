@@ -419,27 +419,24 @@
 }
   
 /* 検索ページ全体の背景を少し暗めに */
-  #page-search {
-    background-color: #cbd5e1; /* やや深みのあるライトグレー */
-    min-height: 100vh;
-  }
-  /* 検索画面CSS */
-  //* 検索ヘッダー（固定表示エリア） */
+ /* 1. 検索ヘッダー内の入力欄の上部に余白を追加 */
   .search-header {
     position: sticky;
     top: 0;
-    background: #e2e8f0;       /* ヘッダー背景色を暗めに設定 */
-    padding: 16px;
+    background: #e2e8f0;
+    padding: 24px 16px 16px 16px; /* 上パディングを16pxから24pxに増やして上余白を確保 */
     z-index: 20;
     border-bottom: 1px solid #cbd5e1;
   }
-  /* 検索入力欄（背景が暗めになったことで白が際立ちます） */
+  
+ /* または、入力欄自体に直接 margin-top を設定する場合 */
   .search-header input {
+    margin-top: 12px; /* 検索ウィンドウの上に余白 */
     width: 100%;
     padding: 14px 16px;
     border-radius: 25px;
-    border: 1.5px solid #94a3b8; /* 枠線もすこし濃いめに調整 */
-    background: #ffffff;         /* 白背景で視認性を確保 */
+    border: 1.5px solid #94a3b8;
+    background: #ffffff;
     color: #0f172a;
     font-size: 16px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.06);
@@ -513,7 +510,7 @@
     color: #0f172a; /* カード内の全体の文字色 */
   }
   .card-name {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
     color: #0f172a !important; /* 確実に黒色を適用 */
     margin: 0 0 2px 0;
@@ -527,7 +524,7 @@
     font-weight: normal;
   }
   .card-company {
-    font-size: 14px;
+    font-size: 16px;
     color: #334155;
     font-weight: 600;
     white-space: nowrap;
@@ -538,12 +535,12 @@
   /* 部署・役職 */
   .card-dept {
     color: #64748b;
-    font-size: 12px;
+    font-size: 13px;
     margin-bottom: 6px;
   }
   .card-date {
     color: #94a3b8;
-    font-size: 11px;
+    font-size: 12px;
     margin-top: 4px;
   }
 
@@ -592,6 +589,19 @@
     gap: 10px;
     justify-content: flex-end;
     margin-top: 0;
+  }
+
+  /* 2. 編集ボタン（およびモーダル内のボタン類）を一回り大きく */
+  .modal-footer button,
+  .btn-edit,
+  .btn-primary {
+    padding: 14px 24px;      /* 内側の余白を広げて一回り大きく */
+    font-size: 16px;         /* 文字サイズを14px -> 16pxに拡大 */
+    font-weight: 600;
+    border-radius: 10px;      /* 角丸も少し調整 */
+    min-width: 110px;        /* ボタンの最小幅を確保 */
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
   
   .modal-header h3 { margin: 0; font-size: 18px; color: #0f172a; }
@@ -1599,7 +1609,7 @@ function renderCards(dataList) {
         </div>
         <p class="card-company">${item.company || "会社名なし"}</p>
         <div class="card-dept">${[item.department, item.title].filter(Boolean).join(' / ')}</div>
-        <div class="card-date">更新: ${item.updatedAt || item.createdAt}</div>
+        <div class="card-date">最終更新日時: ${item.updatedAt || item.createdAt}</div>
       </div>
     `;
     container.appendChild(card);
