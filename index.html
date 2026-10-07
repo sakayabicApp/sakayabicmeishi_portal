@@ -1733,6 +1733,8 @@ function adjustAllModalTextareas() {
 // 詳細モーダルを開く
 // ---------------------------------------------------------
 function openDetailModal(item) {
+  console.log("モーダルに渡された名刺データ:", item); // ←これでデータのキー名が一目でわかります
+  
   currentSelectedItem = item;
 
   document.getElementById('edit-rowIndex').value = item.rowIndex || '';
@@ -1748,11 +1750,18 @@ function openDetailModal(item) {
   document.getElementById('edit-zipCode').value = item.zipCode || '';
   document.getElementById('edit-address').value = item.address || '';
 
-  // ↓ 登録・更新情報のセット（データが存在しない場合のフォールバック付き）
-  document.getElementById('detail-createdBy').value = item.createdBy || '未設定';
-  document.getElementById('detail-createdAt').value = item.createdAt || '-';
-  document.getElementById('detail-updatedBy').value = item.updatedBy || item.createdBy || '未設定';
-  document.getElementById('detail-updatedAt').value = item.updatedAt || item.createdAt || '-';
+// --- 登録者・更新者のプロパティ表記揺れに対応 ---
+  // 例: createdBy, created_by, author, user, registrant などを順にチェック
+  const createdBy = item.createdBy || item.created_by || item.author || item.user || item.registrant;
+  const createdAt = item.createdAt || item.created_at || item.createdDate || item.date;
+  const updatedBy = item.updatedBy || item.updated_by || item.editor || item.modifier || createdBy;
+  const updatedAt = item.updatedAt || item.updated_at || item.updatedDate || createdAt;
+  
+  // 値が存在する場合のみ表示（存在しない場合は「-」などシンプルに表示）
+  document.getElementById('detail-createdBy').textContent = createdBy || '-';
+  document.getElementById('detail-createdAt').textContent = createdAt || '-';
+  document.getElementById('detail-updatedBy').textContent = updatedBy || '-';
+  document.getElementById('detail-updatedAt').textContent = updatedAt || '-';
 
   // モーダルを表示
   document.getElementById('detail-modal').style.display = 'flex';
