@@ -628,6 +628,53 @@
     cursor: default;
   }
 
+    /* 詳細モーダル内の入力・表示フィールドの折り返し対応 */
+#detail-modal input,
+#detail-modal textarea,
+#detail-modal .info-text {
+  width: 100%;
+  box-sizing: border-box;
+  word-break: break-all;      /* 長い英数字・メールアドレス等を枠内で自動折り返し */
+  overflow-wrap: anywhere;
+}
+
+#detail-modal input[readonly],
+  #detail-modal textarea[readonly] {
+    background-color: #f1f5f9;
+    border-color: #e2e8f0;
+    color: #1e293b;
+    cursor: default;
+  }
+
+ /* メタ情報表示用の2列グリッド */
+  .meta-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #cbd5e1; /* 上部に区切り線 */
+  }
+
+  .meta-info-grid .form-group {
+    margin-bottom: 0;
+  }
+
+  .meta-info-grid label {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  .meta-info-grid input[readonly] {
+    font-size: 13px;
+    padding: 8px 10px;
+    background-color: #e2e8f0;
+    border-color: #cbd5e1;
+    color: #334155;
+  }
+  
 /* 5. モーダル下部フッター（ボタンエリア） */
   .modal-footer {
     flex-shrink: 0;
@@ -713,23 +760,7 @@
 }
   
 
-  /* 詳細モーダル内の入力・表示フィールドの折り返し対応 */
-#detail-modal input,
-#detail-modal textarea,
-#detail-modal .info-text {
-  width: 100%;
-  box-sizing: border-box;
-  word-break: break-all;      /* 長い英数字・メールアドレス等を枠内で自動折り返し */
-  overflow-wrap: anywhere;
-}
 
-#detail-modal input[readonly],
-  #detail-modal textarea[readonly] {
-    background-color: #f1f5f9;
-    border-color: #e2e8f0;
-    color: #1e293b;
-    cursor: default;
-  }
 
 /* 詳細モーダル内のプレビュー容器・外枠の除去 */
 .card-preview-container {
@@ -884,7 +915,25 @@
     <img id="m-back-img" src="" alt="裏面" />
   </div>
 </div>
-
+<!-- モーダル本文内のフォーム末尾などに追加 -->
+<div class="meta-info-grid">
+  <div class="form-group">
+    <label>登録者</label>
+    <input type="text" id="detail-createdBy" readonly>
+  </div>
+  <div class="form-group">
+    <label>登録日</label>
+    <input type="text" id="detail-createdAt" readonly>
+  </div>
+  <div class="form-group">
+    <label>最終更新者</label>
+    <input type="text" id="detail-updatedBy" readonly>
+  </div>
+  <div class="form-group">
+    <label>最終更新日</label>
+    <input type="text" id="detail-updatedAt" readonly>
+  </div>
+</div>
     <input type="hidden" id="edit-rowIndex">
     <div class="form-group">
       <label>会社名</label>
@@ -1699,6 +1748,15 @@ function openDetailModal(item) {
   document.getElementById('edit-zipCode').value = item.zipCode || '';
   document.getElementById('edit-address').value = item.address || '';
 
+  // ↓ 登録・更新情報のセット（データが存在しない場合のフォールバック付き）
+  document.getElementById('detail-createdBy').value = item.createdBy || '未設定';
+  document.getElementById('detail-createdAt').value = item.createdAt || '-';
+  document.getElementById('detail-updatedBy').value = item.updatedBy || item.createdBy || '未設定';
+  document.getElementById('detail-updatedAt').value = item.updatedAt || item.createdAt || '-';
+
+  // モーダルを表示
+  document.getElementById('detail-modal').style.display = 'flex';
+  
  const fImg = document.getElementById('m-front-img');
   const bImg = document.getElementById('m-back-img');
   const fWrapper = document.getElementById('p-front-wrapper');
