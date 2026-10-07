@@ -417,36 +417,42 @@
     transform: rotate(0deg);
   }
 }
-
+  
+/* 検索ページ全体の背景を少し暗めに */
+  #page-search {
+    background-color: #cbd5e1; /* やや深みのあるライトグレー */
+    min-height: 100vh;
+  }
   /* 検索画面CSS */
-  /* 検索ヘッダー＆入力欄（ライトモード） */
+  //* 検索ヘッダー（固定表示エリア） */
   .search-header {
     position: sticky;
     top: 0;
-    background: #f8fafc; /* 背景と同色の明るいグレー */
+    background: #e2e8f0;       /* ヘッダー背景色を暗めに設定 */
     padding: 16px;
     z-index: 20;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid #cbd5e1;
   }
+  /* 検索入力欄（背景が暗めになったことで白が際立ちます） */
   .search-header input {
     width: 100%;
     padding: 14px 16px;
     border-radius: 25px;
-    border: 1.5px solid #cbd5e1;
-    background: #ffffff;        /* 入力欄背景：白 */
-    color: #0f172a;           /* 文字色：濃いネイビー */
+    border: 1.5px solid #94a3b8; /* 枠線もすこし濃いめに調整 */
+    background: #ffffff;         /* 白背景で視認性を確保 */
+    color: #0f172a;
     font-size: 16px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
     transition: all 0.2s ease;
   }
-
+  
   .search-header input::placeholder {
-    color: #94a3b8;           /* プレースホルダー文字色：薄いグレー */
+    color: #64748b;
   }
 
   .search-header input:focus {
     border-color: #4f46e5;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
   }
   
   #card-container { padding: 0 16px; }
@@ -504,11 +510,12 @@
   .card-info {
     flex: 1;
     overflow: hidden;
+    color: #0f172a; /* カード内の全体の文字色 */
   }
   .card-name {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
-    color: #f8fafc;
+    color: #0f172a !important; /* 確実に黒色を適用 */
     margin: 0 0 2px 0;
     display: flex;
     align-items: baseline;
@@ -520,21 +527,23 @@
     font-weight: normal;
   }
   .card-company {
-    font-size: 13px;
-    color: #cbd5e1;
+    font-size: 14px;
+    color: #334155;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin: 0;
+    margin: 0 0 4px 0;
   }
+  /* 部署・役職 */
   .card-dept {
-    font-size: 11px;
-    color: #94a3b8;
-    margin-top: 2px;
+    color: #64748b;
+    font-size: 12px;
+    margin-bottom: 6px;
   }
   .card-date {
-    font-size: 10px;
-    color: #64748b;
+    color: #94a3b8;
+    font-size: 11px;
     margin-top: 4px;
   }
 
