@@ -1765,18 +1765,21 @@ function openDetailModal(item) {
     if (el) el.value = item[field] || '';
   });
 
-  // --- 2. 登録・更新情報のセット (編集不可のテキストとしてセット) ---
-  const metaMap = {
-    'detail-createdBy': item.registrarName || '未記録',
-    'detail-createdAt': item.createdAt || '-',
-    'detail-updatedBy': item.updaterName || item.registrarName || '未記録',
-    'detail-updatedAt': item.updatedAt || item.createdAt || '-'
-  };
+  // --- 2. 登録・更新情報のセット（確実な直接代入） ---
+  const registrarName = item.registrarName || '未記録';
+  const createdAt     = item.createdAt     || '-';
+  const updaterName   = item.updaterName   || registrarName;
+  const updatedAt     = item.updatedAt     || createdAt;
 
-  Object.entries(metaMap).forEach(([id, val]) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = val;
-  });
+  const elCreatedBy = document.getElementById('detail-createdBy');
+  const elCreatedAt = document.getElementById('detail-createdAt');
+  const elUpdatedBy = document.getElementById('detail-updatedBy');
+  const elUpdatedAt = document.getElementById('detail-updatedAt');
+
+  if (elCreatedBy) elCreatedBy.textContent = registrarName;
+  if (elCreatedAt) elCreatedAt.textContent = createdAt;
+  if (elUpdatedBy) elUpdatedBy.textContent = updaterName;
+  if (elUpdatedAt) elUpdatedAt.textContent = updatedAt;
 
   // --- 3. 名刺画像プレビューの表示制御 ---
   const fImg = document.getElementById('m-front-img');
@@ -1790,7 +1793,6 @@ function openDetailModal(item) {
   const hasFront = Boolean(frontSrc);
   const hasBack = Boolean(backSrc);
 
-  // 画像セット＆表示切り替え
   if (fImg && fWrapper) {
     fImg.src = frontSrc || '';
     fImg.style.display = hasFront ? "block" : "none";
@@ -1803,7 +1805,6 @@ function openDetailModal(item) {
     bWrapper.style.display = hasBack ? "flex" : "none";
   }
 
-  // レイアウトクラスの切替
   if (container) {
     container.classList.remove('has-both', 'has-single');
     container.classList.add(hasFront && hasBack ? 'has-both' : 'has-single');
@@ -1817,7 +1818,7 @@ function openDetailModal(item) {
   setTimeout(() => {
     adjustAllModalTextareas();
   }, 50);
-}
+} // ← 正しくここで関数を閉じる
   
 function setFormReadOnly(isReadOnly) {
   const modalFooter = document.querySelector('.modal-footer');
