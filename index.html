@@ -1036,7 +1036,7 @@ let lastDetectedQuad = null;
 let allCardsData = []; // スプレッドシートから取得した名刺データ全件
 let currentSelectedItem = null; // 現在選択中のカードデータ（編集キャンセル時用）
 
-// 画面回転イベント（一箇所に集約）
+// 画面回転イベント
 window.addEventListener('resize', checkOrientation);
 window.addEventListener('orientationchange', checkOrientation);
 
@@ -1062,21 +1062,25 @@ function checkOrientation() {
     if (warningEl) warningEl.style.display = 'none';
     
     const cameraPage = document.getElementById('page-camera');
-    if (cameraPage && cameraPage.style.display !== 'none' && !isDetecting && video.srcObject) {
+    if (cameraPage && cameraPage.style.display !== 'none' && !isDetecting && video && video.srcObject) {
       isDetecting = true;
       detectLoop();
     }
   }
 }
 
-
 // ログイン処理関数
 async function handleLogin(e) {
-  if (e) e.preventDefault(); // フォーム送信による画面リロード（再読み込み）を防止
+  if (e) e.preventDefault();
 
   const loginBtn = document.getElementById('loginBtn');
-  const id = document.getElementById('loginId').value.trim();
-  const pass = document.getElementById('loginPass').value.trim();
+  const idEl = document.getElementById('loginId');
+  const passEl = document.getElementById('loginPass');
+
+  if (!idEl || !passEl) return;
+
+  const id = idEl.value.trim();
+  const pass = passEl.value.trim();
 
   if (!id || !pass) {
     alert("ユーザーIDとパスワードを入力してください");
@@ -1090,12 +1094,12 @@ async function handleLogin(e) {
 
   try {
     const payload = { action: "login", id: id, pass: pass };
-const response = await fetch(GAS_URL, {
-  method: 'POST',
-  headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-  body: JSON.stringify(payload), // ★ JSON文字列に変換して送信
-  redirect: 'follow'
-});
+    const response = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      redirect: 'follow'
+    });
 
     const result = await response.json();
 
@@ -1103,9 +1107,10 @@ const response = await fetch(GAS_URL, {
       sessionStorage.setItem('isLoggedIn', 'true');
       sessionStorage.setItem('userCode', result.userCode || id);
       sessionStorage.setItem('userName', result.userName || id);
-      sessionStorage.setItem('loginTime', new Date().getTime().toString());
+      sessionStorage.setItem('loginTime', Date.now().toString());
       showPage('page-camera');
-      document.getElementById('bottom-nav').style.display = 'flex';
+      const bottomNav = document.getElementById('bottom-nav');
+      if (bottomNav) bottomNav.style.display = 'flex';
     } else {
       alert(result.message || "IDまたはパスワードが違います");
       loginBtn.disabled = false;
@@ -1121,14 +1126,12 @@ const response = await fetch(GAS_URL, {
   }
 }
 
-// フォーム送信イベントの設定（Enterキー送信 & ボタンクリック両対応）
 document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
 
 // ---------------------------------------------------------
-// ページ切り替え処理（カメラ制御を追加）
+// ページ切り替え処理
 // ---------------------------------------------------------
 function showPage(pageId) {
-  // すべてのページの active クラスを除去し非表示にする
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active');
     p.style.display = 'none';
@@ -1137,7 +1140,6 @@ function showPage(pageId) {
   const targetPage = document.getElementById(pageId);
   if (targetPage) {
     targetPage.classList.add('active');
-    // page-login の場合は flex、それ以外は block
     targetPage.style.display = (pageId === 'page-login') ? 'flex' : 'block';
   } else {
     return;
@@ -1170,7 +1172,7 @@ function stopCamera() {
 
 async function startCamera() {
   await enforcePortraitOrientation();
-  if (video.srcObject) return;
+  if (video && video.srcObject) return;
 
   const constraints = {
     video: {
@@ -1182,14 +1184,16 @@ async function startCamera() {
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    video.srcObject = stream;
-    video.onloadedmetadata = () => {
-      checkOrientation();
-      if (window.innerWidth <= window.innerHeight) {
-        isDetecting = true;
-        detectLoop();
-      }
-    };
+    if (video) {
+      video.srcObject = stream;
+      video.onloadedmetadata = () => {
+        checkOrientation();
+        if (window.innerWidth <= window.innerHeight) {
+          isDetecting = true;
+          detectLoop();
+        }
+      };
+    }
   } catch (err) { 
     alert("カメラアクセスを許可してください"); 
   }
@@ -1203,9 +1207,7 @@ function kataToHira(str) {
   return str.replace(/[\u30a1-\u30f6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
 }
 
-// ---------------------------------------------------------
-// 検索バー入力イベント（一箇所に集約・ひらがなカタカナ・あいまい対応）
-// ---------------------------------------------------------
+// 検索バー入力イベント
 document.getElementById('searchInput')?.addEventListener('input', (e) => {
   const query = e.target.value.toLowerCase().trim();
   if (!query) {
@@ -1220,7 +1222,7 @@ document.getElementById('searchInput')?.addEventListener('input', (e) => {
     const textGroup = [
       card.name, card.nameKana, card.company, card.companyKana,
       card.department, card.title, card.email, card.phone
-    ].join(' ').toLowerCase();
+    ].filter(Boolean).join(' ').toLowerCase();
 
     return textGroup.includes(query) || textGroup.includes(qKata) || textGroup.includes(qHira);
   });
@@ -1228,9 +1230,7 @@ document.getElementById('searchInput')?.addEventListener('input', (e) => {
   renderCards(filtered);
 });
 
-// --------------------------------------------------
 // OpenCV 4頂点検知
-// --------------------------------------------------
 function findCardQuad(srcMat) {
   let gray = new cv.Mat();
   let equalized = new cv.Mat();
@@ -1267,15 +1267,13 @@ function findCardQuad(srcMat) {
       let aspectRatio = rect.width / rect.height;
       let isGoodRatio = (aspectRatio >= 1.2 && aspectRatio <= 2.2) || (aspectRatio >= 0.45 && aspectRatio <= 0.85);
 
-      if (isGoodRatio) {
-        if (approx.rows === 4) {
-          let quadCandidate = [];
-          for (let j = 0; j < 4; j++) {
-            quadCandidate.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
-          }
-          bestQuad = quadCandidate;
-          maxDetectedArea = area;
+      if (isGoodRatio && approx.rows === 4) {
+        let quadCandidate = [];
+        for (let j = 0; j < 4; j++) {
+          quadCandidate.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
         }
+        bestQuad = quadCandidate;
+        maxDetectedArea = area;
       }
       approx.delete();
     }
@@ -1285,9 +1283,7 @@ function findCardQuad(srcMat) {
   return bestQuad;
 }
 
-// --------------------------------------------------
 // リアルタイム認識ループ
-// --------------------------------------------------
 function detectLoop() {
   if (!isDetecting) return;
   if (!video || video.readyState !== 4 || video.style.display === 'none') {
@@ -1360,9 +1356,11 @@ function warpPerspective(srcMat, quadPoints) {
     cv.warpPerspective(srcMat, dst, M, new cv.Size(cardWidth, cardHeight));
 
     let outputCanvas = document.getElementById('outputCanvas');
-    outputCanvas.width = cardWidth;
-    outputCanvas.height = cardHeight;
-    cv.imshow('outputCanvas', dst);
+    if (outputCanvas) {
+      outputCanvas.width = cardWidth;
+      outputCanvas.height = cardHeight;
+      cv.imshow('outputCanvas', dst);
+    }
 
     srcTri.delete(); dstTri.delete(); M.delete(); dst.delete();
     return true;
@@ -1385,9 +1383,11 @@ function cropFallbackROI(srcMat) {
   let roi = srcMat.roi(rect);
 
   let outputCanvas = document.getElementById('outputCanvas');
-  outputCanvas.width = cropW;
-  outputCanvas.height = cropH;
-  cv.imshow('outputCanvas', roi);
+  if (outputCanvas) {
+    outputCanvas.width = cropW;
+    outputCanvas.height = cropH;
+    cv.imshow('outputCanvas', roi);
+  }
 
   roi.delete();
 }
@@ -1401,7 +1401,7 @@ function generateShortCardId() {
   return `${yy}${mm}${dd}-${rand}`;
 }
   
-document.getElementById('capture-btn').addEventListener('click', async () => {
+captureBtn?.addEventListener('click', async () => {
   if (!globalCardId) globalCardId = generateShortCardId();
   isDetecting = false;
 
@@ -1459,7 +1459,7 @@ document.getElementById('capture-btn').addEventListener('click', async () => {
     if (previewContainer) previewContainer.style.display = 'flex';
   }
   
-  video.style.display = 'none';
+  if (video) video.style.display = 'none';
   if (outputCanvas) outputCanvas.style.display = 'none';
   
   const guideFrame = document.getElementById('guide-frame');
@@ -1469,7 +1469,7 @@ document.getElementById('capture-btn').addEventListener('click', async () => {
   src.delete();
 });
   
-backCaptureBtn.addEventListener('click', () => {
+backCaptureBtn?.addEventListener('click', () => {
   isFrontSide = false;
   const guidePreview = document.getElementById('guidePreview');
   if (guidePreview) {
@@ -1486,7 +1486,7 @@ backCaptureBtn.addEventListener('click', () => {
   detectLoop();
 });
 
-retryBackBtn.addEventListener('click', () => {
+retryBackBtn?.addEventListener('click', () => {
   isFrontSide = false;
   capturedImages.back = null;
   const previewBack = document.getElementById('previewBack');
@@ -1506,7 +1506,7 @@ retryBackBtn.addEventListener('click', () => {
   detectLoop();
 });
 
-retryAllBtn.addEventListener('click', () => {
+retryAllBtn?.addEventListener('click', () => {
   globalCardId = null;
   isFrontSide = true;
   capturedImages = { front: null, back: null };
@@ -1517,24 +1517,24 @@ retryAllBtn.addEventListener('click', () => {
 });
 
 function showActionUI() {
-  captureBtn.style.display = 'none';
-  actionBtns.style.display = 'flex';
+  if (captureBtn) captureBtn.style.display = 'none';
+  if (actionBtns) actionBtns.style.display = 'flex';
   
   if (capturedImages.back) {
-    backCaptureBtn.style.display = 'none';
-    retryBackBtn.style.display = 'flex';
+    if (backCaptureBtn) backCaptureBtn.style.display = 'none';
+    if (retryBackBtn) retryBackBtn.style.display = 'flex';
   } else {
-    backCaptureBtn.style.display = 'flex';
-    retryBackBtn.style.display = 'none';
+    if (backCaptureBtn) backCaptureBtn.style.display = 'flex';
+    if (retryBackBtn) retryBackBtn.style.display = 'none';
   }
 }
 
 function showCaptureUI() {
-  captureBtn.style.display = 'flex';
-  actionBtns.style.display = 'none';
+  if (captureBtn) captureBtn.style.display = 'flex';
+  if (actionBtns) actionBtns.style.display = 'none';
   
-  canvas.style.display = 'none';
-  video.style.display = 'block';
+  if (canvas) canvas.style.display = 'none';
+  if (video) video.style.display = 'block';
   
   if (guideFrame) {
     guideFrame.style.display = 'block';
@@ -1554,8 +1554,8 @@ function resetPreview() {
 
   const pFront = document.getElementById('previewFront');
   const pBack = document.getElementById('previewBack');
-  if (pFront) { pFront.src = ""; }
-  if (pBack) { pBack.src = ""; }
+  if (pFront) pFront.src = "";
+  if (pBack) pBack.src = "";
 }
 
 async function uploadAllImages() {
@@ -1591,7 +1591,7 @@ async function uploadAllImages() {
   return true;
 }
 
-sendBtn.addEventListener('click', async () => {
+sendBtn?.addEventListener('click', async () => {
   if (!capturedImages.front) {
     alert("表面が撮影されていません");
     return;
@@ -1618,20 +1618,24 @@ sendBtn.addEventListener('click', async () => {
   }
 });
 
+// ★ 修正箇所：安全な数値パースでエラーを防止
 window.addEventListener('load', () => {
-  const loginTime = sessionStorage.getItem('loginTime');
-  const now = new Date().getTime();
+  const loginTimeStr = sessionStorage.getItem('loginTime');
+  const loginTime = parseInt(loginTimeStr, 10);
+  const now = Date.now();
   
-  if (loginTime && (now - Number(loginTime) > 3600000)) {
+  if (!isNaN(loginTime) && (now - loginTime > 3600000)) {
     sessionStorage.clear();
   }
 
   if (sessionStorage.getItem('isLoggedIn') === 'true') {
     showPage('page-camera');
-    document.getElementById('bottom-nav').style.display = 'flex';
+    const bottomNav = document.getElementById('bottom-nav');
+    if (bottomNav) bottomNav.style.display = 'flex';
   } else {
     showPage('page-login');
-    document.getElementById('bottom-nav').style.display = 'none';
+    const bottomNav = document.getElementById('bottom-nav');
+    if (bottomNav) bottomNav.style.display = 'none';
   }
 });
 
@@ -1671,16 +1675,18 @@ async function fetchCardsData() {
   }
 }
 
+// ★ 修正箇所：安全なDrive URLパース関数
 function formatDriveUrl(url) {
-  if (!url) return "";
-  const match = url.match(/\/d\/([^\/]+)/);
+  if (!url || typeof url !== 'string') return "";
+  if (url.includes('drive.google.com/thumbnail')) return url;
+
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   if (match && match[1]) {
     return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
   }
   return url;
 }
 
-/* renderCards (ふりがな行を削除) */
 function renderCards(dataList) {
   const container = document.getElementById('card-container');
   if (!container) return;
@@ -1701,7 +1707,6 @@ function renderCards(dataList) {
       ? `<img src="${imageUrl}" alt="名刺" loading="lazy">` 
       : `<span class="card-thumb-placeholder">No Img</span>`;
 
-    /* ↓ 「ふりがな」部分を完全に削除したHTML構造 */
     card.innerHTML = `
       <div class="card-thumb-box">${thumbHtml}</div>
       <div class="card-info">
@@ -1710,7 +1715,7 @@ function renderCards(dataList) {
         </div>
         <p class="card-company">${item.company || "会社名なし"}</p>
         <div class="card-dept">${[item.department, item.title].filter(Boolean).join(' / ')}</div>
-        <div class="card-date">最終更新日時: ${item.updatedAt || item.createdAt}</div>
+        <div class="card-date">最終更新日時: ${item.updatedAt || item.createdAt || '-'}</div>
       </div>
     `;
     container.appendChild(card);
@@ -1722,13 +1727,10 @@ function renderCards(dataList) {
 // ---------------------------------------------------------
 function autoResizeTextarea(el) {
   if (!el) return;
-  // 一旦高度をリセットして正確な scrollHeight を取得
   el.style.height = 'auto';
-  // 内容に合わせて高度を設定 (最低高さを38px等に指定)
   el.style.height = Math.max(el.scrollHeight, 38) + 'px';
 }
 
-// すべての編集用textareaの高さを一括調整
 function adjustAllModalTextareas() {
   const textareas = document.querySelectorAll('#detail-modal textarea');
   textareas.forEach(ta => autoResizeTextarea(ta));
@@ -1738,11 +1740,8 @@ function adjustAllModalTextareas() {
 // 詳細モーダルを開く
 // ---------------------------------------------------------
 function openDetailModal(item) {
-  console.log("モーダルに渡された名刺データ:", item);
-  
   currentSelectedItem = item;
 
-  // --- 1. フォーム入力欄へ値をセット ---
   const fields = [
     'rowIndex', 'company', 'companyKana', 'name', 'nameKana',
     'department', 'title', 'phone', 'mobile', 'email', 'zipCode', 'address'
@@ -1752,7 +1751,6 @@ function openDetailModal(item) {
     if (el) el.value = item[field] || '';
   });
 
-  // --- 2. 登録・更新情報のセット（確実な直接代入） ---
   const registrarName = item.registrarName || '未記録';
   const createdAt     = item.createdAt     || '-';
   const updaterName   = item.updaterName   || registrarName;
@@ -1768,7 +1766,6 @@ function openDetailModal(item) {
   if (elUpdatedBy) elUpdatedBy.textContent = updaterName;
   if (elUpdatedAt) elUpdatedAt.textContent = updatedAt;
 
-  // --- 3. 名刺画像プレビューの表示制御 ---
   const fImg = document.getElementById('m-front-img');
   const bImg = document.getElementById('m-back-img');
   const fWrapper = document.getElementById('p-front-wrapper');
@@ -1797,35 +1794,33 @@ function openDetailModal(item) {
     container.classList.add(hasFront && hasBack ? 'has-both' : 'has-single');
   }
 
-  // --- 4. 閲覧モード初期化 ＆ モーダル表示 ---
-  setFormReadOnly(true); // 初期状態は閲覧専用
-  document.getElementById('detail-modal').style.display = 'flex';
+  setFormReadOnly(true);
+  const detailModal = document.getElementById('detail-modal');
+  if (detailModal) detailModal.style.display = 'flex';
 
-  // textarea高さの自動調整
   setTimeout(() => {
     adjustAllModalTextareas();
   }, 50);
-} // ← 正しくここで関数を閉じる
+}
   
 function setFormReadOnly(isReadOnly) {
   const modalFooter = document.querySelector('.modal-footer');
-  const modalInputs = document.querySelectorAll('#detail-modal input[id^="edit-"], #detail-modal textarea[id^="edit-"]');
+  const modalInputs = document.querySelectorAll('#detail-modal input, #detail-modal textarea');
   
-  // フッター要素自体を確実に表示状態にする
   if (modalFooter) {
     modalFooter.style.display = 'flex';
   }
 
-  // フォーム項目の読み取り専用制御（edit-で始まる項目のみ対象）
   modalInputs.forEach(input => {
-    if (isReadOnly) {
-      input.setAttribute('readonly', 'readonly');
-    } else {
-      input.removeAttribute('readonly');
+    if (input.id && input.id.startsWith('edit-')) {
+      if (isReadOnly) {
+        input.setAttribute('readonly', 'readonly');
+      } else {
+        input.removeAttribute('readonly');
+      }
     }
   });
 
-  // ボタンの表示制御（閲覧時と編集時で切り替え）
   const viewBtns = document.getElementById('view-buttons');
   const editBtns = document.getElementById('edit-buttons');
   if (viewBtns) viewBtns.style.display = isReadOnly ? 'flex' : 'none';
@@ -1834,7 +1829,6 @@ function setFormReadOnly(isReadOnly) {
   
 function enableEditMode() {
   setFormReadOnly(false);
-  // 編集モード切り替え時にも高さを再計算
   setTimeout(() => adjustAllModalTextareas(), 50);
 }
 
@@ -1847,11 +1841,11 @@ function cancelEditMode() {
 }
 
 function closeDetailModal() {
-  document.getElementById('detail-modal').style.display = 'none';
+  const detailModal = document.getElementById('detail-modal');
+  if (detailModal) detailModal.style.display = 'none';
   currentSelectedItem = null;
 }
 
-// ★ リアルタイム入力監視（ユーザーが入力・改行した際にも高さを自動伸縮）
 document.addEventListener('DOMContentLoaded', () => {
   const modalObj = document.getElementById('detail-modal');
   if (modalObj) {
@@ -1870,22 +1864,27 @@ async function saveCardEdit() {
     saveBtn.textContent = "保存中...";
   }
 
+  const getValue = (id) => {
+    const el = document.getElementById(id);
+    return el ? el.value : '';
+  };
+
   const payload = {
     action: "updateCard",
-    rowIndex: Number(document.getElementById('edit-rowIndex').value),
+    rowIndex: Number(getValue('edit-rowIndex')),
     updaterCode: sessionStorage.getItem('userCode') || 'unknown',
     updaterName: sessionStorage.getItem('userName') || '不明',
-    company: document.getElementById('edit-company').value,
-    companyKana: document.getElementById('edit-companyKana').value,
-    name: document.getElementById('edit-name').value,
-    nameKana: document.getElementById('edit-nameKana').value,
-    department: document.getElementById('edit-department').value,
-    title: document.getElementById('edit-title').value,
-    phone: document.getElementById('edit-phone').value,
-    mobile: document.getElementById('edit-mobile').value,
-    email: document.getElementById('edit-email').value,
-    zipCode: document.getElementById('edit-zipCode').value,
-    address: document.getElementById('edit-address').value
+    company: getValue('edit-company'),
+    companyKana: getValue('edit-companyKana'),
+    name: getValue('edit-name'),
+    nameKana: getValue('edit-nameKana'),
+    department: getValue('edit-department'),
+    title: getValue('edit-title'),
+    phone: getValue('edit-phone'),
+    mobile: getValue('edit-mobile'),
+    email: getValue('edit-email'),
+    zipCode: getValue('edit-zipCode'),
+    address: getValue('edit-address')
   };
 
   try {
@@ -1913,8 +1912,13 @@ async function saveCardEdit() {
 }
 
 async function deleteCard() {
-  const rowIndex = document.getElementById('edit-rowIndex').value;
-  const name = document.getElementById('edit-name').value || 'この名刺';
+  const rowIndexEl = document.getElementById('edit-rowIndex');
+  const nameEl = document.getElementById('edit-name');
+  
+  if (!rowIndexEl) return;
+  
+  const rowIndex = rowIndexEl.value;
+  const name = (nameEl && nameEl.value) ? nameEl.value : 'この名刺';
 
   if (!confirm(`「${name}」様のデータを削除してもよろしいですか？\n※この操作は取り消せません。`)) {
     return;
@@ -1944,9 +1948,9 @@ async function deleteCard() {
   }
 }
 
-// =================================-------------------------
+// ---------------------------------------------------------
 // 名刺画像タップ拡大 ＆ ピンチズーム/スワイプ移動
-// =================================-------------------------
+// ---------------------------------------------------------
 let currentScale = 1;
 let initialDistance = 0;
 let currentX = 0;
@@ -1955,14 +1959,12 @@ let startX = 0;
 let startY = 0;
 let isDragging = false;
 
-// 初期化（ページロード時実行）
 document.addEventListener('DOMContentLoaded', () => {
   const frontImg = document.getElementById('m-front-img');
   const backImg  = document.getElementById('m-back-img');
   const lightbox = document.getElementById('image-lightbox-modal');
   const closeBtn = document.querySelector('.lightbox-close');
 
-  // 画像タップでライトボックス起動
   if (frontImg) {
     frontImg.addEventListener('click', () => openLightbox(frontImg.src));
   }
@@ -1970,7 +1972,6 @@ document.addEventListener('DOMContentLoaded', () => {
     backImg.addEventListener('click', () => openLightbox(backImg.src));
   }
 
-  // 閉じるボタン＆背景タップで閉じる
   if (closeBtn) {
     closeBtn.addEventListener('click', closeLightbox);
   }
@@ -1982,22 +1983,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // タッチ・マウスイベントの登録
   setupLightboxTouchEvents();
 });
 
-// ライトボックスを開く
 function openLightbox(src) {
   if (!src) return;
   const lightbox = document.getElementById('image-lightbox-modal');
   const img = document.getElementById('lightbox-image');
 
-  img.src = src;
-  resetImageTransform();
-  lightbox.style.display = 'flex';
+  if (img && lightbox) {
+    img.src = src;
+    resetImageTransform();
+    lightbox.style.display = 'flex';
+  }
 }
 
-// ライトボックスを閉じる
 function closeLightbox() {
   const lightbox = document.getElementById('image-lightbox-modal');
   if (lightbox) {
@@ -2005,7 +2005,6 @@ function closeLightbox() {
   }
 }
 
-// 拡大状態のリセット
 function resetImageTransform() {
   currentScale = 1;
   currentX = 0;
@@ -2020,39 +2019,33 @@ function updateImageTransform() {
   }
 }
 
-// ピンチイン・アウト ＆ 移動操作（タッチ・マウス）
 function setupLightboxTouchEvents() {
   const wrapper = document.getElementById('lightbox-wrapper');
   if (!wrapper) return;
 
-  // --- タッチ操作（スマホ） ---
   wrapper.addEventListener('touchstart', (e) => {
     if (e.touches.length === 1) {
-      // 1本指：スワイプ移動開始
       isDragging = true;
       startX = e.touches[0].clientX - currentX;
       startY = e.touches[0].clientY - currentY;
     } else if (e.touches.length === 2) {
-      // 2本指：ピンチズーム開始
       isDragging = false;
       initialDistance = getDistance(e.touches[0], e.touches[1]);
     }
   }, { passive: false });
 
   wrapper.addEventListener('touchmove', (e) => {
-    e.preventDefault(); // スクロール防止
+    e.preventDefault();
 
     if (e.touches.length === 1 && isDragging && currentScale > 1) {
-      // 拡大時のみ移動可能
       currentX = e.touches[0].clientX - startX;
       currentY = e.touches[0].clientY - startY;
       updateImageTransform();
     } else if (e.touches.length === 2) {
-      // ピンチズーム計算
       const newDistance = getDistance(e.touches[0], e.touches[1]);
       if (initialDistance > 0) {
         const factor = newDistance / initialDistance;
-        currentScale = Math.min(Math.max(1, currentScale * factor), 4); // 1倍〜4倍に制限
+        currentScale = Math.min(Math.max(1, currentScale * factor), 4);
         initialDistance = newDistance;
         updateImageTransform();
       }
@@ -2065,14 +2058,12 @@ function setupLightboxTouchEvents() {
     }
     if (e.touches.length === 0) {
       isDragging = false;
-      // 1倍未満に戻った場合は1倍にリセット
       if (currentScale <= 1) {
         resetImageTransform();
       }
     }
   });
 
-  // --- マウスホイール（PC操作時） ---
   wrapper.addEventListener('wheel', (e) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.2 : 0.2;
@@ -2085,13 +2076,11 @@ function setupLightboxTouchEvents() {
   }, { passive: false });
 }
 
-// 2点間の距離を計算するヘルパー関数
 function getDistance(t1, t2) {
   const dx = t1.clientX - t2.clientX;
   const dy = t1.clientY - t2.clientY;
   return Math.sqrt(dx * dx + dy * dy);
 }
-  
 </script>
 </body>
 </html>
