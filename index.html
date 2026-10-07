@@ -544,51 +544,99 @@
     margin-top: 4px;
   }
 
-/* 詳細・編集モーダル */
+/* 1. 詳細モーダル全体の背景を検索ページと同色に統一 */
   #detail-modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
-    height: calc(100vh - 65px); /* 下部ナビゲーションバーの高さを考慮 */
-    max-height: calc(100vh - 65px);
-    background: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(10px);
+    height: 100vh;         /* 画面いっぱいに広げる */
+    max-height: 100vh;
+    background: #e2e8f0;   /* 検索ページヘッダーと同色のシックなライトグレー */
     z-index: 200;
     display: none;
     flex-direction: column;
     overflow: hidden;
   }
 
-.modal-header {
+/* 2. モーダルヘッダー */
+  .modal-header {
     height: 56px;
     padding: 0 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid #cbd5e1;
     flex-shrink: 0;
-    background: #ffffff;
+    background: #e2e8f0; /* モーダル背景と一体化 */
   }
 
-.modal-body {
+  .modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a; /* 濃い文字色でくっきり表示 */
+  }
+
+/* 3. モーダル本体（スクロール領域） */
+  .modal-body {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     padding: 16px;
-    background: #f8fafc;
+    background: #f1f5f9; /* わずかに明るめのグレーで読みやすく */
   }
 
-/* モーダル下部ボタンコンテナ（位置を20px上に引き上げるためpadding-bottomを増量） */
+  /* 4. モーダル内のラベル・フォーム入力枠 */
+  .modal-body .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155; /* ラベルテキスト：濃いグレー */
+    margin-bottom: 6px;
+  }
+
+  /* 通常入力枠（編集時） */
+  .modal-body input[type="text"],
+  .modal-body textarea,
+  .form-group textarea.auto-resize {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 15px;
+    border: 1.5px solid #94a3b8; /* はっきりわかる濃いめの枠線 */
+    border-radius: 8px;
+    background-color: #ffffff;  /* 入力欄は白背景 */
+    color: #0f172a;             /* 文字色：濃いネイビー/黒 */
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  /* フォーカス時の輪郭強調 */
+  .modal-body input[type="text"]:focus,
+  .modal-body textarea:focus {
+    border-color: #4f46e5;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  }
+
+  /* 読み取り専用（閲覧時）の見た目 */
+  #detail-modal input[readonly],
+  #detail-modal textarea[readonly] {
+    background-color: #e2e8f0; /* 背景と同調させて編集不可感を提示 */
+    border-color: #cbd5e1;
+    color: #1e293b;            /* 読み取り専用でもしっかり読める濃さ */
+    cursor: default;
+  }
+
+/* 5. モーダル下部フッター（ボタンエリア） */
   .modal-footer {
     flex-shrink: 0;
-    background: #ffffff;
-    padding: 12px 16px 32px 16px; /* 20px上に押し上げ */
-    border-top: 1px solid #e2e8f0;
+    background: #e2e8f0;        /* モーダル背景と同色 */
+    padding: 14px 16px 22px 16px;/* 前回の20px引き上げ位置を維持 */
+    border-top: 1px solid #cbd5e1;
     display: flex;
-    gap: 10px;
+    gap: 12px;
     justify-content: flex-end;
-    margin-top: 0;
   }
 
   /* 2. 編集ボタン（およびモーダル内のボタン類）を一回り大きく */
@@ -604,7 +652,6 @@
     transition: all 0.2s ease;
   }
   
-  .modal-header h3 { margin: 0; font-size: 18px; color: #0f172a; }
   .close-btn { background: none; border: none; color: #94a3b8; font-size: 24px; cursor: pointer; }
 
   .modal-images {
