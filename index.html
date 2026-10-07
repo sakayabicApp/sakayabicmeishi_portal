@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>酒ゃビック名刺管理システム</title>
 <style>
+  /* ---------------------------------------------------------
+     1. 変数・全体基本設定
+     --------------------------------------------------------- */
   :root {
     --primary: #4f46e5;
     --primary-hover: #4338ca;
@@ -36,25 +39,27 @@
     line-height: 1.5;
   }
 
-  input, button {
+  input, button, textarea {
     font-family: inherit;
     outline: none;
   }
 
+  /* ---------------------------------------------------------
+     2. ページ共通・切り替え制御
+     --------------------------------------------------------- */
   .page {
-  height: calc(100vh - 65px);
-  width: 100vw;
-  overflow-y: auto;
-  display: none; /* 基本は非表示 */
-  box-sizing: border-box;
-}
+    height: calc(100vh - 65px);
+    width: 100vw;
+    overflow-y: auto;
+    display: none; /* 基本非表示 */
+    box-sizing: border-box;
+  }
 
-/* アクティブなページを表示するクラスを追加 */
-.page.active {
-  display: block;
-}
+  .page.active {
+    display: block;
+  }
 
-/* 縦画面警告オーバーレイ */
+  /* 縦画面強制警告オーバーレイ */
   #orientation-warning {
     position: fixed;
     top: 0;
@@ -73,23 +78,54 @@
     padding: 20px;
   }
 
-  /* ログイン画面の背景グラデーション */
+  @media screen and (orientation: landscape) {
+    #orientation-warning {
+      display: flex !important;
+    }
+  }
+
+  .phone-icon-anim {
+    width: 32px;
+    height: 56px;
+    border: 3px solid #38bdf8;
+    border-radius: 6px;
+    position: relative;
+    margin-bottom: 20px;
+    animation: rotatePhone 2s infinite ease-in-out;
+  }
+
+  .phone-icon-anim::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #38bdf8;
+  }
+
+  @keyframes rotatePhone {
+    0% { transform: rotate(-90deg); }
+    50%, 100% { transform: rotate(0deg); }
+  }
+
+  /* ---------------------------------------------------------
+     3. ログイン画面 (#page-login)
+     --------------------------------------------------------- */
   #page-login {
     height: 100vh;
     background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
   }
 
-#page-login.active {
-  display: flex !important;
-  justify-content: center;
-  align-items: center;
-}
+  #page-login.active {
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+  }
 
-#page-camera.active {
-  display: block !important;
-  height: calc(100vh - 65px);
-}
- .login-box {
+  .login-box {
     width: 100%;
     max-width: 380px;
     background: rgba(255, 255, 255, 0.95);
@@ -135,21 +171,14 @@
     box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
   }
 
-  .btn-primary {
-    width: 100%;
-    padding: 14px;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-    transition: all 0.2s ease;
+  /* ---------------------------------------------------------
+     4. カメラ撮影画面 (#page-camera)
+     --------------------------------------------------------- */
+  #page-camera.active {
+    display: block !important;
+    height: calc(100vh - 65px);
   }
 
-  /* カメラ画面 */
   #camera-container {
     position: relative;
     width: 100vw;
@@ -173,7 +202,26 @@
     z-index: 1;
   }
 
-  /* ガイド枠の基本構造・通常時（非検知状態：白破線） */
+  #status-message {
+    position: relative;
+    z-index: 12;
+    margin-top: 25px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(8px);
+    color: #0f172a;
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
+  }
+
+  #status-message.detected {
+    background: rgba(16, 185, 129, 0.95);
+    color: #ffffff;
+  }
+
   #guide-frame {
     position: absolute;
     top: 50%;
@@ -192,35 +240,11 @@
     transition: all 0.2s ease;
   }
 
-  /* 検知時（緑色・実線） */
   #guide-frame.detected {
     border: 4px solid #10b981 !important;
     box-shadow: 0 0 20px rgba(16, 185, 129, 0.8) !important;
   }
 
- /* カメラ画面上のステータスメッセージ（ライトモード半透明） */
-  #status-message {
-    position: relative;
-    z-index: 12;
-    margin-top: 25px;
-    background: rgba(255, 255, 255, 0.9); /* 白の半透明背景 */
-    backdrop-filter: blur(8px);
-    color: #0f172a;                       /* 文字色：濃いネイビー */
-    padding: 8px 20px;
-    border-radius: 30px;
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transition: all 0.2s ease;
-  }
-
-  /* 名刺検知時のステータスメッセージ（緑色ベース） */
-  #status-message.detected {
-    background: rgba(16, 185, 129, 0.95); /* 緑色背景 */
-    color: #ffffff;                        /* 文字色：白 */
-  } 
-
- /* 撮影後のガイドプレビュー（表面単体表示時） */
   #guidePreview {
     position: absolute;
     top: 50%;
@@ -238,7 +262,6 @@
     display: none;
   }
 
-  /* 表裏2枚の縦並びプレビューコンテナ */
   #previewContainer {
     position: absolute;
     top: 45%;
@@ -253,7 +276,6 @@
     overflow-y: auto;
   }
 
-  /* プレビューカード（表面プレビューと同等のサイズに拡大） */
   .preview-card {
     width: 78vw;
     max-width: 340px;
@@ -266,12 +288,11 @@
     box-shadow: 0 8px 20px rgba(0,0,0,0.6);
   }
 
-  /* コントロール（ボタン類）のレイヤー設定 */
   #controls {
     position: absolute;
     bottom: 30px;
     left: 0;
-    z-index: 30; /* プレビューより前面に表示 */
+    z-index: 30;
     width: 100%;
     display: flex;
     justify-content: center;
@@ -279,7 +300,6 @@
     padding: 0 20px;
   }
 
-  /* シャッターボタン */
   #capture-btn {
     width: 72px;
     height: 72px;
@@ -339,99 +359,20 @@
   #retryBackBtn { background: #d97706; }
   #retryAllBtn { background: var(--danger); }
 
-  /* 下部ナビゲーションバー */
-  #bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100vw;
-    height: 65px;
-    background: #ffffff;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    z-index: 100;
-    border-top: 1px solid #e2e8f0;
-  }
-
-  #bottom-nav button {
-    flex: 1;
-    height: 100%;
-    background: transparent;
-    border: none;
-    color: #64748b;
-    font-size: 12px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  #bottom-nav button span {
-    font-size: 20px;
-  }
-
-  #bottom-nav button.active {
-    color: var(--primary);
-    font-weight: bold;
-  }
-
-  /* 2. 横向き検出時に警告オーバーレイを自動表示 */
-@media screen and (orientation: landscape) {
-  #orientation-warning {
-    display: flex !important; /* 横向き時に強制表示 */
-  }
-}
-
-/* 3. スマホ回転アニメーションの追加 */
-.phone-icon-anim {
-  width: 32px;
-  height: 56px;
-  border: 3px solid #38bdf8;
-  border-radius: 6px;
-  position: relative;
-  margin-bottom: 20px;
-  animation: rotatePhone 2s infinite ease-in-out;
-}
-
-.phone-icon-anim::after {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: #38bdf8;
-}
-
-@keyframes rotatePhone {
-  0% {
-    transform: rotate(-90deg);
-  }
-  50%, 100% {
-    transform: rotate(0deg);
-  }
-}
-  
-/* 検索ページ全体の背景を少し暗めに */
- /* 1. 検索ヘッダー内の入力欄の上部に余白を追加 */
+  /* ---------------------------------------------------------
+     5. 検索ページ (#page-search)
+     --------------------------------------------------------- */
   .search-header {
     position: sticky;
     top: 0;
     background: #e2e8f0;
-    padding: 24px 16px 16px 16px; /* 上パディングを16pxから24pxに増やして上余白を確保 */
+    padding: 24px 16px 16px 16px;
     z-index: 20;
     border-bottom: 1px solid #cbd5e1;
   }
-  
- /* または、入力欄自体に直接 margin-top を設定する場合 */
+
   .search-header input {
-    margin-top: 12px; /* 検索ウィンドウの上に余白 */
+    margin-top: 12px;
     width: 100%;
     padding: 14px 16px;
     border-radius: 25px;
@@ -442,31 +383,20 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.06);
     transition: all 0.2s ease;
   }
-  
+
   .search-header input::placeholder {
     color: #64748b;
   }
 
   .search-header input:focus {
-    border-color: #4f46e5;
+    border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
   }
-  
-  #card-container { padding: 0 16px; }
-  .card {
-    background: #1e293b; color: #fff; padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px;
-    display: flex; justify-content: space-between; align-items: center;
-  }
-  .card h3 { margin: 0 0 4px 0; font-size: 16px; }
-  .card p { margin: 0; font-size: 13px; color: #94a3b8; }
-  .detail-btn { background: var(--primary); color: #fff; border: none; padding: 8px 14px; border-radius: 6px; }
 
-   
   #card-container {
     padding: 12px 16px 80px 16px;
   }
 
-  /* 八風（Eight風）カードスタイル */
   .eight-card {
     background: var(--bg-card);
     border-radius: var(--radius-md);
@@ -480,9 +410,11 @@
     border: 1px solid #e2e8f0;
     transition: transform 0.1s ease;
   }
+
   .eight-card:active {
     transform: scale(0.98);
   }
+
   .card-thumb-box {
     width: 76px;
     height: 48px;
@@ -495,34 +427,40 @@
     align-items: center;
     justify-content: center;
   }
+
   .card-thumb-box img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
+
   .card-thumb-placeholder {
     font-size: 11px;
     color: #64748b;
   }
+
   .card-info {
     flex: 1;
     overflow: hidden;
-    color: #0f172a; /* カード内の全体の文字色 */
+    color: #0f172a;
   }
+
   .card-name {
     font-size: 20px;
     font-weight: 700;
-    color: #0f172a !important; /* 確実に黒色を適用 */
+    color: #0f172a !important;
     margin: 0 0 2px 0;
     display: flex;
     align-items: baseline;
     gap: 8px;
   }
+
   .card-kana {
     font-size: 11px;
     color: #94a3b8;
     font-weight: normal;
   }
+
   .card-company {
     font-size: 16px;
     color: #334155;
@@ -532,34 +470,36 @@
     text-overflow: ellipsis;
     margin: 0 0 4px 0;
   }
-  /* 部署・役職 */
+
   .card-dept {
     color: #424b5c;
     font-size: 13px;
     margin-bottom: 6px;
   }
+
   .card-date {
     color: #313845;
     font-size: 12px;
     margin-top: 4px;
   }
 
-/* 1. 詳細モーダル全体の背景を検索ページと同色に統一 */
+  /* ---------------------------------------------------------
+     6. 詳細・編集モーダル (#detail-modal)
+     --------------------------------------------------------- */
   #detail-modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
-    height: 100vh;         /* 画面いっぱいに広げる */
+    height: 100vh;
     max-height: 100vh;
-    background: #e2e8f0;   /* 検索ページヘッダーと同色のシックなライトグレー */
+    background: #e2e8f0;
     z-index: 200;
     display: none;
     flex-direction: column;
     overflow: hidden;
   }
 
-/* 2. モーダルヘッダー */
   .modal-header {
     height: 56px;
     padding: 0 16px;
@@ -568,93 +508,150 @@
     align-items: center;
     border-bottom: 1px solid #cbd5e1;
     flex-shrink: 0;
-    background: #e2e8f0; /* モーダル背景と一体化 */
+    background: #e2e8f0;
   }
 
   .modal-header h3 {
     margin: 0;
     font-size: 18px;
     font-weight: 700;
-    color: #0f172a; /* 濃い文字色でくっきり表示 */
+    color: #0f172a;
   }
 
-/* 3. モーダル本体（スクロール領域） */
+  .close-btn {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 24px;
+    cursor: pointer;
+  }
+
   .modal-body {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     padding: 16px;
-    background: #f1f5f9; /* わずかに明るめのグレーで読みやすく */
+    background: #f1f5f9;
   }
 
-  /* 4. モーダル内のラベル・フォーム入力枠 */
-  .modal-body .form-group label {
+  /* 画像プレビュー容器 */
+  .card-preview-container {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 16px;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .preview-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: none;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .preview-item img {
+    width: 100%;
+    height: auto;
+    max-height: 260px;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    background-color: #ffffff;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .preview-item img:hover {
+    opacity: 0.9;
+  }
+
+  .preview-label {
+    display: none !important;
+  }
+
+  /* プレビュー画像レスポンシブ配置 */
+  @media (max-width: 768px) {
+    .card-preview-container.has-both {
+      grid-template-columns: 1fr;
+    }
+    .card-preview-container.has-single {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 769px) {
+    .card-preview-container {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* モーダルフォーム */
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  .form-group label {
     display: block;
     font-size: 13px;
     font-weight: 600;
-    color: #334155; /* ラベルテキスト：濃いグレー */
+    color: #334155;
     margin-bottom: 6px;
   }
 
-  /* 通常入力枠（編集時） */
   .modal-body input[type="text"],
   .modal-body textarea,
   .form-group textarea.auto-resize {
     width: 100%;
     padding: 12px 14px;
     font-size: 15px;
-    border: 1.5px solid #94a3b8; /* はっきりわかる濃いめの枠線 */
+    border: 1.5px solid #94a3b8;
     border-radius: 8px;
-    background-color: #ffffff;  /* 入力欄は白背景 */
-    color: #0f172a;             /* 文字色：濃いネイビー/黒 */
+    background-color: #ffffff;
+    color: #0f172a;
     box-sizing: border-box;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    word-break: break-all;
+    overflow-wrap: anywhere;
   }
 
-  /* フォーカス時の輪郭強調 */
+  .form-group textarea.auto-resize {
+    resize: none;
+    overflow: hidden;
+    min-height: 40px;
+    line-height: 1.4;
+  }
+
   .modal-body input[type="text"]:focus,
   .modal-body textarea:focus {
-    border-color: #4f46e5;
+    border-color: var(--primary);
     outline: none;
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
   }
 
-  /* 読み取り専用（閲覧時）の見た目 */
+  /* 閲覧モード時 (readonly) */
   #detail-modal input[readonly],
-  #detail-modal textarea[readonly] {
-    background-color: #e2e8f0; /* 背景と同調させて編集不可感を提示 */
+  #detail-modal textarea[readonly],
+  .form-group textarea.auto-resize[readonly] {
+    background-color: #e2e8f0;
     border-color: #cbd5e1;
-    color: #1e293b;            /* 読み取り専用でもしっかり読める濃さ */
-    cursor: default;
-  }
-
-    /* 詳細モーダル内の入力・表示フィールドの折り返し対応 */
-#detail-modal input,
-#detail-modal textarea,
-#detail-modal .info-text {
-  width: 100%;
-  box-sizing: border-box;
-  word-break: break-all;      /* 長い英数字・メールアドレス等を枠内で自動折り返し */
-  overflow-wrap: anywhere;
-}
-
-#detail-modal input[readonly],
-  #detail-modal textarea[readonly] {
-    background-color: #f1f5f9;
-    border-color: #e2e8f0;
     color: #1e293b;
     cursor: default;
   }
 
- /* 登録・更新情報表示エリア */
+  /* メタ情報グリッド */
   .meta-info-grid {
     display: grid;
-    /* デフォルト（スマホ縦画面など）：2列構成 */
     grid-template-columns: repeat(2, 1fr);
     gap: 12px 16px;
-    margin-top: 10px;
-    padding: 10px 16px 10px 16px; /* ★ 上右下左のパディングを追加して左右の余白をしっかり確保 */
-    background-color: #e2e8f0;    /* 背景になじむ色（またはカード風に#ffffffでもOK） */
+    margin-top: 16px;
+    padding: 10px 16px;
+    background-color: #e2e8f0;
     border-top: 1px solid #cbd5e1;
     border-radius: 8px;
   }
@@ -663,7 +660,7 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding-left: 4px; /* ★ 各項目の文字の左側にほんのり余白を追加 */
+    padding-left: 4px;
   }
 
   .meta-label {
@@ -678,175 +675,52 @@
     font-weight: 600;
     word-break: break-all;
   }
-  
 
-  
-/* 5. モーダル下部フッター（ボタンエリア） */
+  @media (orientation: landscape), (max-height: 500px) {
+    .meta-info-grid {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px 12px;
+      padding: 8px 16px;
+    }
+  }
+
+  /* モーダルフッター */
   .modal-footer {
     flex-shrink: 0;
-    background: #e2e8f0;        /* モーダル背景と同色 */
-    padding: 14px 16px 27px 16px;/* 前回の20px引き上げ位置を維持 */
+    background: #e2e8f0;
+    padding: 14px 16px 27px 16px;
     border-top: 1px solid #cbd5e1;
     display: flex;
-    gap: 12px;
+    gap: 10px;
     justify-content: flex-end;
   }
 
-  /* 2. 編集ボタン（およびモーダル内のボタン類）を一回り大きく */
-  .modal-footer button,
-  .btn-edit,
-  .btn-primary {
-    padding: 14px 24px;      /* 内側の余白を広げて一回り大きく */
-    font-size: 16px;         /* 文字サイズを14px -> 16pxに拡大 */
+  .btn-group {
+    display: flex;
+    gap: 10px;
+  }
+
+  .modal-btn {
+    padding: 14px 24px;
+    font-size: 16px;
     font-weight: 600;
-    border-radius: 10px;      /* 角丸も少し調整 */
-    min-width: 110px;        /* ボタンの最小幅を確保 */
+    border-radius: 10px;
+    min-width: 110px;
+    border: none;
+    color: #ffffff;
     cursor: pointer;
     transition: all 0.2s ease;
   }
-  
-  .close-btn { background: none; border: none; color: #94a3b8; font-size: 24px; cursor: pointer; }
 
-  .modal-images {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
-    overflow-x: auto;
-  }
-  .modal-img-card {
-    flex: 1;
-    min-width: 140px;
-    height: 90px;
-    border-radius: 8px;
-    object-fit: cover;
-    border: 1px solid #475569;
-    background: #000;
-  }
-  .form-group {
-    margin-bottom: 14px;
-  }
-  .form-group label {
-    display: block;
-    font-size: 12px;
-    color: #94a3b8;
-    margin-bottom: 4px;
-  }
-  .form-group input {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid #334155;
-    background: #1e293b;
-    color: #fff;
-    font-size: 14px;
-  }
+  .btn-blue { background-color: #3b82f6; }
+  .btn-red { background-color: #ef4444; }
+  .btn-gray { background-color: #94a3b8; }
+  .btn-darkgray { background-color: #64748b; }
+  .btn-green { background-color: #10b981; }
 
-  /* モーダル内入力フォーム */
-  .form-group textarea.auto-resize {
-    width: 100%;
-    resize: none;
-    overflow: hidden;
-    box-sizing: border-box;
-    min-height: 40px;
-    line-height: 1.4;
-    padding: 10px 12px;
-    font-family: inherit;
-    font-size: 14px;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    background-color: #ffffff;
-    color: #0f172a;
-  }
-
-/* 読み取り専用（閲覧モード）時のスタイル調整 */
-.form-group textarea.auto-resize[readonly] {
-  background-color: #f8fafc;
-  border-color: transparent;
-  color: #334155;
-}
-  
-
-
-
-/* 詳細モーダル内のプレビュー容器・外枠の除去 */
-.card-preview-container {
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-}
-
-.preview-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 10px;
-  box-sizing: border-box;
-}
-
-/* ラベル要素が存在する場合も非表示 */
-.preview-label {
-  display: none !important;
-}
-
-  /* 各画像ラッパーおよび画像自体の枠線・影を除去 */
-.card-preview-container .preview-item,
-.card-preview-container img {
-  border: none !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-  background: none !important;
-}
-  
-/* 画像が枠からはみ出さず、アスペクト比を維持して全体表示 */
-.preview-item img {
-  width: 100%;
-  height: auto;
-  max-height: 260px;
-  object-fit: contain;
-  border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  background-color: #ffffff;
-}
-
-/* ---------------------------------------------------------
-   レスポンシブ切り替えルール
-   --------------------------------------------------------- */
-
-/* ① デフォルト（スマホ 768px以下） */
-@media (max-width: 768px) {
-  /* 表裏両方ある場合は縦2行表示 */
-  .card-preview-container.has-both {
-    grid-template-columns: 1fr;
-  }
-
-  /* 表面のみ（または裏面のみ）の場合は2列配置にして巨大化を防止 */
-  .card-preview-container.has-single {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-  
-/* ★ 横表示時（画面の高さが低い場合）や幅に合わせて4列に並べて高さを詰める */
-  @media (orientation: landscape), (max-height: 500px) {
-    .meta-info-grid {
-      grid-template-columns: repeat(4, 1fr); /* 4列に1行で並べて高さを節約 */
-      gap: 8px 12px;
-      padding: 8px 16px;                     /* 上下の余白もコンパクトに */
-    }
-  }
-  
-/* ② 769px以上（タブレット・PC） */
-@media (min-width: 769px) {
-  /* 表裏の有無にかかわらず常に2列表示 */
-  .card-preview-container {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}  
-
-/* --- 画像拡大ライトボックス --- */
+  /* ---------------------------------------------------------
+     7. 画像拡大ライトボックス (#image-lightbox-modal)
+     --------------------------------------------------------- */
   .lightbox-modal {
     display: none;
     position: fixed;
@@ -855,11 +729,11 @@
     width: 100vw;
     height: 100dvh;
     background-color: rgba(0, 0, 0, 0.9);
-    z-index: 10000; /* 最前面に表示 */
+    z-index: 10000;
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    touch-action: none; /* スマホのデフォルトスクロールを防止 */
+    touch-action: none;
   }
 
   .lightbox-close {
@@ -899,15 +773,61 @@
     will-change: transform;
   }
 
-  /* タップ可能であることを示すためカーソルをポインターに */
-  #m-front-img, #m-back-img {
+  /* ---------------------------------------------------------
+     8. 共通ボタン・下部ナビゲーション
+     --------------------------------------------------------- */
+  .btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 16px;
+    font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.2s;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    transition: all 0.2s ease;
   }
-  #m-front-img:hover, #m-back-img:hover {
-    opacity: 0.9;
-  }  
-  
+
+  #bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 65px;
+    background: #ffffff;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 100;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  #bottom-nav button {
+    flex: 1;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: #64748b;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  #bottom-nav button span {
+    font-size: 20px;
+  }
+
+  #bottom-nav button.active {
+    color: var(--primary);
+    font-weight: bold;
+  }
 </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
 </head>
@@ -1059,22 +979,20 @@
   </div>
 </div> 
   
-<!-- 詳細モーダル内の下部ボタンエリア例 -->
-<div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-  
+<!-- 詳細モーダル内の下部ボタンエリア -->
+<div class="modal-footer">
   <!-- 【閲覧モード時のボタン群】 -->
-  <div id="view-buttons" style="display: flex; gap: 10px;">
-    <button type="button" onclick="enableEditMode()" style="background:#3b82f6; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">編集</button>
-    <button type="button" onclick="deleteCard()" style="background:#ef4444; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">削除</button>
-    <button type="button" onclick="closeDetailModal()" style="background:#94a3b8; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">閉じる</button>
+  <div id="view-buttons" class="btn-group">
+    <button type="button" class="modal-btn btn-blue" onclick="enableEditMode()">編集</button>
+    <button type="button" class="modal-btn btn-red" onclick="deleteCard()">削除</button>
+    <button type="button" class="modal-btn btn-gray" onclick="closeDetailModal()">閉じる</button>
   </div>
 
   <!-- 【編集モード時のボタン群（初期は非表示）】 -->
-  <div id="edit-buttons" style="display: none; gap: 10px;">
-    <button type="button" id="saveCardBtn" onclick="saveCardEdit()" style="background:#10b981; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">保存</button>
-    <button type="button" onclick="cancelEditMode()" style="background:#64748b; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">取消</button>
+  <div id="edit-buttons" class="btn-group" style="display: none;">
+    <button type="button" id="saveCardBtn" class="modal-btn btn-green" onclick="saveCardEdit()">保存</button>
+    <button type="button" class="modal-btn btn-darkgray" onclick="cancelEditMode()">取消</button>
   </div>
-
 </div>
 </div> 
 
@@ -1172,12 +1090,12 @@ async function handleLogin(e) {
 
   try {
     const payload = { action: "login", id: id, pass: pass };
-    const response = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
-      redirect: 'follow'
-    });
+const response = await fetch(GAS_URL, {
+  method: 'POST',
+  headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+  body: JSON.stringify(payload), // ★ JSON文字列に変換して送信
+  redirect: 'follow'
+});
 
     const result = await response.json();
 
