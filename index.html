@@ -1050,50 +1050,7 @@ const firebaseConfig = {
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const db = getFirestore(app, "sakayabic-meishikanri");
-let unsubscribeCards = null;
 
-// ---------------------------------------------------------
-// Firestoreからのデータ取得（リアルタイム監視）
-// ---------------------------------------------------------
-function fetchCardsData() {
-  const container = document.getElementById('card-container');
-  if (!container) return;
-
-  if (unsubscribeCards) {
-    unsubscribeCards();
-  }
-
-  container.innerHTML = `<div style="text-align:center; padding: 40px; color: #94a3b8;">読み込み中...</div>`;
-
-  unsubscribeCards = db.collection('cards')
-    .orderBy('updatedAt', 'desc')
-    .onSnapshot((snapshot) => {
-      allCardsData = [];
-      snapshot.forEach((doc) => {
-        allCardsData.push({
-          docId: doc.id,
-          ...doc.data()
-        });
-      });
-
-      const searchInput = document.getElementById('searchInput');
-      const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
-
-      if (query) {
-        const event = new Event('input');
-        searchInput.dispatchEvent(event);
-      } else {
-        renderCards(allCardsData);
-      }
-    }, (error) => {
-      console.error("Firestoreデータ取得エラー:", error);
-      container.innerHTML = `
-        <div style="text-align:center; padding: 20px; color: #ef4444;">
-          <p>データ取得に失敗しました</p>
-          <button onclick="fetchCardsData()" style="margin-top:10px; padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:6px;">再読み込み</button>
-        </div>`;
-    });
-} 
   
 </script>
 <script>  
@@ -1118,6 +1075,7 @@ let isDetected = false;
 let lastDetectedQuad = null;
 let allCardsData = []; // スプレッドシートから取得した名刺データ全件
 let currentSelectedItem = null; // 現在選択中のカードデータ（編集キャンセル時用）
+let unsubscribeCards = null;  
 
 
 
@@ -1642,6 +1600,51 @@ function resetPreview() {
   if (pFront) pFront.src = "";
   if (pBack) pBack.src = "";
 }
+
+
+
+// ---------------------------------------------------------
+// Firestoreからのデータ取得（リアルタイム監視）
+// ---------------------------------------------------------
+function fetchCardsData() {
+  const container = document.getElementById('card-container');
+  if (!container) return;
+
+  if (unsubscribeCards) {
+    unsubscribeCards();
+  }
+
+  container.innerHTML = `<div style="text-align:center; padding: 40px; color: #94a3b8;">読み込み中...</div>`;
+
+  unsubscribeCards = db.collection('cards')
+    .orderBy('updatedAt', 'desc')
+    .onSnapshot((snapshot) => {
+      allCardsData = [];
+      snapshot.forEach((doc) => {
+        allCardsData.push({
+          docId: doc.id,
+          ...doc.data()
+        });
+      });
+
+      const searchInput = document.getElementById('searchInput');
+      const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+      if (query) {
+        const event = new Event('input');
+        searchInput.dispatchEvent(event);
+      } else {
+        renderCards(allCardsData);
+      }
+    }, (error) => {
+      console.error("Firestoreデータ取得エラー:", error);
+      container.innerHTML = `
+        <div style="text-align:center; padding: 20px; color: #ef4444;">
+          <p>データ取得に失敗しました</p>
+          <button onclick="fetchCardsData()" style="margin-top:10px; padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:6px;">再読み込み</button>
+        </div>`;
+    });
+}   
 
 async function uploadAllImages() {
   const userCode = sessionStorage.getItem('userCode') || 'unknown';
