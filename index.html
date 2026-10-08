@@ -837,6 +837,31 @@
   
 </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
+
+  <!-- Firebase SDK (v10+ Compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+<script>
+  // Firebaseの初期化設定（Firebase Consoleから取得した設定値）
+const firebaseConfig = {
+  apiKey: "AIzaSyCxZsnnfBCUs7pUMO1DouAFGBEmrBKHtCA",
+  authDomain: "project-a5a71d15-9b03-461e-aae.firebaseapp.com",
+  projectId: "project-a5a71d15-9b03-461e-aae",
+  storageBucket: "project-a5a71d15-9b03-461e-aae.firebasestorage.app",
+  messagingSenderId: "769951420007",
+  appId: "1:769951420007:web:6b50c0a802d3c261aecec2",
+  measurementId: "G-M0T1T66EMN"
+};
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // キャッシュの有効化（オフライン表示・2回目以降の爆速読み込み）
+  db.enablePersistence().catch((err) => {
+    console.warn("Firestore Persistence error:", err.code);
+  });
+</script>  
 </head>
 <body>
 
@@ -1020,6 +1045,8 @@
   </button>
 </nav>
 
+
+  
 <script>  
 const video = document.getElementById('video');
 const captureBtn = document.getElementById('capture-btn');
@@ -1042,6 +1069,50 @@ let isDetected = false;
 let lastDetectedQuad = null;
 let allCardsData = []; // スプレッドシートから取得した名刺データ全件
 let currentSelectedItem = null; // 現在選択中のカードデータ（編集キャンセル時用）
+let unsubscribeCards = null;
+
+function fetchCardsData() {
+  const container = document.getElementById('card-container');
+  if (!container) return;
+
+  // 既に監視中であれば一旦解除
+  if (unsubscribeCards) {
+    unsubscribeCards();
+  }
+
+  container.innerHTML = `<div style="text-align:center; padding: 40px; color: #94a3b8;">読み込み中...</div>`;
+
+  // Firestoreの 'cards' コレクションを更新日時の新しい順でリアルタイム監視
+  unsubscribeCards = db.collection('cards')
+    .orderBy('updatedAt', 'desc')
+    .onSnapshot((snapshot) => {
+      allCardsData = [];
+      snapshot.forEach((doc) => {
+        allCardsData.push({
+          docId: doc.id,
+          ...doc.data()
+        });
+      });
+
+      // 検索フィルターがある場合は再適用、無ければそのまま描画
+      const searchInput = document.getElementById('searchInput');
+      const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+      if (query) {
+        const event = new Event('input');
+        searchInput.dispatchEvent(event);
+      } else {
+        renderCards(allCardsData);
+      }
+    }, (error) => {
+      console.error("Firestoreデータ取得エラー:", error);
+      container.innerHTML = `
+        <div style="text-align:center; padding: 20px; color: #ef4444;">
+          <p>データ取得に失敗しました</p>
+          <button onclick="fetchCardsData()" style="margin-top:10px; padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:6px;">再読み込み</button>
+        </div>`;
+    });
+}  
 
 // 画面回転イベント
 window.addEventListener('resize', checkOrientation);
@@ -1646,40 +1717,49 @@ window.addEventListener('load', () => {
   }
 });
 
-async function fetchCardsData() {
+let unsubscribeCards = null;
+
+function fetchCardsData() {
   const container = document.getElementById('card-container');
   if (!container) return;
 
+  // 既に監視中であれば一旦解除
+  if (unsubscribeCards) {
+    unsubscribeCards();
+  }
+
   container.innerHTML = `<div style="text-align:center; padding: 40px; color: #94a3b8;">読み込み中...</div>`;
 
-  try {
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: "getCards" }),
-      redirect: 'follow'
-    });
+  // Firestoreの 'cards' コレクションを更新日時の新しい順でリアルタイム監視
+  unsubscribeCards = db.collection('cards')
+    .orderBy('updatedAt', 'desc')
+    .onSnapshot((snapshot) => {
+      allCardsData = [];
+      snapshot.forEach((doc) => {
+        allCardsData.push({
+          docId: doc.id,
+          ...doc.data()
+        });
+      });
 
-    const result = await res.json();
+      // 検索フィルターがある場合は再適用、無ければそのまま描画
+      const searchInput = document.getElementById('searchInput');
+      const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
 
-    if (result.success) {
-      allCardsData = result.cards || [];
-      renderCards(allCardsData);
-    } else {
+      if (query) {
+        const event = new Event('input');
+        searchInput.dispatchEvent(event);
+      } else {
+        renderCards(allCardsData);
+      }
+    }, (error) => {
+      console.error("Firestoreデータ取得エラー:", error);
       container.innerHTML = `
         <div style="text-align:center; padding: 20px; color: #ef4444;">
-          <p>取得失敗: ${result.message || 'データが取得できませんでした'}</p>
-          <button onclick="fetchCardsData()" style="margin-top:10px; padding:8px 16px;">再試行</button>
+          <p>データ取得に失敗しました</p>
+          <button onclick="fetchCardsData()" style="margin-top:10px; padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:6px;">再読み込み</button>
         </div>`;
-    }
-  } catch (e) {
-    console.error(e);
-    container.innerHTML = `
-      <div style="text-align:center; padding: 20px; color: #ef4444;">
-        <p>通信エラーが発生しました</p>
-        <button onclick="fetchCardsData()" style="margin-top:10px; padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:6px;">再読み込み</button>
-      </div>`;
-  }
+    });
 }
 
 // ★ 修正箇所：安全なDrive URLパース関数
