@@ -838,32 +838,25 @@
 </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
 
-  <!-- Firebase SDK (v10+ Compat) -->
+<!-- Firebase SDK (v10+ Compat) --><!-- Firebase SDK (compat版) の読み込み -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
 <script>
-  // Firebaseの初期化設定（Firebase Consoleから取得した設定値）
-const firebaseConfig = {
-  apiKey: "AIzaSyCxZsnnfBCUs7pUMO1DouAFGBEmrBKHtCA",
-  authDomain: "project-a5a71d15-9b03-461e-aae.firebaseapp.com",
-  projectId: "project-a5a71d15-9b03-461e-aae",
-  storageBucket: "project-a5a71d15-9b03-461e-aae.firebasestorage.app",
-  messagingSenderId: "769951420007",
-  appId: "1:769951420007:web:6b50c0a802d3c261aecec2",
-  measurementId: "G-M0T1T66EMN"
-};
+  const firebaseConfig = {
+    // お使いの firebaseConfig
+  };
 
-  firebase.initializeApp(firebaseConfig);
-  import { getFirestore } from "firebase/firestore";
+  // 初期化
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  
+  // データベース ID "sakayabic-meishikanri" を指定して db を定義
+  const db = firebase.app().firestore('sakayabic-meishikanri');
+</script>
 
-const db = getFirestore(app, "sakayabic-meishikanri");
-
-  // キャッシュの有効化（オフライン表示・2回目以降の爆速読み込み）
-  db.enablePersistence().catch((err) => {
-    console.warn("Firestore Persistence error:", err.code);
-  });
-</script>  
+  
 </head>
 <body>
 
