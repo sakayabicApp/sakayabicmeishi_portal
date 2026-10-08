@@ -838,33 +838,7 @@
 </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
 
-<!-- Firebase SDK (v10+ Compat) --><!-- Firebase SDK (compat版) の読み込み -->
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-<script>
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCxZsnnfBCUs7pUMO1DouAFGBEmrBKHtCA",
-  authDomain: "project-a5a71d15-9b03-461e-aae.firebaseapp.com",
-  projectId: "project-a5a71d15-9b03-461e-aae",
-  storageBucket: "project-a5a71d15-9b03-461e-aae.firebasestorage.app",
-  messagingSenderId: "769951420007",
-  appId: "1:769951420007:web:6b50c0a802d3c261aecec2",
-  measurementId: "G-M0T1T66EMN"
-};
-
-  // 初期化
-  if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-  }
-  
-  // データベース ID "sakayabic-meishikanri" を指定して db を定義
-  c// import 形式の場合
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-const db = getFirestore(app, "sakayabic-meishikanri");
-</script>
 
   
 </head>
@@ -1050,9 +1024,33 @@ const db = getFirestore(app, "sakayabic-meishikanri");
   </button>
 </nav>
 
+<!-- Firebase SDK (v10+ Compat) --><!-- Firebase SDK (compat版) の読み込み -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
+<script>
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCxZsnnfBCUs7pUMO1DouAFGBEmrBKHtCA",
+  authDomain: "project-a5a71d15-9b03-461e-aae.firebaseapp.com",
+  projectId: "project-a5a71d15-9b03-461e-aae",
+  storageBucket: "project-a5a71d15-9b03-461e-aae.firebasestorage.app",
+  messagingSenderId: "769951420007",
+  appId: "1:769951420007:web:6b50c0a802d3c261aecec2",
+  measurementId: "G-M0T1T66EMN"
+};
+
+  // 初期化
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
   
-<script>  
+  // データベース ID "sakayabic-meishikanri" を指定して db を定義
+  c// import 形式の場合
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const db = getFirestore(app, "sakayabic-meishikanri");
+
 const video = document.getElementById('video');
 const captureBtn = document.getElementById('capture-btn');
 const canvas = document.getElementById('outputCanvas');
