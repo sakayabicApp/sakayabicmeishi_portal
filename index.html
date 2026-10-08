@@ -1040,19 +1040,16 @@ const firebaseConfig = {
   measurementId: "G-M0T1T66EMN"
 };
 
-  // 初期化
+ // 初期化
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
   }
   
-  // データベース ID "sakayabic-meishikanri" を指定して db を定義
-  // import 形式の場合
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-const db = getFirestore(app, "sakayabic-meishikanri");
+  // データベース ID "sakayabic-meishikanri" を指定して db を定義 (compat形式)
+  const db = firebase.app().firestore('sakayabic-meishikanri'); 
+</script>
 
   
-</script>
 <script>  
 const video = document.getElementById('video');
 const captureBtn = document.getElementById('capture-btn');
