@@ -1047,6 +1047,12 @@ const firebaseConfig = {
   
   // データベース ID "sakayabic-meishikanri" を指定して db を定義 (compat形式)
   const db = firebase.firestore();
+
+  // 【追加】WebChannelの通信切断（Listen stream errored）を回避するための設定
+  db.settings({
+    experimentalForceLongPolling: true
+  });
+  
 </script>
 
   
