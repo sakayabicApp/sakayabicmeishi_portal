@@ -1050,28 +1050,6 @@ const firebaseConfig = {
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const db = getFirestore(app, "sakayabic-meishikanri");
-
-const video = document.getElementById('video');
-const captureBtn = document.getElementById('capture-btn');
-const canvas = document.getElementById('outputCanvas');
-const guideFrame = document.getElementById('guide-frame');
-const actionBtns = document.getElementById('actionBtns');
-const sendBtn = document.getElementById('sendBtn');
-const backCaptureBtn = document.getElementById('backCaptureBtn');
-const retryBackBtn = document.getElementById('retryBackBtn');
-const retryAllBtn = document.getElementById('retryAllBtn');
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyya3RzVXc9pdWUCNhBaJN-F7_ShidH16FVFuL5VMh1CFLDifyAnUBkM-Z987FKb8o0/exec"; 
-const CLOUD_RUN_URL = "https://upload-meishi-function-769951420007.asia-northeast2.run.app";
-
-let isDetecting = true;
-let globalCardId = null; 
-let isFrontSide = true; 
-let capturedImages = { front: null, back: null };
-
-let isDetected = false;
-let lastDetectedQuad = null;
-let allCardsData = []; // スプレッドシートから取得した名刺データ全件
-let currentSelectedItem = null; // 現在選択中のカードデータ（編集キャンセル時用）
 let unsubscribeCards = null;
 
 // ---------------------------------------------------------
@@ -1116,6 +1094,32 @@ function fetchCardsData() {
         </div>`;
     });
 } 
+  
+</script>
+<script>  
+const video = document.getElementById('video');
+const captureBtn = document.getElementById('capture-btn');
+const canvas = document.getElementById('outputCanvas');
+const guideFrame = document.getElementById('guide-frame');
+const actionBtns = document.getElementById('actionBtns');
+const sendBtn = document.getElementById('sendBtn');
+const backCaptureBtn = document.getElementById('backCaptureBtn');
+const retryBackBtn = document.getElementById('retryBackBtn');
+const retryAllBtn = document.getElementById('retryAllBtn');
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyya3RzVXc9pdWUCNhBaJN-F7_ShidH16FVFuL5VMh1CFLDifyAnUBkM-Z987FKb8o0/exec"; 
+const CLOUD_RUN_URL = "https://upload-meishi-function-769951420007.asia-northeast2.run.app";
+
+let isDetecting = true;
+let globalCardId = null; 
+let isFrontSide = true; 
+let capturedImages = { front: null, back: null };
+
+let isDetected = false;
+let lastDetectedQuad = null;
+let allCardsData = []; // スプレッドシートから取得した名刺データ全件
+let currentSelectedItem = null; // 現在選択中のカードデータ（編集キャンセル時用）
+
+
 
 // 画面回転イベント
 window.addEventListener('resize', checkOrientation);
