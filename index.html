@@ -1334,7 +1334,8 @@ function findCardQuad(srcMat) {
 // リアルタイム認識ループ
 function detectLoop() {
   if (!isDetecting) return;
-  if (!video || video.readyState !== 4 || video.style.display === 'none') {
+  // ★ 修正点: video要素が存在し、かつ実際に映像サイズが取得できる状態（ready）かチェックする
+  if (!video || video.readyState !== 4 || video.style.display === 'none' || !video.videoWidth || !video.videoHeight) {
     setTimeout(() => requestAnimationFrame(detectLoop), 200);
     return;
   }
@@ -1365,7 +1366,10 @@ function detectLoop() {
       }
       if (captureBtn) captureBtn.classList.remove('active');
     }
-  } finally {
+  } catch (err) {
+    // 万が一 OpenCV 側で読み込みエラーが出てもループを止めないための安全策
+    console.warn("OpenCV imread 待機中:", err);
+  }finally {
     fullMat.delete();
   }
 
