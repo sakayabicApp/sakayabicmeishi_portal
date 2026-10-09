@@ -2298,6 +2298,11 @@ function getCurrentUserCode() {
   return sessionStorage.getItem('userCode') || '';
 }
 
+// ログイン中のユーザー名を取得
+function getCurrentUserName() {
+  return sessionStorage.getItem('userName') || '';
+}  
+
 // カードの絞り込み一括処理関数
 function filterCards() {
   const searchInput = document.getElementById('searchInput');
@@ -2356,14 +2361,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initUserInfo();
 });
 
+// 初期化処理（画面読み込み時やログイン/ログアウト時に呼び出す）
 function initUserInfo() {
-  const userCode = sessionStorage.getItem('userCode');
-  const userName = sessionStorage.getItem('userName');
+  const userCode = getCurrentUserCode();
+  const userName = getCurrentUserName();
 
   const elName = document.getElementById('display-user-name');
   const elCode = document.getElementById('display-user-code');
 
-  // ログイン済みの場合のみ表示を書き換える
+  // ログイン済みの場合のみ表示を更新
   if (userCode && userName) {
     if (elName) elName.textContent = userName;
     if (elCode) elCode.textContent = `(${userCode})`;
@@ -2376,7 +2382,7 @@ function initUserInfo() {
 // ログアウト処理
 function handleLogout() {
   if (confirm("ログアウトしますか？")) {
-    // 1. 既存の stopCamera() を実行してカメラと検知ループを停止
+    // 1. カメラと検知ループを停止
     if (typeof stopCamera === 'function') {
       stopCamera();
     }
@@ -2384,8 +2390,13 @@ function handleLogout() {
     // 2. セッション情報をクリア
     sessionStorage.clear();
 
-    // 3. ログイン画面へ遷移
-    window.location.href = "login.html"; 
+    // 3. ログイン画面を表示し、下部ナビゲーションを非表示にする
+    showPage('page-login');
+    const bottomNav = document.getElementById('bottom-nav');
+    if (bottomNav) bottomNav.style.display = 'none';
+
+    // 4. ユーザー表示を未ログイン状態にリセット
+    initUserInfo();
   }
 }
   
