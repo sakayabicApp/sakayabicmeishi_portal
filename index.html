@@ -2133,6 +2133,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // ---------------------------------------------------------
 // 名刺データの更新保存処理 (Firestore直更新 + GAS送信)
 // ---------------------------------------------------------
+// ---------------------------------------------------------
+// 名刺データの更新保存処理 (Firestore直更新 + GAS送信)
+// ---------------------------------------------------------
 async function saveCardEdit() {
   const saveBtn = document.getElementById('saveCardBtn');
   if (saveBtn) {
@@ -2158,7 +2161,7 @@ async function saveCardEdit() {
 
   const payload = {
     action: "updateCard",
-    docId: docId, // ★ GASへ送るpayloadに追加
+    docId: docId,
     rowIndex: Number(getValue('edit-rowIndex')),
     updaterCode: sessionStorage.getItem('userCode') || 'unknown',
     updaterName: sessionStorage.getItem('userName') || '不明',
@@ -2173,7 +2176,7 @@ async function saveCardEdit() {
     email: getValue('edit-email'),
     zipCode: getValue('edit-zipCode'),
     address: getValue('edit-address'),
-    memo: getValue('edit-memo') // ★ 追加: 備考/メモデータ
+    memo: getValue('edit-memo')
   };
 
   try {
@@ -2191,10 +2194,14 @@ async function saveCardEdit() {
         email: payload.email,
         zipCode: payload.zipCode,
         address: payload.address,
-        memo: payload.memo, // ★ 追加: Firestore更新
+        memo: payload.memo,
         updaterCode: payload.updaterCode,
         updaterName: payload.updaterName,
-        updatedAt: nowFormatted // ★ 文字列形式の更新日時をセット
+        updatedAt: nowFormatted,
+
+        // ★ 追加: 関与者配列 (editorCodes) に今回の更新者を即時追加
+        // arrayUnion を使うことで、既に配列内に自分のコードがあっても重複せず安全に追加されます
+        editorCodes: firebase.firestore.FieldValue.arrayUnion(payload.updaterCode)
       });
     }
 
@@ -2431,12 +2438,21 @@ function filterCards() {
   const filtered = allCardsData.filter(card => {
     // 1. 「自分が登録・更新した名刺のみ」チェックの検証
     if (isMyCardsOnly) {
-      // 登録者コード(registrarCode) または 更新者コード(updaterCode) が現在のユーザーコードと一致するか
-      const isRegistrar = card.registrarCode && String(card.registrarCode) === String(currentCode);
-      const isUpdater = card.updaterCode && String(card.updaterCode) === String(currentCode);
-      
-      // どちらも一致しない場合は除外
-      if (!isRegistrar && !isUpdater) {
+      const curCodeStr = String(currentCode);
+
+      // ★ editorCodes 配列が存在していれば includes で判定
+      let isRelated = false;
+      if (card.editorCodes && Array.isArray(card.editorCodes)) {
+        isRelated = card.editorCodes.some(code => String(code) === curCodeStr);
+      } else {
+        // バックアップ判定（editorCodes がまだ無い過去データ用）
+        const isRegistrar = card.registrarCode && String(card.registrarCode) === curCodeStr;
+        const isUpdater = card.updaterCode && String(card.updaterCode) === curCodeStr;
+        isRelated = isRegistrar || isUpdater;
+      }
+
+      // 関わっていない名刺は除外
+      if (!isRelated) {
         return false;
       }
     }
@@ -2444,7 +2460,7 @@ function filterCards() {
     // 2. キーワード検索（空の場合は全件通過）
     if (!query) return true;
 
-    // ★ 検索対象テキストグループに card.memo を追加
+    // 検索対象テキストグループに card.memo を含む
     const textGroup = [
       card.name, card.nameKana, card.company, card.companyKana,
       card.department, card.title, card.email, card.phone, card.memo
