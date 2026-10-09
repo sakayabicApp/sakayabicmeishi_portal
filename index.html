@@ -2356,18 +2356,22 @@ document.addEventListener('DOMContentLoaded', () => {
   initUserInfo();
 });
 
-// ユーザー情報の表示処理
 function initUserInfo() {
-  const userCode = sessionStorage.getItem('userCode') || '未設定';
-  const userName = sessionStorage.getItem('userName') || 'ゲスト';
+  const userCode = sessionStorage.getItem('userCode');
+  const userName = sessionStorage.getItem('userName');
 
   const elName = document.getElementById('display-user-name');
   const elCode = document.getElementById('display-user-code');
 
-  if (elName) elName.textContent = userName;
-  if (elCode) elCode.textContent = `(${userCode})`;
+  // ログイン済みの場合のみ表示を書き換える
+  if (userCode && userName) {
+    if (elName) elName.textContent = userName;
+    if (elCode) elCode.textContent = `(${userCode})`;
+  } else {
+    if (elName) elName.textContent = "未ログイン";
+    if (elCode) elCode.textContent = "";
+  }
 }
-
 
 // ログアウト処理
 function handleLogout() {
