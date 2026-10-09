@@ -1066,6 +1066,11 @@
   <div id="action-address" class="action-link-container"></div>
   <textarea id="edit-address" class="auto-resize" rows="1"></textarea>
 </div>
+<!-- ★ 追加: 備考/メモ -->
+<div class="form-group">
+  <label>備考 / メモ</label>
+  <textarea id="edit-memo" class="auto-resize" rows="2" placeholder="商談メモや補足情報を入力..."></textarea>
+</div>    
   </div>
  <!-- モーダル本文 (.modal-body) の一番下に追加 -->
 <div class="meta-info-grid">
@@ -1924,7 +1929,7 @@ function openDetailModal(item) {
 
   const fields = [
     'docId', 'rowIndex', 'company', 'companyKana', 'name', 'nameKana',
-    'department', 'title', 'phone', 'mobile', 'email', 'zipCode', 'address'
+    'department', 'title', 'phone', 'mobile', 'email', 'zipCode', 'address', 'memo'
   ];
   
   fields.forEach(field => {
@@ -2167,7 +2172,8 @@ async function saveCardEdit() {
     mobile: getValue('edit-mobile'),
     email: getValue('edit-email'),
     zipCode: getValue('edit-zipCode'),
-    address: getValue('edit-address')
+    address: getValue('edit-address'),
+    memo: getValue('edit-memo') // ★ 追加: 備考/メモデータ
   };
 
   try {
@@ -2185,6 +2191,7 @@ async function saveCardEdit() {
         email: payload.email,
         zipCode: payload.zipCode,
         address: payload.address,
+        memo: payload.memo, // ★ 追加: Firestore更新
         updaterCode: payload.updaterCode,
         updaterName: payload.updaterName,
         updatedAt: nowFormatted // ★ 文字列形式の更新日時をセット
@@ -2437,9 +2444,10 @@ function filterCards() {
     // 2. キーワード検索（空の場合は全件通過）
     if (!query) return true;
 
+    // ★ 検索対象テキストグループに card.memo を追加
     const textGroup = [
       card.name, card.nameKana, card.company, card.companyKana,
-      card.department, card.title, card.email, card.phone
+      card.department, card.title, card.email, card.phone, card.memo
     ].filter(Boolean).join(' ').toLowerCase();
 
     return textGroup.includes(query) || textGroup.includes(qKata) || textGroup.includes(qHira);
