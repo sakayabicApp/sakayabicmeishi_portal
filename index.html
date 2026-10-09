@@ -1997,7 +1997,7 @@ function renderDirectActions(item) {
   if (emailArea) {
     const email = item.email || '';
     emailArea.innerHTML = email 
-      ? `<a href="mailto:${escapeHTML(email)}" class="direct-action-link">✉️ ${escapeHTML(email)}</a>` 
+      ? `<a href="mailto:${escapeHTML(email)}" class="direct-action-link">${escapeHTML(email)}</a>` 
       : '';
   }
 
@@ -2007,7 +2007,7 @@ function renderDirectActions(item) {
     const address = item.address || '';
     if (address) {
       const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-      addressArea.innerHTML = `<a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="direct-action-link">📍 ${escapeHTML(address)}</a>`;
+      addressArea.innerHTML = `<a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="direct-action-link">${escapeHTML(address)}</a>`;
     } else {
       addressArea.innerHTML = '';
     }
@@ -2024,7 +2024,7 @@ function setupPhoneLink(fieldKey, phoneVal) {
     const cleanPhone = rawPhone.replace(/[-─\s]/g, '');
     area.innerHTML = `<a href="tel:${cleanPhone}" 
       onclick="return confirm('${escapeHTML(rawPhone)} へ電話を発信しますか？');" 
-      class="direct-action-link">📞 ${escapeHTML(rawPhone)}</a>`;
+      class="direct-action-link">${escapeHTML(rawPhone)}</a>`;
   } else {
     area.innerHTML = '';
   }
