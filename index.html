@@ -903,6 +903,12 @@
   <div class="search-header">
     <input type="text" id="searchInput" placeholder="会社名や氏名で検索...">
   </div>
+  <!-- ★ ここから追加 -->
+  <div class="filter-options" style="margin-top: 8px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+    <input type="checkbox" id="myCardsOnlyCheckbox" style="cursor: pointer;">
+    <label for="myCardsOnlyCheckbox" style="cursor: pointer; user-select: none;">自分が登録した名刺のみ表示</label>
+  </div>
+  <!-- ★ ここまで追加 -->
   <div id="card-container"></div>
 </div>
 
@@ -2205,6 +2211,64 @@ function getDistance(t1, t2) {
   const dy = t1.clientY - t2.clientY;
   return Math.sqrt(dx * dx + dy * dy);
 }
+// ログイン中のユーザーコードを取得
+function getCurrentUserCode() {
+  return sessionStorage.getItem('userCode') || '';
+}
+
+// カードの絞り込み一括処理関数
+function filterCards() {
+  const searchInput = document.getElementById('searchInput');
+  const myCardsCheckbox = document.getElementById('myCardsOnlyCheckbox');
+
+  const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+  const isMyCardsOnly = myCardsCheckbox ? myCardsCheckbox.checked : false;
+  const currentCode = getCurrentUserCode();
+
+  const qKata = typeof hiraToKata === 'function' ? hiraToKata(query) : query;
+  const qHira = typeof kataToHira === 'function' ? kataToHira(query) : query;
+
+  const filtered = allCardsData.filter(card => {
+    // 1. 「自分が登録・更新した名刺のみ」チェックの検証
+    if (isMyCardsOnly) {
+      // 登録者コード(registrarCode) または 更新者コード(updaterCode) が現在のユーザーコードと一致するか
+      const isRegistrar = card.registrarCode && String(card.registrarCode) === String(currentCode);
+      const isUpdater = card.updaterCode && String(card.updaterCode) === String(currentCode);
+      
+      // どちらも一致しない場合は除外
+      if (!isRegistrar && !isUpdater) {
+        return false;
+      }
+    }
+
+    // 2. キーワード検索（空の場合は全件通過）
+    if (!query) return true;
+
+    const textGroup = [
+      card.name, card.nameKana, card.company, card.companyKana,
+      card.department, card.title, card.email, card.phone
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    return textGroup.includes(query) || textGroup.includes(qKata) || textGroup.includes(qHira);
+  });
+
+  renderCards(filtered);
+}
+
+// ---------------------------------------------------------
+// イベントリスナーの登録
+// ---------------------------------------------------------
+
+// 1. 検索バー入力時
+document.getElementById('searchInput')?.addEventListener('input', () => {
+  filterCards();
+});
+
+// 2. チェックボックス切り替え時
+document.getElementById('myCardsOnlyCheckbox')?.addEventListener('change', () => {
+  filterCards();
+});
+  
 </script>
 </body>
 </html>
