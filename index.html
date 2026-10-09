@@ -1921,7 +1921,6 @@ function adjustAllModalTextareas() {
 function openDetailModal(item) {
   currentSelectedItem = item;
 
-  // ★ fields 配列の先頭に 'docId' を追加！
   const fields = [
     'docId', 'rowIndex', 'company', 'companyKana', 'name', 'nameKana',
     'department', 'title', 'phone', 'mobile', 'email', 'zipCode', 'address'
@@ -1932,9 +1931,8 @@ function openDetailModal(item) {
     if (el) el.value = item[field] || '';
   });
 
-  // --- 💡 ダイレクトアクション描画処理の追加 (ここから) ---
+  // ★ ダイレクトアクションリンクの生成
   renderDirectActions(item);
-  // --- 💡 ダイレクトアクション描画処理の追加 (ここまで) ---
 
   const registrarName = item.registrarName || '未記録';
   const createdAt     = item.createdAt     || '-';
@@ -1978,33 +1976,6 @@ function openDetailModal(item) {
     container.classList.remove('has-both', 'has-single');
     container.classList.add(hasFront && hasBack ? 'has-both' : 'has-single');
   }
-
-  setFormReadOnly(true);
-  const detailModal = document.getElementById('detail-modal');
-  if (detailModal) detailModal.style.display = 'flex';
-
-  setTimeout(() => {
-    adjustAllModalTextareas();
-  }, 50);
-}
-
-function openDetailModal(item) {
-  currentSelectedItem = item;
-
-  const fields = [
-    'docId', 'rowIndex', 'company', 'companyKana', 'name', 'nameKana',
-    'department', 'title', 'phone', 'mobile', 'email', 'zipCode', 'address'
-  ];
-  
-  fields.forEach(field => {
-    const el = document.getElementById(`edit-${field}`);
-    if (el) el.value = item[field] || '';
-  });
-
-  // ★ ダイレクトアクションリンクの生成
-  renderDirectActions(item);
-
-  // ... (省略: 作成者情報や画像プレビュー処理) ...
 
   setFormReadOnly(true); // 閲覧モードで開く
   const detailModal = document.getElementById('detail-modal');
@@ -2058,6 +2029,17 @@ function setupPhoneLink(fieldKey, phoneVal) {
     area.innerHTML = '';
   }
 }
+
+// エスケープ処理ヘルパー（未定義エラー防止）
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
   
 function setFormReadOnly(isReadOnly) {
   // テキストエリアの readOnly 切替
@@ -2069,7 +2051,7 @@ function setFormReadOnly(isReadOnly) {
   // アクション対象のフィールドリスト
   const actionFields = ['phone', 'mobile', 'email', 'address'];
 
-  // ★ 閲覧/編集モードに応じたダイレクトアクションと入力欄の表示切替
+  // 閲覧/編集モードに応じたダイレクトアクションと入力欄の表示切替
   actionFields.forEach(field => {
     const actionEl = document.getElementById(`action-${field}`);
     const inputEl = document.getElementById(`edit-${field}`);
@@ -2090,10 +2072,12 @@ function setFormReadOnly(isReadOnly) {
     }
   });
 
+  const modalFooter = document.querySelector('#detail-modal .modal-footer');
   if (modalFooter) {
     modalFooter.style.display = 'flex';
   }
 
+  const modalInputs = document.querySelectorAll('#detail-modal input');
   modalInputs.forEach(input => {
     if (input.id && input.id.startsWith('edit-')) {
       if (isReadOnly) {
