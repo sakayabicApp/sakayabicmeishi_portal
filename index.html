@@ -366,7 +366,7 @@
     position: sticky;
     top: 0;
     background: #e2e8f0;
-    padding: 24px 16px 16px 16px;
+    padding: 16px 16px 16px 16px;
     z-index: 20;
     border-bottom: 1px solid #cbd5e1;
   }
@@ -984,8 +984,6 @@
   </div>
  <!-- 検索＆フィルタエリア -->
 <div class="search-container">
-  <input type="text" id="searchInput" placeholder="名前、会社名、部署などで検索...">
-  
   <label class="filter-checkbox-label">
     <input type="checkbox" id="myCardsOnlyCheckbox">
     <span>自分が登録・更新した名刺のみ表示</span>
@@ -1224,7 +1222,7 @@ async function handleLogin(e) {
   }
 
   loginBtn.disabled = true;
-  const originalText = loginBtn.textContent;
+  const originalText = "ログイン";
   loginBtn.textContent = "ログイン処理中...";
   loginBtn.style.opacity = "0.7";
 
@@ -1244,6 +1242,17 @@ async function handleLogin(e) {
       sessionStorage.setItem('userCode', result.userCode || id);
       sessionStorage.setItem('userName', result.userName || id);
       sessionStorage.setItem('loginTime', Date.now().toString());
+
+      // ★ 1. ユーザー情報表示を更新
+      initUserInfo();
+
+      // ★ 2. ログインフォームを初期状態に戻す（次回ログインのため）
+      loginBtn.disabled = false;
+      loginBtn.textContent = originalText;
+      loginBtn.style.opacity = "1";
+      idEl.value = "";
+      passEl.value = "";
+
       showPage('page-camera');
       const bottomNav = document.getElementById('bottom-nav');
       if (bottomNav) bottomNav.style.display = 'flex';
@@ -1253,7 +1262,7 @@ async function handleLogin(e) {
       loginBtn.textContent = originalText;
       loginBtn.style.opacity = "1";
     }
-  } catch (e) {
+  }catch (e) {
     console.error(e);
     alert("通信エラーが発生しました: " + e.message);
     loginBtn.disabled = false;
@@ -2379,24 +2388,23 @@ function initUserInfo() {
   }
 }
 
+// ---------------------------------------------------------
 // ログアウト処理
+// ---------------------------------------------------------
 function handleLogout() {
   if (confirm("ログアウトしますか？")) {
-    // 1. カメラと検知ループを停止
     if (typeof stopCamera === 'function') {
       stopCamera();
     }
 
-    // 2. セッション情報をクリア
     sessionStorage.clear();
 
-    // 3. ログイン画面を表示し、下部ナビゲーションを非表示にする
+    // ★ 表示をリセット
+    initUserInfo();
+
     showPage('page-login');
     const bottomNav = document.getElementById('bottom-nav');
     if (bottomNav) bottomNav.style.display = 'none';
-
-    // 4. ユーザー表示を未ログイン状態にリセット
-    initUserInfo();
   }
 }
   
