@@ -988,7 +988,7 @@
     <input type="checkbox" id="myCardsOnlyCheckbox">
     <span>自分が登録・更新した名刺のみ表示</span>
   </label>
-  <button type="button" class="btn btn-outline-success" onclick="downloadVCard()">連絡先に保存</button>
+ 
 </div>
   <div id="card-container"></div>
 </div>
@@ -1097,7 +1097,7 @@
 <div class="modal-footer">
   <!-- 【閲覧モード時のボタン群】 -->
   <div id="view-buttons" class="btn-group">
-    
+     <button type="button" class="modal-btn" onclick="downloadVCard()">連絡先に保存</button>
     <button type="button" class="modal-btn btn-blue" onclick="enableEditMode()">編集</button>
     <button type="button" class="modal-btn btn-red" onclick="deleteCard()">削除</button>
     <button type="button" class="modal-btn btn-gray" onclick="closeDetailModal()">閉じる</button>
