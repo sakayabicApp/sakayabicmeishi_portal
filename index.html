@@ -2350,6 +2350,40 @@ document.getElementById('searchInput')?.addEventListener('input', () => {
 document.getElementById('myCardsOnlyCheckbox')?.addEventListener('change', () => {
   filterCards();
 });
+
+// 初期化処理（画面読み込み時に呼び出す）
+document.addEventListener('DOMContentLoaded', () => {
+  initUserInfo();
+});
+
+// ユーザー情報の表示処理
+function initUserInfo() {
+  const userCode = sessionStorage.getItem('userCode') || '未設定';
+  const userName = sessionStorage.getItem('userName') || 'ゲスト';
+
+  const elName = document.getElementById('display-user-name');
+  const elCode = document.getElementById('display-user-code');
+
+  if (elName) elName.textContent = userName;
+  if (elCode) elCode.textContent = `(${userCode})`;
+}
+
+
+// ログアウト処理
+function handleLogout() {
+  if (confirm("ログアウトしますか？")) {
+    // 1. 既存の stopCamera() を実行してカメラと検知ループを停止
+    if (typeof stopCamera === 'function') {
+      stopCamera();
+    }
+
+    // 2. セッション情報をクリア
+    sessionStorage.clear();
+
+    // 3. ログイン画面へ遷移
+    window.location.href = "login.html"; 
+  }
+}
   
 </script>
 </body>
