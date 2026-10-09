@@ -925,6 +925,8 @@
 </div>
 
     <input type="hidden" id="edit-rowIndex">
+    <!-- ★ 下記を追加 -->
+<input type="hidden" id="edit-docId">
     <div class="form-group">
       <label>会社名</label>
       <textarea id="edit-company" class="auto-resize" rows="1"></textarea>
@@ -1808,10 +1810,12 @@ function adjustAllModalTextareas() {
 function openDetailModal(item) {
   currentSelectedItem = item;
 
+  // ★ fields 配列の先頭に 'docId' を追加！
   const fields = [
-    'rowIndex', 'company', 'companyKana', 'name', 'nameKana',
+    'docId', 'rowIndex', 'company', 'companyKana', 'name', 'nameKana',
     'department', 'title', 'phone', 'mobile', 'email', 'zipCode', 'address'
   ];
+  
   fields.forEach(field => {
     const el = document.getElementById(`edit-${field}`);
     if (el) el.value = item[field] || '';
@@ -1923,6 +1927,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });  
 
+// ---------------------------------------------------------
+// 名刺データの更新保存処理 (Firestore直更新 + GAS送信)
+// ---------------------------------------------------------
 async function saveCardEdit() {
   const saveBtn = document.getElementById('saveCardBtn');
   if (saveBtn) {
@@ -1935,8 +1942,11 @@ async function saveCardEdit() {
     return el ? el.value : '';
   };
 
+  const docId = getValue('edit-docId');
+
   const payload = {
     action: "updateCard",
+    docId: docId, // ★ GASへ送るpayloadに追加
     rowIndex: Number(getValue('edit-rowIndex')),
     updaterCode: sessionStorage.getItem('userCode') || 'unknown',
     updaterName: sessionStorage.getItem('userName') || '不明',
@@ -1954,20 +1964,42 @@ async function saveCardEdit() {
   };
 
   try {
+    // 1. Firestoreを直接更新（onSnapshotにより画面へ即時反映）
+    if (docId) {
+      await db.collection('cards').doc(docId).update({
+        company: payload.company,
+        companyKana: payload.companyKana,
+        name: payload.name,
+        nameKana: payload.nameKana,
+        department: payload.department,
+        title: payload.title,
+        phone: payload.phone,
+        mobile: payload.mobile,
+        email: payload.email,
+        zipCode: payload.zipCode,
+        address: payload.address,
+        updaterCode: payload.updaterCode,
+        updaterName: payload.updaterName,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    // 2. GAS（スプレッドシート）への更新リクエスト送信
     const res = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
     });
+
     const result = await res.json();
     if (result.success) {
       alert("更新を保存しました");
       closeDetailModal();
-      fetchCardsData();
     } else {
-      alert("更新失敗: " + result.message);
+      alert("スプレッドシートの更新失敗: " + result.message);
     }
   } catch (e) {
+    console.error("更新エラー:", e);
     alert("通信エラーが発生しました");
   } finally {
     if (saveBtn) {
@@ -1977,13 +2009,18 @@ async function saveCardEdit() {
   }
 }
 
+// ---------------------------------------------------------
+// 名刺データの削除処理 (Firestore直削除 + GAS送信)
+// ---------------------------------------------------------
 async function deleteCard() {
   const rowIndexEl = document.getElementById('edit-rowIndex');
+  const docIdEl = document.getElementById('edit-docId');
   const nameEl = document.getElementById('edit-name');
   
   if (!rowIndexEl) return;
   
   const rowIndex = rowIndexEl.value;
+  const docId = docIdEl ? docIdEl.value : '';
   const name = (nameEl && nameEl.value) ? nameEl.value : 'この名刺';
 
   if (!confirm(`「${name}」様のデータを削除してもよろしいですか？\n※この操作は取り消せません。`)) {
@@ -1992,24 +2029,32 @@ async function deleteCard() {
 
   const payload = {
     action: "deleteCard",
+    docId: docId, // ★ GASへ送るpayloadに追加
     rowIndex: Number(rowIndex)
   };
 
   try {
+    // 1. Firestoreから直接削除（画面から即時消去）
+    if (docId) {
+      await db.collection('cards').doc(docId).delete();
+    }
+
+    // 2. GAS（スプレッドシート）へ削除リクエスト送信
     const res = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
     });
+
     const result = await res.json();
     if (result.success) {
       alert("データを削除しました");
       closeDetailModal();
-      fetchCardsData();
     } else {
-      alert("削除失敗: " + result.message);
+      alert("スプレッドシートの削除失敗: " + result.message);
     }
   } catch (e) {
+    console.error("削除エラー:", e);
     alert("通信エラーが発生しました");
   }
 }
