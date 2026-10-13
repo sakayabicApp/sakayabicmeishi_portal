@@ -969,6 +969,8 @@
       <div id="actionBtns">
         <button id="sendBtn" class="action-btn">送信する</button>
         <button id="backCaptureBtn" class="action-btn">裏面を撮影</button>
+        <!-- ★ 追加: 裏面撮影モードからのキャンセル（表面のみの状態に戻す） -->
+        <button id="cancelBackBtn" class="action-btn" style="background: #64748b; display: none;">キャンセル</button>
         <button id="retryBackBtn" class="action-btn">裏面撮り直し</button>
         <button id="retryAllBtn" class="action-btn">最初から直す</button>
       </div>
@@ -1122,7 +1124,6 @@
 <div class="modal-footer">
   <!-- 【閲覧モード時のボタン群】 -->
   <div id="view-buttons" class="btn-group">
-     
     <button type="button" class="modal-btn btn-blue" onclick="enableEditMode()">編集</button>
     <button type="button" class="modal-btn btn-red" onclick="deleteCard()">削除</button>
     <button type="button" class="modal-btn btn-gray" onclick="closeDetailModal()">閉じる</button>
@@ -1673,6 +1674,11 @@ backCaptureBtn?.addEventListener('click', () => {
     previewFront.style.display = 'block';
   }
 
+  // ★ 裏面撮影モード中なので「キャンセル」ボタンを表示し、「裏面を撮影」ボタンを隠す
+  if (backCaptureBtn) backCaptureBtn.style.display = 'none';
+  const cancelBackBtn = document.getElementById('cancelBackBtn');
+  if (cancelBackBtn) cancelBackBtn.style.display = 'flex';
+
   showCaptureUI();
   isDetecting = true;
   detectLoop();
@@ -1708,15 +1714,42 @@ retryAllBtn?.addEventListener('click', () => {
   detectLoop();
 });
 
+const cancelBackBtn = document.getElementById('cancelBackBtn');
+
+cancelBackBtn?.addEventListener('click', () => {
+  isFrontSide = true; // 状態を表面に戻す
+  isDetecting = false;
+  
+  // プレビュー表示を表面のみの状態に復元
+  const previewContainer = document.getElementById('previewContainer');
+  if (previewContainer) previewContainer.style.display = 'flex';
+  
+  const previewFront = document.getElementById('previewFront');
+  if (previewFront && capturedImages.front) {
+    previewFront.style.display = 'block';
+  }
+  const previewBack = document.getElementById('previewBack');
+  if (previewBack) previewBack.style.display = 'none'; // 裏面プレビューは隠す
+
+  // アクションUI（送信する / 裏面を撮影）を再表示
+  showActionUI();
+});  
+
 function showActionUI() {
   if (captureBtn) captureBtn.style.display = 'none';
   if (actionBtns) actionBtns.style.display = 'flex';
   
+  const cancelBackBtn = document.getElementById('cancelBackBtn');
+
   if (capturedImages.back) {
+    // 裏面まで撮影完了している場合
     if (backCaptureBtn) backCaptureBtn.style.display = 'none';
+    if (cancelBackBtn) cancelBackBtn.style.display = 'none';
     if (retryBackBtn) retryBackBtn.style.display = 'flex';
   } else {
+    // 表面のみ撮影完了している（または裏面撮影をキャンセルした）場合
     if (backCaptureBtn) backCaptureBtn.style.display = 'flex';
+    if (cancelBackBtn) cancelBackBtn.style.display = 'none';
     if (retryBackBtn) retryBackBtn.style.display = 'none';
   }
 }
