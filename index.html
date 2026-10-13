@@ -1766,6 +1766,7 @@ function showActionUI() {
     if (retryBackBtn) retryBackBtn.style.display = 'none';
   }
 }
+  
 function showCaptureUI() {
   if (captureBtn) captureBtn.style.display = 'flex';
   if (actionBtns) actionBtns.style.display = 'none';
@@ -2206,9 +2207,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });  
 
-// ---------------------------------------------------------
-// 名刺データの更新保存処理 (Firestore直更新 + GAS送信)
-// ---------------------------------------------------------
+
 // ---------------------------------------------------------
 // 名刺データの更新保存処理 (Firestore直更新 + GAS送信)
 // ---------------------------------------------------------
