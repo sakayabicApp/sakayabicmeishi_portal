@@ -2534,7 +2534,7 @@ function handleLogout() {
 }
 
 // ---------------------------------------------------------
-// vCard (.vcf) 生成＆ダウンロード処理 (コンパクト表示・Base64版)
+// vCard (.vcf) 生成＆ダウンロード処理 (UTF-8マルチバイト完全対応版)
 // ---------------------------------------------------------
 function downloadVCard() {
   const card = typeof currentSelectedItem !== 'undefined' ? currentSelectedItem : null;
@@ -2548,49 +2548,57 @@ function downloadVCard() {
   const phone = card.phone ? String(card.phone).trim() : '';
   const company = card.company ? String(card.company).trim() : '';
   const department = card.department ? String(card.department).trim() : '';
-  const title = card.title ? String(card.title).trim() : '';
+  const title = card.title ? String(card.title ).trim() : '';
   const memo = card.memo ? String(card.memo).trim() : '';
 
-  // メモ欄に部署名や既存メモをスマートに結合する（部署名がある場合は先頭に記載）
+  // メモ欄に部署名をまとめる
   let noteContent = memo;
   if (department) {
     noteContent = noteContent ? `部署: ${department} / ${noteContent}` : `部署: ${department}`;
   }
 
   // vCard 3.0 形式
-  // ※ ORGには会社名のみを設定して一覧表示をスッキリさせる
   const vcardLines = [
     'BEGIN:VCARD',
     'VERSION:3.0',
     `N:${card.name || ''};;;;`,
     `FN:${card.name || ''}`,
     `SOUND;X-IRMC-N:${card.nameKana || ''};;;;`,
-    `ORG:${company}`, // 会社名のみ
-    `TITLE:${title}`, // 役職
+    `ORG:${company}`,
+    `TITLE:${title}`,
     `TEL;TYPE=CELL:${mobile}`,
     `TEL;TYPE=WORK,VOICE:${phone}`,
     `EMAIL;TYPE=WORK:${card.email || ''}`,
     `ADR;TYPE=WORK:;;${card.address || ''};;;;`,
-    `NOTE:${noteContent}`, // 部署名やメモをここに集約
+    `NOTE:${noteContent}`,
     'END:VCARD'
   ];
 
   const vcardContent = vcardLines.join('\r\n');
 
-  // Base64エンコードによるData URI生成
-  const base64Content = btoa(unescape(encodeURIComponent(vcardContent)));
-  const dataUri = `data:text/vcard;charset=utf-8;base64,${base64Content}`;
+  try {
+    // ★ 日本語（UTF-8）が文字化け・エラーを起こさない安全なBase64エンコード
+    const utf8Bytes = new TextEncoder().encode(vcardContent);
+    let binaryString = '';
+    for (let i = 0; i < utf8Bytes.length; i++) {
+      binaryString += String.fromCharCode(utf8Bytes[i]);
+    }
+    const base64Content = btoa(binaryString);
+    const dataUri = `data:text/vcard;charset=utf-8;base64,${base64Content}`;
 
-  const fileName = `${card.name || 'contact'}.vcf`;
+    const fileName = `${card.name || 'contact'}.vcf`;
 
-  const a = document.createElement('a');
-  a.href = dataUri;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+    const a = document.createElement('a');
+    a.href = dataUri;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch (e) {
+    console.error("vCard生成エラー:", e);
+    alert("vCardファイルの生成に失敗しました");
+  }
 }
-  
 </script>
 </body>
 </html>
