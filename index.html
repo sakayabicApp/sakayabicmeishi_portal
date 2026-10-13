@@ -2534,11 +2534,9 @@ function handleLogout() {
 }
 
 // ---------------------------------------------------------
-// vCard (.vcf) 生成＆ダウンロード処理 (スマホ側での重複統合・補完最適化版)
+// vCard (.vcf) 生成＆ダウンロード処理 (コンパクト表示・Base64版)
 // ---------------------------------------------------------
-
 function downloadVCard() {
-  // openDetailModal で使われている変数名 `currentSelectedItem` に合わせる
   const card = typeof currentSelectedItem !== 'undefined' ? currentSelectedItem : null;
   
   if (!card) {
@@ -2546,43 +2544,51 @@ function downloadVCard() {
     return;
   }
 
-  // 携帯電話番号と固定電話番号
   const mobile = card.mobile ? String(card.mobile).trim() : '';
   const phone = card.phone ? String(card.phone).trim() : '';
+  const company = card.company ? String(card.company).trim() : '';
+  const department = card.department ? String(card.department).trim() : '';
+  const title = card.title ? String(card.title).trim() : '';
+  const memo = card.memo ? String(card.memo).trim() : '';
 
-  // vCard 3.0 形式のデータ組み立て
+  // メモ欄に部署名や既存メモをスマートに結合する（部署名がある場合は先頭に記載）
+  let noteContent = memo;
+  if (department) {
+    noteContent = noteContent ? `部署: ${department} / ${noteContent}` : `部署: ${department}`;
+  }
+
+  // vCard 3.0 形式
+  // ※ ORGには会社名のみを設定して一覧表示をスッキリさせる
   const vcardLines = [
     'BEGIN:VCARD',
     'VERSION:3.0',
     `N:${card.name || ''};;;;`,
     `FN:${card.name || ''}`,
-    `SOUND;X-IRMC-N:${card.nameKana || ''};;;;`, // フリガナ
-    `ORG:${card.company || ''};${card.department || ''}`,
-    `TITLE:${card.title || ''}`,
+    `SOUND;X-IRMC-N:${card.nameKana || ''};;;;`,
+    `ORG:${company}`, // 会社名のみ
+    `TITLE:${title}`, // 役職
     `TEL;TYPE=CELL:${mobile}`,
     `TEL;TYPE=WORK,VOICE:${phone}`,
     `EMAIL;TYPE=WORK:${card.email || ''}`,
     `ADR;TYPE=WORK:;;${card.address || ''};;;;`,
-    `NOTE:${card.memo || ''}`,
+    `NOTE:${noteContent}`, // 部署名やメモをここに集約
     'END:VCARD'
   ];
 
   const vcardContent = vcardLines.join('\r\n');
 
-  // UTF-8 の Blob を作成
-  const blob = new Blob([vcardContent], { type: 'text/vcard;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
+  // Base64エンコードによるData URI生成
+  const base64Content = btoa(unescape(encodeURIComponent(vcardContent)));
+  const dataUri = `data:text/vcard;charset=utf-8;base64,${base64Content}`;
 
   const fileName = `${card.name || 'contact'}.vcf`;
 
   const a = document.createElement('a');
-  a.href = url;
+  a.href = dataUri;
   a.download = fileName;
   document.body.appendChild(a);
   a.click();
-
   document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
   
 </script>
