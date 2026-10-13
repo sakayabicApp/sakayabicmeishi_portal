@@ -2536,25 +2536,27 @@ function handleLogout() {
 // ---------------------------------------------------------
 // vCard (.vcf) 生成＆ダウンロード処理 (スマホ側での重複統合・補完最適化版)
 // ---------------------------------------------------------
+
 function downloadVCard() {
-  const card = currentSelectedCard; 
+  // openDetailModal で使われている変数名 `currentSelectedItem` に合わせる
+  const card = typeof currentSelectedItem !== 'undefined' ? currentSelectedItem : null;
+  
   if (!card) {
     alert("名刺データが見つかりません");
     return;
   }
 
-  // 携帯電話番号と固定電話番号（数値抽出またはフォーマット）
+  // 携帯電話番号と固定電話番号
   const mobile = card.mobile ? String(card.mobile).trim() : '';
   const phone = card.phone ? String(card.phone).trim() : '';
 
   // vCard 3.0 形式のデータ組み立て
-  // ※ 携帯電話番号(CELL)が含まれているため、スマホ側の連絡先アプリが既存の電話番号と照合して補完・統合してくれます
   const vcardLines = [
     'BEGIN:VCARD',
     'VERSION:3.0',
     `N:${card.name || ''};;;;`,
     `FN:${card.name || ''}`,
-    `SOUND;X-IRMC-N:${card.nameKana || ''};;;;`, // フリガナ(iOS/Android連絡先検索用)
+    `SOUND;X-IRMC-N:${card.nameKana || ''};;;;`, // フリガナ
     `ORG:${card.company || ''};${card.department || ''}`,
     `TITLE:${card.title || ''}`,
     `TEL;TYPE=CELL:${mobile}`,
