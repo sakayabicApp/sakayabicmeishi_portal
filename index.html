@@ -2543,9 +2543,9 @@ function handleLogout() {
 }
 
 // ---------------------------------------------------------
-// vCard (.vcf) 生成＆共有・ダウンロード処理 (会社名・カナ対応 / 役職はメモ集約版)
+// vCard (.vcf) 生成＆ダウンロード処理 (会社名・カナ対応 / 役職はメモ集約 / 安定Blob方式)
 // ---------------------------------------------------------
-async function downloadVCard() {
+function downloadVCard() {
   const card = typeof currentSelectedItem !== 'undefined' ? currentSelectedItem : null;
   
   if (!card) {
@@ -2576,7 +2576,6 @@ async function downloadVCard() {
   }
 
   // vCard 3.0 形式の組み立て
-  // ※ 会社名・カナは ORG フィールドに正しく設定し、役職はNOTEに集約
   const vcardLines = [
     'BEGIN:VCARD',
     'VERSION:3.0',
@@ -2584,7 +2583,7 @@ async function downloadVCard() {
     `FN:${name}`,
     `SOUND;X-IRMC-N:${nameKana};;;;`,          // 氏名フリガナ
     `X-PHONETIC-FIRST-NAME:${nameKana}`,     // Android等での読み対応
-    `ORG:${company};${companyKana}`,         // 会社名;会社名カナ (スマホの会社名欄に正しく入ります)
+    `ORG:${company};${companyKana}`,         // 会社名;会社名カナ (スマホの会社名・カナ欄に反映)
     `TEL;TYPE=CELL:${mobile}`,
     `TEL;TYPE=WORK,VOICE:${phone}`,
     `TEL;TYPE=FAX:${fax}`,
@@ -2595,36 +2594,20 @@ async function downloadVCard() {
   ];
 
   const vcardContent = vcardLines.join('\r\n');
-  const fileName = `${name || 'contact'}.vcf`;
-  const file = new File([vcardContent], fileName, { type: 'text/vcard;charset=utf-8;' });
 
-  // スマホの共有シート（シェアAPI）を呼び出し
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({
-        files: [file],
-        title: `${name || '名刺'}の連絡先`,
-        text: '連絡先データをインポートします。'
-      });
-      return;
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.log("共有APIエラー、通常ダウンロードに切り替えます", err);
-      } else {
-        return;
-      }
-    }
-  }
-
-  // フォールバック（通常ダウンロード）
   try {
+    // 安定の Blob URL 方式
     const blob = new Blob([vcardContent], { type: 'text/vcard;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
+
+    const fileName = `${name || 'contact'}.vcf`;
+
     const a = document.createElement('a');
     a.href = url;
     a.download = fileName;
     document.body.appendChild(a);
     a.click();
+
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (e) {
