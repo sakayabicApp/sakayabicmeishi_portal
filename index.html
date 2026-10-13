@@ -1091,13 +1091,14 @@
     <span class="meta-label">最終更新日時</span>
     <span class="meta-value" id="detail-updatedAt">-</span>
   </div>
+  <button type="button" class="btn btn-outline-success" onclick="downloadVCard()">連絡先に保存</button>
 </div> 
   
 <!-- 詳細モーダル内の下部ボタンエリア -->
 <div class="modal-footer">
   <!-- 【閲覧モード時のボタン群】 -->
   <div id="view-buttons" class="btn-group">
-     <button type="button" class="modal-btn" onclick="downloadVCard()">連絡先に保存</button>
+     
     <button type="button" class="modal-btn btn-blue" onclick="enableEditMode()">編集</button>
     <button type="button" class="modal-btn btn-red" onclick="deleteCard()">削除</button>
     <button type="button" class="modal-btn btn-gray" onclick="closeDetailModal()">閉じる</button>
