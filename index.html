@@ -1742,12 +1742,17 @@ function showActionUI() {
   const cancelBackBtn = document.getElementById('cancelBackBtn');
 
   if (capturedImages.back) {
-    // 裏面まで撮影完了している場合
+    // 1. 裏面まで撮影完了している場合
     if (backCaptureBtn) backCaptureBtn.style.display = 'none';
     if (cancelBackBtn) cancelBackBtn.style.display = 'none';
     if (retryBackBtn) retryBackBtn.style.display = 'flex';
+  } else if (!isFrontSide) {
+    // 2. ★「裏面を撮影」ボタンを押して裏面撮影モードに入っている最中の場合
+    if (backCaptureBtn) backCaptureBtn.style.display = 'none';
+    if (cancelBackBtn) cancelBackBtn.style.display = 'flex'; // キャンセルボタンを表示
+    if (retryBackBtn) retryBackBtn.style.display = 'none';
   } else {
-    // 表面のみ撮影完了している（または裏面撮影をキャンセルした）場合
+    // 3. 表面だけを撮影して、これから裏面を撮るかどうか選べる初期状態の場合
     if (backCaptureBtn) backCaptureBtn.style.display = 'flex';
     if (cancelBackBtn) cancelBackBtn.style.display = 'none';
     if (retryBackBtn) retryBackBtn.style.display = 'none';
