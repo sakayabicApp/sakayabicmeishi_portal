@@ -597,10 +597,12 @@
   /* 769px以上（PCなど）で両面ある場合は横に2列表示 */
   @media (min-width: 769px) {
     .card-preview-container.has-both {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, auto);
+      justify-content: center;              /* グリッド全体を真ん中に配置 */
+      gap: 16px;
     }
     .card-preview-container.has-both .preview-item {
-      max-width:360px;
+      max-width:320px;
     }
   }
 
