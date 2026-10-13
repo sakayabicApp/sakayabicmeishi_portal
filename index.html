@@ -1666,7 +1666,7 @@ captureBtn?.addEventListener('click', async () => {
   showActionUI();
   src.delete();
 });
-  
+
 // 「裏面を撮影」ボタンを押したとき
 backCaptureBtn?.addEventListener('click', () => {
   isFrontSide = false; // 裏面撮影モードへ切り替え
@@ -1680,7 +1680,7 @@ backCaptureBtn?.addEventListener('click', () => {
     previewFront.style.display = 'block';
   }
 
-  // ★ プレビュー領域を隠して、カメラ撮影画面を表示状態にする
+  // プレビュー領域を隠して、カメラ撮影画面を表示状態にする
   const previewContainer = document.getElementById('previewContainer');
   if (previewContainer) previewContainer.style.display = 'none';
 
@@ -1745,55 +1745,6 @@ cancelBackBtn?.addEventListener('click', () => {
 
   // アクションUI（送信する / 裏面を撮影）を再表示
   showActionUI();
-});
-// 「裏面を撮影」ボタンを押したとき
-backCaptureBtn?.addEventListener('click', () => {
-  isFrontSide = false; // 裏面撮影モードへ切り替え
-  const guidePreview = document.getElementById('guidePreview');
-  if (guidePreview) {
-    guidePreview.style.display = 'none';
-    guidePreview.src = "";
-  }
-  const previewFront = document.getElementById('previewFront');
-  if (previewFront && capturedImages.front) {
-    previewFront.style.display = 'block';
-  }
-
-  // ★ プレビュー領域を隠して、カメラ撮影画面を表示状態にする
-  const previewContainer = document.getElementById('previewContainer');
-  if (previewContainer) previewContainer.style.display = 'none';
-
-  showCaptureUI();   // カメラ画面＆撮影ボタンを表示
-  showActionUI();    // アクションUI（キャンセルボタン等）の切り替え
-  isDetecting = true;
-  detectLoop();
-});
-
-// 「キャンセル」ボタンを押したとき
-const cancelBackBtn = document.getElementById('cancelBackBtn');
-
-cancelBackBtn?.addEventListener('click', () => {
-  isFrontSide = true; // 状態を表面に戻す
-  isDetecting = false;
-
-  // カメラを停止・非表示にして、プレビュー画面に戻る
-  if (video) video.style.display = 'none';
-  const guideFrame = document.getElementById('guide-frame');
-  if (guideFrame) guideFrame.style.display = 'none';
-
-  // プレビュー表示（表面のみの状態）を復元
-  const previewContainer = document.getElementById('previewContainer');
-  if (previewContainer) previewContainer.style.display = 'flex';
-  
-  const previewFront = document.getElementById('previewFront');
-  if (previewFront && capturedImages.front) {
-    previewFront.style.display = 'block';
-  }
-  const previewBack = document.getElementById('previewBack');
-  if (previewBack) previewBack.style.display = 'none'; // 裏面プレビューは隠す
-
-  // アクションUI（送信する / 裏面を撮影）を再表示
-  showActionUI();
 });  
 
 // アクションボタン群の表示制御
@@ -1813,7 +1764,7 @@ function showActionUI() {
     if (backCaptureBtn) backCaptureBtn.style.display = 'none';
     if (cancelBackBtn) cancelBackBtn.style.display = 'flex';
     if (retryBackBtn) retryBackBtn.style.display = 'none';
-    if (retryAllBtn) retryAllBtn.style.display = 'none'; // 裏面撮影中は最初から直すも非表示にする場合
+    if (retryAllBtn) retryAllBtn.style.display = 'none';
   } else {
     // 3. 表面だけ撮影した初期状態の場合
     if (backCaptureBtn) backCaptureBtn.style.display = 'flex';
@@ -1825,7 +1776,7 @@ function showActionUI() {
 
 // カメラ撮影UI（シャッターボタンを表示する状態）
 function showCaptureUI() {
-  if (captureBtn) captureBtn.style.display = 'flex'; // ★ 裏面撮影中もシャッターボタンを表示する
+  if (captureBtn) captureBtn.style.display = 'flex'; // 裏面撮影中もシャッターボタンを表示する
   if (actionBtns) actionBtns.style.display = 'none';
   
   if (canvas) canvas.style.display = 'none';
