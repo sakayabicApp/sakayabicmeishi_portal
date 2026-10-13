@@ -533,7 +533,7 @@
     background: #f1f5f9;
   }
 
-  /* 画像プレビュー容器 */
+ /* 画像プレビュー容器（デフォルト：片面時は中央に1列配置） */
   .card-preview-container {
     display: flex;
     flex-direction: column;
@@ -553,7 +553,7 @@
     flex-direction: column;
     align-items: center;
     width: 100%;
-    max-width: 400px; /* プレビューが大きくなりすぎないように制限 */
+    max-width: 360px;
   }
 
   .preview-item img {
@@ -576,21 +576,30 @@
     display: none !important;
   }
 
-  /* プレビュー画像レスポンシブ配置 */
+  /* 両面ある場合（has-both）のグリッド設定 */
+  .card-preview-container.has-both {
+    display: grid;
+    gap: 10px;
+    max-width: 100%;
+  }
+
+  /* 768px以下（スマホなど）は両面でも縦に1列 */
   @media (max-width: 768px) {
     .card-preview-container.has-both {
       grid-template-columns: 1fr;
     }
-    .card-preview-container.has-single {
+  }
+
+  /* 769px以上（PCなど）で両面ある場合は横に2列表示 */
+  @media (min-width: 769px) {
+    .card-preview-container.has-both {
       grid-template-columns: repeat(2, 1fr);
+    }
+    .preview-item {
+      max-width: 100%;
     }
   }
 
-  @media (min-width: 769px) {
-    .card-preview-container {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
 
   /* モーダルフォーム */
   .form-group {
