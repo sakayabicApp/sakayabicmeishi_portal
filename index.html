@@ -1663,7 +1663,7 @@ captureBtn?.addEventListener('click', async () => {
 });
   
 backCaptureBtn?.addEventListener('click', () => {
-  isFrontSide = false;
+  isFrontSide = false; // 裏面撮影モードへ切り替え
   const guidePreview = document.getElementById('guidePreview');
   if (guidePreview) {
     guidePreview.style.display = 'none';
@@ -1674,12 +1674,12 @@ backCaptureBtn?.addEventListener('click', () => {
     previewFront.style.display = 'block';
   }
 
-  // ★ 裏面撮影モード中なので「キャンセル」ボタンを表示し、「裏面を撮影」ボタンを隠す
-  if (backCaptureBtn) backCaptureBtn.style.display = 'none';
-  const cancelBackBtn = document.getElementById('cancelBackBtn');
-  if (cancelBackBtn) cancelBackBtn.style.display = 'flex';
-
+  // 1. まずカメラ撮影用のUI（映像やガイド枠）に切り替え
   showCaptureUI();
+
+  // 2. ★ その後でアクションUIの状態を更新し、キャンセルボタンを確実に表示させる
+  showActionUI();
+
   isDetecting = true;
   detectLoop();
 });
@@ -1734,6 +1734,81 @@ cancelBackBtn?.addEventListener('click', () => {
   // アクションUI（送信する / 裏面を撮影）を再表示
   showActionUI();
 });  
+
+function showActionUI() {
+  if (captureBtn) captureBtn.style.display = 'none';
+  if (actionBtns) actionBtns.style.display = 'flex';
+  
+  const cancelBackBtn = document.getElementById('cancelBackBtn');
+
+  if (capturedImages.back) {
+    // 1. 裏面まで撮影完了している場合
+    if (backCaptureBtn) backCaptureBtn.style.display = 'none';
+    if (cancelBackBtn) cancelBackBtn.style.display = 'none';
+    if (retryBackBtn) retryBackBtn.style.display = 'flex';
+  } else if (!isFrontSide) {
+    // 2. ★「裏面を撮影」ボタンを押して裏面撮影モードに入っている最中の場合
+    if (backCaptureBtn) backCaptureBtn.style.display = 'none';
+    if (cancelBackBtn) cancelBackBtn.style.display = 'flex'; // キャンセルボタンを表示
+    if (retryBackBtn) retryBackBtn.style.display = 'none';
+  } else {
+    // 3. 表面だけを撮影して、これから裏面を撮るかどうか選べる初期状態の場合
+    if (backCaptureBtn) backCaptureBtn.style.display = 'flex';
+    if (cancelBackBtn) cancelBackBtn.style.display = 'none';
+    if (retryBackBtn) retryBackBtn.style.display = 'none';
+  }
+}
+
+retryBackBtn?.addEventListener('click', () => {
+  isFrontSide = false;
+  capturedImages.back = null;
+  const previewBack = document.getElementById('previewBack');
+  if (previewBack) previewBack.src = "";
+  
+  const previewContainer = document.getElementById('previewContainer');
+  if (previewContainer) previewContainer.style.display = 'none';
+
+  const guidePreview = document.getElementById('guidePreview');
+  if (guidePreview && capturedImages.front) {
+    guidePreview.src = capturedImages.front;
+    guidePreview.style.display = 'block';
+  }
+
+  showCaptureUI();
+  isDetecting = true;
+  detectLoop();
+});
+
+retryAllBtn?.addEventListener('click', () => {
+  globalCardId = null;
+  isFrontSide = true;
+  capturedImages = { front: null, back: null };
+  resetPreview();
+  showCaptureUI();
+  isDetecting = true;
+  detectLoop();
+});
+
+const cancelBackBtn = document.getElementById('cancelBackBtn');
+
+cancelBackBtn?.addEventListener('click', () => {
+  isFrontSide = true; // 状態を表面に戻す
+  isDetecting = false;
+  
+  // プレビュー表示を表面のみの状態に復元
+  const previewContainer = document.getElementById('previewContainer');
+  if (previewContainer) previewContainer.style.display = 'flex';
+  
+  const previewFront = document.getElementById('previewFront');
+  if (previewFront && capturedImages.front) {
+    previewFront.style.display = 'block';
+  }
+  const previewBack = document.getElementById('previewBack');
+  if (previewBack) previewBack.style.display = 'none'; // 裏面プレビューは隠す
+
+  // アクションUI（送信する / 裏面を撮影）を再表示
+  showActionUI();
+}); 
 
 function showActionUI() {
   if (captureBtn) captureBtn.style.display = 'none';
