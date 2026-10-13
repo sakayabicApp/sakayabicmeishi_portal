@@ -535,23 +535,25 @@
 
   /* 画像プレビュー容器 */
   .card-preview-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    width: 100%;
+  }
+  
+　/* 2枚（表裏両方）ある場合のグリッド設定 */
+  .card-preview-container.has-both {
     display: grid;
     gap: 10px;
-    margin-bottom: 16px;
-    border: none;
-    background: transparent;
-    box-shadow: none;
-    padding: 0;
   }
-
   .preview-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: none;
-    border: none;
-    box-shadow: none;
-    border-radius: 0;
+    width: 100%;
+    max-width: 400px; /* プレビューが大きくなりすぎないように制限 */
   }
 
   .preview-item img {
@@ -906,8 +908,6 @@
   
 </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
-
-
 
   
 </head>
@@ -1992,7 +1992,10 @@ function openDetailModal(item) {
 
   if (container) {
     container.classList.remove('has-both', 'has-single');
-    container.classList.add(hasFront && hasBack ? 'has-both' : 'has-single');
+    // 両方ある場合は 'has-both' を付与して2列グリッドにし、片面だけなら単独中央表示にする
+    if (hasFront && hasBack) {
+      container.classList.add('has-both');
+    }
   }
 
   setFormReadOnly(true); // 閲覧モードで開く
