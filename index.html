@@ -1078,7 +1078,7 @@
   <label>備考 / メモ</label>
   <textarea id="edit-memo" class="auto-resize" rows="2" placeholder="商談メモや補足情報を入力..."></textarea>
 </div>    
- <button type="button" class="btn btn-outline-success" onclick="downloadVCard()">連絡先に保存</button>    
+ <button type="button" class="modal-btn btn-green" onclick="downloadVCard()" style="width: 100%; margin-top: 6px;">📲 連絡先に保存 (.vcf)</button>
   </div>
  <!-- モーダル本文 (.modal-body) の一番下に追加 -->
 <div class="meta-info-grid">
@@ -2543,7 +2543,7 @@ function handleLogout() {
 }
 
 // ---------------------------------------------------------
-// vCard (.vcf) 生成＆ダウンロード処理 (会社名・カナ対応 / 役職はメモ集約 / 安定Blob方式)
+// vCard (.vcf) 生成＆ダウンロード処理 (会社名のみ・名前カナ対応・役職メモ集約・安定Blob方式)
 // ---------------------------------------------------------
 function downloadVCard() {
   const card = typeof currentSelectedItem !== 'undefined' ? currentSelectedItem : null;
@@ -2557,14 +2557,13 @@ function downloadVCard() {
   const phone = card.phone ? String(card.phone).trim() : '';
   const fax = card.fax ? String(card.fax).trim() : '';
   const company = card.company ? String(card.company).trim() : '';
-  const companyKana = card.companyKana ? String(card.companyKana).trim() : '';
   const department = card.department ? String(card.department).trim() : '';
   const title = card.title ? String(card.title).trim() : ''; // 役職
   const name = card.name ? String(card.name).trim() : '';
   const nameKana = card.nameKana ? String(card.nameKana).trim() : '';
   const memo = card.memo ? String(card.memo).trim() : '';
 
-  // ★ 部署名と役職をまとめてメモ欄へ記載
+  // 部署名と役職をまとめてメモ欄へ記載
   let details = [];
   if (department) details.push(`部署: ${department}`);
   if (title) details.push(`役職: ${title}`);
@@ -2575,7 +2574,7 @@ function downloadVCard() {
     noteContent = noteContent ? `${infoPrefix} / ${noteContent}` : infoPrefix;
   }
 
-  // vCard 3.0 形式の組み立て
+  // vCard 3.0 形式の組み立て（会社名カナは含めない）
   const vcardLines = [
     'BEGIN:VCARD',
     'VERSION:3.0',
@@ -2583,7 +2582,7 @@ function downloadVCard() {
     `FN:${name}`,
     `SOUND;X-IRMC-N:${nameKana};;;;`,          // 氏名フリガナ
     `X-PHONETIC-FIRST-NAME:${nameKana}`,     // Android等での読み対応
-    `ORG:${company};${companyKana}`,         // 会社名;会社名カナ (スマホの会社名・カナ欄に反映)
+    `ORG:${company}`,                        // 会社名のみ
     `TEL;TYPE=CELL:${mobile}`,
     `TEL;TYPE=WORK,VOICE:${phone}`,
     `TEL;TYPE=FAX:${fax}`,
