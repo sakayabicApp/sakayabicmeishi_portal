@@ -1044,6 +1044,12 @@
   <div id="action-phone" class="action-link-container"></div>
   <textarea id="edit-phone" class="auto-resize" rows="1"></textarea>
 </div>
+<!-- ★ 追加: FAX -->
+<div class="form-group">
+  <label>FAX</label>
+  <div id="action-fax" class="action-link-container"></div>
+  <textarea id="edit-fax" class="auto-resize" rows="1"></textarea>
+</div>    
 <!-- 携帯電話 -->
 <div class="form-group">
   <label>携帯電話</label>
@@ -1933,7 +1939,7 @@ function openDetailModal(item) {
 
   const fields = [
     'docId', 'rowIndex', 'company', 'companyKana', 'name', 'nameKana',
-    'department', 'title', 'phone', 'mobile', 'email', 'zipCode', 'address', 'memo'
+    'department', 'title', 'phone', 'fax', 'mobile', 'email', 'zipCode', 'address', 'memo'
   ];
   
   fields.forEach(field => {
@@ -2000,6 +2006,7 @@ function openDetailModal(item) {
 // アクションリンクの生成関数
 function renderDirectActions(item) {
   setupPhoneLink('phone', item.phone);
+  setupPhoneLink('fax', item.fax); // ★ FAX用リンク設定を追加
   setupPhoneLink('mobile', item.mobile);
 
   // Email
@@ -2059,7 +2066,7 @@ function setFormReadOnly(isReadOnly) {
   });
   
   // アクション対象のフィールドリスト
-  const actionFields = ['phone', 'mobile', 'email', 'address'];
+  const actionFields = ['phone', 'fax', 'mobile', 'email', 'address'];
 
   // 閲覧/編集モードに応じたダイレクトアクションと入力欄の表示切替
   actionFields.forEach(field => {
@@ -2176,6 +2183,7 @@ async function saveCardEdit() {
     department: getValue('edit-department'),
     title: getValue('edit-title'),
     phone: getValue('edit-phone'),
+    fax: getValue('edit-fax'), // ★ 追加
     mobile: getValue('edit-mobile'),
     email: getValue('edit-email'),
     zipCode: getValue('edit-zipCode'),
@@ -2194,6 +2202,7 @@ async function saveCardEdit() {
         department: payload.department,
         title: payload.title,
         phone: payload.phone,
+        fax: payload.fax, // ★ 追加: Firestore更新
         mobile: payload.mobile,
         email: payload.email,
         zipCode: payload.zipCode,
@@ -2534,7 +2543,7 @@ function handleLogout() {
 }
 
 // ---------------------------------------------------------
-// vCard (.vcf) 生成＆ダウンロード処理 (UTF-8マルチバイト完全対応版)
+// vCard (.vcf) 生成＆ダウンロード処理 (シンプル・安定のBlob方式)
 // ---------------------------------------------------------
 function downloadVCard() {
   const card = typeof currentSelectedItem !== 'undefined' ? currentSelectedItem : null;
@@ -2546,9 +2555,10 @@ function downloadVCard() {
 
   const mobile = card.mobile ? String(card.mobile).trim() : '';
   const phone = card.phone ? String(card.phone).trim() : '';
+  const fax = card.fax ? String(card.fax).trim() : ''; // ★ ここでしっかり変数定義を追加
   const company = card.company ? String(card.company).trim() : '';
   const department = card.department ? String(card.department).trim() : '';
-  const title = card.title ? String(card.title ).trim() : '';
+  const title = card.title ? String(card.title).trim() : '';
   const memo = card.memo ? String(card.memo).trim() : '';
 
   // メモ欄に部署名をまとめる
@@ -2568,6 +2578,7 @@ function downloadVCard() {
     `TITLE:${title}`,
     `TEL;TYPE=CELL:${mobile}`,
     `TEL;TYPE=WORK,VOICE:${phone}`,
+    `TEL;TYPE=FAX:${fax}`,
     `EMAIL;TYPE=WORK:${card.email || ''}`,
     `ADR;TYPE=WORK:;;${card.address || ''};;;;`,
     `NOTE:${noteContent}`,
@@ -2577,23 +2588,20 @@ function downloadVCard() {
   const vcardContent = vcardLines.join('\r\n');
 
   try {
-    // ★ 日本語（UTF-8）が文字化け・エラーを起こさない安全なBase64エンコード
-    const utf8Bytes = new TextEncoder().encode(vcardContent);
-    let binaryString = '';
-    for (let i = 0; i < utf8Bytes.length; i++) {
-      binaryString += String.fromCharCode(utf8Bytes[i]);
-    }
-    const base64Content = btoa(binaryString);
-    const dataUri = `data:text/vcard;charset=utf-8;base64,${base64Content}`;
+    // 安定の Blob URL 方式に戻す
+    const blob = new Blob([vcardContent], { type: 'text/vcard;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
 
     const fileName = `${card.name || 'contact'}.vcf`;
 
     const a = document.createElement('a');
-    a.href = dataUri;
+    a.href = url;
     a.download = fileName;
     document.body.appendChild(a);
     a.click();
+
     document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (e) {
     console.error("vCard生成エラー:", e);
     alert("vCardファイルの生成に失敗しました");
