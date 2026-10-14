@@ -290,14 +290,21 @@
 
   #controls {
     position: absolute;
-    bottom: 30px;
+    bottom: 25px;
     left: 0;
     z-index: 30;
     width: 100%;
     display: flex;
-    justify-content: center;
+    flex-direction: column; /* 縦並びにしてボタン同士が重ならないようにする */
     align-items: center;
+    gap: 12px;
     padding: 0 20px;
+    pointer-events: none; /* コントロール全体の背景はタッチを透過させ、ボタン自体で受け付ける */
+  }
+
+  /* 子要素のボタンやコンテナはタッチを有効化 */
+  #controls > * {
+    pointer-events: auto;
   }
 
   #capture-btn {
@@ -1670,6 +1677,7 @@ captureBtn?.addEventListener('click', async () => {
 // 「裏面を撮影」ボタンを押したとき
 backCaptureBtn?.addEventListener('click', () => {
   isFrontSide = false; // 裏面撮影モードへ切り替え
+  
   const guidePreview = document.getElementById('guidePreview');
   if (guidePreview) {
     guidePreview.style.display = 'none';
@@ -1684,8 +1692,9 @@ backCaptureBtn?.addEventListener('click', () => {
   const previewContainer = document.getElementById('previewContainer');
   if (previewContainer) previewContainer.style.display = 'none';
 
-  showCaptureUI();   // カメラ画面＆撮影ボタンを表示
-  showActionUI();    // アクションUI（キャンセルボタン等）の切り替え
+  // ★ 裏面撮影中用のUI表示（シャッターボタン ＆ キャンセルボタンを同時に出す）
+  showBackCaptureUI();
+  
   isDetecting = true;
   detectLoop();
 });
@@ -1747,9 +1756,9 @@ cancelBackBtn?.addEventListener('click', () => {
   showActionUI();
 });  
 
-// アクションボタン群の表示制御
+// アクションボタン群の表示制御（表面撮影後、または両面撮影後のプレビュー画面用）
 function showActionUI() {
-  if (captureBtn) captureBtn.style.display = 'none'; // アクション選択時は撮影ボタンを隠す
+  if (captureBtn) captureBtn.style.display = 'none'; // プレビュー時はシャッターボタンを隠す
   if (actionBtns) actionBtns.style.display = 'flex';
   
   const cancelBackBtn = document.getElementById('cancelBackBtn');
@@ -1759,14 +1768,8 @@ function showActionUI() {
     if (backCaptureBtn) backCaptureBtn.style.display = 'none';
     if (cancelBackBtn) cancelBackBtn.style.display = 'none';
     if (retryBackBtn) retryBackBtn.style.display = 'flex';
-  } else if (!isFrontSide) {
-    // 2. 裏面撮影モード中の場合（キャンセルボタンのみ表示）
-    if (backCaptureBtn) backCaptureBtn.style.display = 'none';
-    if (cancelBackBtn) cancelBackBtn.style.display = 'flex';
-    if (retryBackBtn) retryBackBtn.style.display = 'none';
-    if (retryAllBtn) retryAllBtn.style.display = 'none';
   } else {
-    // 3. 表面だけ撮影した初期状態の場合
+    // 2. 表面だけ撮影した初期状態の場合
     if (backCaptureBtn) backCaptureBtn.style.display = 'flex';
     if (cancelBackBtn) cancelBackBtn.style.display = 'none';
     if (retryBackBtn) retryBackBtn.style.display = 'none';
@@ -1774,9 +1777,9 @@ function showActionUI() {
   }
 }
 
-// カメラ撮影UI（シャッターボタンを表示する状態）
+// カメラ撮影UI（表面撮影用：シャッターボタンのみ表示）
 function showCaptureUI() {
-  if (captureBtn) captureBtn.style.display = 'flex'; // 裏面撮影中もシャッターボタンを表示する
+  if (captureBtn) captureBtn.style.display = 'flex'; 
   if (actionBtns) actionBtns.style.display = 'none';
   
   if (canvas) canvas.style.display = 'none';
@@ -1788,6 +1791,26 @@ function showCaptureUI() {
   }
 }
 
+  // ★ 追加: 裏面撮影中専用のUI（シャッターボタン ＋ キャンセルボタンを表示）
+function showBackCaptureUI() {
+  if (captureBtn) captureBtn.style.display = 'flex'; // シャッターボタンを表示
+  if (actionBtns) actionBtns.style.display = 'flex'; // アクションボタン群を表示
+  
+  // アクションボタンの中で「キャンセル」だけを表示し、他を隠す
+  if (backCaptureBtn) backCaptureBtn.style.display = 'none';
+  const cancelBackBtn = document.getElementById('cancelBackBtn');
+  if (cancelBackBtn) cancelBackBtn.style.display = 'flex';
+  if (retryBackBtn) retryBackBtn.style.display = 'none';
+  if (retryAllBtn) retryAllBtn.style.display = 'none';
+
+  if (canvas) canvas.style.display = 'none';
+  if (video) video.style.display = 'block';
+  
+  if (guideFrame) {
+    guideFrame.style.display = 'block';
+    guideFrame.classList.remove('detected');
+  }
+}
 
 function resetPreview() {
   const guidePreview = document.getElementById('guidePreview');
@@ -1891,7 +1914,6 @@ async function uploadAllImages() {
   return true;
 }
 
-// DOMが完全に読み込まれてからボタンにイベントを登録する
 document.addEventListener('DOMContentLoaded', () => {
   const sendBtn = document.getElementById('sendBtn');
   
