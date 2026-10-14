@@ -1891,31 +1891,41 @@ async function uploadAllImages() {
   return true;
 }
 
-sendBtn?.addEventListener('click', async () => {
-  if (!capturedImages.front) {
-    alert("表面が撮影されていません");
-    return;
-  }
+// DOMが完全に読み込まれてからボタンにイベントを登録する
+document.addEventListener('DOMContentLoaded', () => {
+  const sendBtn = document.getElementById('sendBtn');
+  
+  sendBtn?.addEventListener('click', async () => {
+    if (!capturedImages.front) {
+      alert("表面が撮影されていません");
+      return;
+    }
 
-  sendBtn.disabled = true;
-  const originalText = sendBtn.textContent;
-  sendBtn.textContent = "送信中...";
+    sendBtn.disabled = true;
+    const originalText = sendBtn.textContent;
+    sendBtn.textContent = "送信中...";
 
-  try {
-    await uploadAllImages();
-    alert("送信完了しました");
-    
-    globalCardId = null;
-    isFrontSide = true;
-    capturedImages = { front: null, back: null };
-    resetPreview();
-    showCaptureUI();
-  } catch (e) {
-    alert("エラー: " + e.message);
-  } finally {
-    sendBtn.disabled = false;
-    sendBtn.textContent = originalText;
-  }
+    try {
+      await uploadAllImages();
+      alert("送信完了しました");
+      
+      // データを初期状態にリセット
+      globalCardId = null;
+      isFrontSide = true;
+      capturedImages = { front: null, back: null };
+      
+      // プレビューの非表示とリセット
+      resetPreview();
+      
+      // カメラ撮影UIと初期のアクションボタン状態に復元
+      showCaptureUI();
+    } catch (e) {
+      alert("エラー: " + e.message);
+    } finally {
+      sendBtn.disabled = false;
+      sendBtn.textContent = originalText;
+    }
+  });
 });
 
 // ★ 修正箇所：安全な数値パースでエラーを防止
