@@ -1788,7 +1788,7 @@ function showActionUI() {
   } else {
     // --- 表面だけ撮影した初期状態（または裏面撮影からキャンセルして戻った場合） ---
     if (sendBtn) sendBtn.style.display = 'flex';
-    if (backCaptureBtn) backCaptureBtn.style.display = 'flex';
+    if (backCaptureBtn) sendBtn.style.display = 'flex';
     if (cancelBackBtn) cancelBackBtn.style.display = 'none';
     if (retryBackBtn) retryBackBtn.style.display = 'none';
     if (retryAllBtn) retryAllBtn.style.display = 'flex';
@@ -1798,7 +1798,7 @@ function showActionUI() {
 // 7. 表面撮影中のカメラUI
 function showCaptureUI() {
   if (captureBtn) captureBtn.style.display = 'flex'; 
-  if (actionBtns) actionBtns.style.display = 'flex';
+  if (actionBtns) actionBtns.style.display = 'none'; // ★ 撮影中はアクション群を非表示
   
   if (sendBtn) sendBtn.style.display = 'none';
   if (backCaptureBtn) sendBtn.style.display = 'none';
@@ -1820,7 +1820,7 @@ function showCaptureUI() {
 // 8. 裏面撮影中（または撮り直し中）専用のカメラUI
 function showBackCaptureUI() {
   if (captureBtn) captureBtn.style.display = 'flex'; 
-  if (actionBtns) actionBtns.style.display = 'flex';
+  if (actionBtns) actionBtns.style.display = 'flex'; // ★ キャンセルボタンを表示するため表示
   
   if (sendBtn) sendBtn.style.display = 'none';
   if (backCaptureBtn) sendBtn.style.display = 'none';
@@ -1828,7 +1828,7 @@ function showBackCaptureUI() {
   if (retryAllBtn) sendBtn.style.display = 'none';
 
   const cancelBackBtn = document.getElementById('cancelBackBtn');
-  if (cancelBackBtn) cancelBackBtn.style.display = 'flex'; // キャンセルボタンを表示
+  if (cancelBackBtn) cancelBackBtn.style.display = 'flex'; // 「キャンセル」のみ表示
 
   if (canvas) canvas.style.display = 'none';
   if (video) video.style.display = 'block';
