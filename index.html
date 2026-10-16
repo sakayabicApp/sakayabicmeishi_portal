@@ -1656,6 +1656,7 @@ captureBtn?.addEventListener('click', async () => {
   } else {
     // --- 裏面の撮影完了 ---
     capturedImages.back = dataUrl;
+    isFrontSide = true; // ★ ここで状態を表面（デフォルト）に戻す！
     
     const previewBack = document.getElementById('previewBack');
     if (previewBack) {
@@ -1683,7 +1684,7 @@ captureBtn?.addEventListener('click', async () => {
 
 // 「裏面を撮影」ボタンを押したとき
 backCaptureBtn?.addEventListener('click', () => {
-  isFrontSide = false; // 裏面撮影モードへ切り替え
+  isFrontSide = false; // 裏面撮影モードへ切り替え[cite: 3, 4]
   previousBackImage = null; // 新規撮影なのでクリア
   
   const guidePreview = document.getElementById('guidePreview');
@@ -1707,7 +1708,7 @@ backCaptureBtn?.addEventListener('click', () => {
 
 // 「裏面撮り直し」ボタンを押したとき
 retryBackBtn?.addEventListener('click', () => {
-  isFrontSide = false;
+  isFrontSide = false; // 撮り直しのため裏面モードへ
   previousBackImage = capturedImages.back; // ★ 直前の裏面画像を保持しておく（前に戻れるようにする）
   capturedImages.back = null;             // 撮り直しのため一時クリア
   
@@ -1754,7 +1755,7 @@ cancelBackBtn?.addEventListener('click', () => {
     previousBackImage = null;
   }
 
-  isFrontSide = true; // 状態を表面に戻す
+  isFrontSide = true; // 状態を表面に戻す[cite: 3, 4]
 
   // プレビュー表示コンテナを再表示
   const previewContainer = document.getElementById('previewContainer');
@@ -1779,7 +1780,7 @@ cancelBackBtn?.addEventListener('click', () => {
 
   // アクションUI（送信する / 裏面を撮影 or 撮り直し）を再表示
   showActionUI();
-}); 
+});
 
 // アクションボタン群の表示制御
 function showActionUI() {
