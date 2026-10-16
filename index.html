@@ -1746,29 +1746,49 @@ retryAllBtn?.addEventListener('click', () => {
 // 5. 「キャンセル」ボタンを押したとき（前に戻る処理）
 const cancelBackBtn = document.getElementById('cancelBackBtn');
 
-// 5. 「キャンセル」ボタンを押したとき（前に戻る処理）
 cancelBackBtn?.addEventListener('click', () => {
   isDetecting = false;
   if (video) video.style.display = 'none';
   const guideFrame = document.getElementById('guide-frame');
   if (guideFrame) guideFrame.style.display = 'none';
 
-  // ★ 修正：キャンセル時は裏面を未撮影（null）にリセットし、表面だけの状態に戻す
-  capturedImages.back = null;
-  previousBackImage = null;
+  // ★「裏面撮り直し」からのキャンセルなら、退避していた元の裏面画像を復活させる
+  if (previousBackImage) {
+    capturedImages.back = previousBackImage;
+    previousBackImage = null;
+  } else {
+    // 初めての「裏面を撮影」からのキャンセルなら裏面はなし
+    capturedImages.back = null;
+  }
+
   isFrontSide = true; 
 
-  // 表面撮影直後のプレビュー状態（guidePreview）を確実に復元する
+  // ★ 表面撮影直後の単体プレビュー（guidePreview）は非表示にする
   const guidePreview = document.getElementById('guidePreview');
-  if (guidePreview && capturedImages.front) {
-    guidePreview.src = capturedImages.front;
-    guidePreview.style.display = 'block';
+  if (guidePreview) guidePreview.style.display = 'none';
+
+  // ★ 表裏のプレビューコンテナを表示する
+  const previewContainer = document.getElementById('previewContainer');
+  if (previewContainer) previewContainer.style.display = 'flex';
+  
+  const previewFront = document.getElementById('previewFront');
+  if (previewFront && capturedImages.front) {
+    previewFront.style.display = 'block';
+    previewFront.src = capturedImages.front;
   }
   
-  // 両面用のプレビューコンテナは非表示にする
-  const previewContainer = document.getElementById('previewContainer');
-  if (previewContainer) previewContainer.style.display = 'none';
+  const previewBack = document.getElementById('previewBack');
+  if (previewBack) {
+    if (capturedImages.back) {
+      previewBack.style.display = 'block';
+      previewBack.src = capturedImages.back;
+    } else {
+      previewBack.style.display = 'none';
+      previewBack.src = "";
+    }
+  }
 
+  // ★ プレビュー用のボタン表示に切り替える（両面揃っていれば送信・撮り直し、片面なら送信・裏面撮影）
   showActionUI();
 });
 
