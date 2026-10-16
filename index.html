@@ -980,7 +980,7 @@
 
       <div id="actionBtns">
         <button id="sendBtn" class="action-btn">送信する</button>
-        <button id="backBtn" class="action-btn">裏面を撮影</button>
+        <button id="backCaptureBtn" class="action-btn">裏面を撮影</button>
         <!-- ★ 追加: 裏面撮影モードからのキャンセル（表面のみの状態に戻す） -->
         <button id="cancelBackBtn" class="action-btn cancel-action-btn" style="background: #64748b; display: none;">キャンセル</button>
         <button id="retryBackBtn" class="action-btn">裏面撮り直し</button>
@@ -1194,7 +1194,7 @@ const firebaseConfig = {
 
   // 【追加】WebChannelの通信切断（Listen stream errored）を回避するための設定
   db.settings({
-    experimentalForceLongPolling: true
+    experimeconst backCaptureBtn = document.getElementById('backCaptureBtn'); ntalForceLongPolling: true
   });
   
 </script>
@@ -1207,7 +1207,7 @@ const canvas = document.getElementById('outputCanvas');
 const guideFrame = document.getElementById('guide-frame');
 const actionBtns = document.getElementById('actionBtns');
 const sendBtn = document.getElementById('sendBtn');
-const backBtn = document.getElementById('backBtn');
+const backCaptureBtn = document.getElementById('backCaptureBtn');
 const retryBackBtn = document.getElementById('retryBackBtn');
 const retryAllBtn = document.getElementById('retryAllBtn');
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyya3RzVXc9pdWUCNhBaJN-F7_ShidH16FVFuL5VMh1CFLDifyAnUBkM-Z987FKb8o0/exec"; 
