@@ -348,7 +348,7 @@
 
   .action-btn {
     flex: 1;
-    min-width: 110px;
+    min-width: 100px;
     height: 48px;
     border: none;
     border-radius: var(--radius-md);
@@ -359,10 +359,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    white-space: nowrap; /* 文字が変に改行されないようにする */
   }
 
   #sendBtn { background: var(--success); }
-  #backBtn { background: var(--warning); }
+  #backCaptureBtn { background: var(--warning); }
   #retryBackBtn { background: #d97706; }
   #retryAllBtn { background: var(--danger); }
 
@@ -1349,7 +1350,19 @@ function showPage(pageId) {
   }
 
   document.querySelectorAll('#bottom-nav button').forEach(btn => btn.classList.remove('active'));
-  if (pageId === 'page-camera') document.getElementById('nav-camera')?.classList.add('active');
+  if (pageId === 'page-camera') {
+  // ★ 検索ページなどから撮影ページに遷移した際、必ず初期状態にリセット
+  globalCardId = null;
+  isFrontSide = true;
+  capturedImages = { front: null, back: null };
+  previousBackImage = null;
+  resetPreview();
+  showCaptureUI();
+
+  startCamera();
+} else {
+  stopCamera();
+}
   if (pageId === 'page-search') document.getElementById('nav-search')?.classList.add('active');
 
   if (pageId === 'page-camera') {
