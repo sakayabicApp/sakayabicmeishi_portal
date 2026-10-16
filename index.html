@@ -362,7 +362,7 @@
   }
 
   #sendBtn { background: var(--success); }
-  #backCaptureBtn { background: var(--warning); }
+  #backBtn { background: var(--warning); }
   #retryBackBtn { background: #d97706; }
   #retryAllBtn { background: var(--danger); }
 
@@ -976,11 +976,11 @@
     <canvas id="outputCanvas" style="display:none;"></canvas>
     
     <div id="controls">
-      <div id="capture-btn"></div>
+      <div id="-btn"></div>
 
       <div id="actionBtns">
         <button id="sendBtn" class="action-btn">送信する</button>
-        <button id="backCaptureBtn" class="action-btn">裏面を撮影</button>
+        <button id="backBtn" class="action-btn">裏面を撮影</button>
         <!-- ★ 追加: 裏面撮影モードからのキャンセル（表面のみの状態に戻す） -->
         <button id="cancelBackBtn" class="action-btn cancel-action-btn" style="background: #64748b; display: none;">キャンセル</button>
         <button id="retryBackBtn" class="action-btn">裏面撮り直し</button>
@@ -1202,12 +1202,12 @@ const firebaseConfig = {
   
 <script>  
 const video = document.getElementById('video');
-const captureBtn = document.getElementById('capture-btn');
+const Btn = document.getElementById('-btn');
 const canvas = document.getElementById('outputCanvas');
 const guideFrame = document.getElementById('guide-frame');
 const actionBtns = document.getElementById('actionBtns');
 const sendBtn = document.getElementById('sendBtn');
-const backCaptureBtn = document.getElementById('backCaptureBtn');
+const backBtn = document.getElementById('backBtn');
 const retryBackBtn = document.getElementById('retryBackBtn');
 const retryAllBtn = document.getElementById('retryAllBtn');
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyya3RzVXc9pdWUCNhBaJN-F7_ShidH16FVFuL5VMh1CFLDifyAnUBkM-Z987FKb8o0/exec"; 
@@ -1216,7 +1216,7 @@ const CLOUD_RUN_URL = "https://upload-meishi-function-769951420007.asia-northeas
 let isDetecting = true;
 let globalCardId = null; 
 let isFrontSide = true; 
-let capturedImages = { front: null, back: null };
+let dImages = { front: null, back: null };
 
 let isDetected = false;
 let lastDetectedQuad = null;
@@ -1639,6 +1639,7 @@ captureBtn?.addEventListener('click', async () => {
   const dataUrl = outputCanvas.toDataURL('image/jpeg', 0.9);
   
   if (isFrontSide) {
+    // --- 表面の撮影完了 ---
     capturedImages.front = dataUrl;
     
     const guidePreview = document.getElementById('guidePreview');
@@ -1650,13 +1651,16 @@ captureBtn?.addEventListener('click', async () => {
     const previewFront = document.getElementById('previewFront');
     if (previewFront) {
       previewFront.src = dataUrl;
+      previewFront.style.display = 'block';
     }
   } else {
+    // --- 裏面の撮影完了 ---
     capturedImages.back = dataUrl;
     
     const previewBack = document.getElementById('previewBack');
     if (previewBack) {
       previewBack.src = dataUrl;
+      previewBack.style.display = 'block'; // 裏面プレビューを確実に表示
     }
 
     const guidePreview = document.getElementById('guidePreview');
@@ -1672,6 +1676,7 @@ captureBtn?.addEventListener('click', async () => {
   const guideFrame = document.getElementById('guide-frame');
   if (guideFrame) guideFrame.style.display = 'none';
   
+  // 撮影完了後にアクションUI（両面完了または表面完了のボタン群）を更新・表示
   showActionUI();
   src.delete();
 });
