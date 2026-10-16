@@ -1608,6 +1608,7 @@ function generateShortCardId() {
   return `${yy}${mm}${dd}-${rand}`;
 }
   
+// 1. シャッターボタン（表面・裏面の撮影完了処理）
 captureBtn?.addEventListener('click', async () => {
   if (!globalCardId) globalCardId = generateShortCardId();
   isDetecting = false;
@@ -1638,37 +1639,40 @@ captureBtn?.addEventListener('click', async () => {
   const outputCanvas = document.getElementById('outputCanvas');
   const dataUrl = outputCanvas.toDataURL('image/jpeg', 0.9);
   
+  const guidePreview = document.getElementById('guidePreview');
+  const previewContainer = document.getElementById('previewContainer');
+  const previewFront = document.getElementById('previewFront');
+  const previewBack = document.getElementById('previewBack');
+
   if (isFrontSide) {
     // --- 表面の撮影完了 ---
     capturedImages.front = dataUrl;
     
-    const guidePreview = document.getElementById('guidePreview');
     if (guidePreview) {
       guidePreview.src = dataUrl;
       guidePreview.style.display = 'block';
     }
-    
-    const previewFront = document.getElementById('previewFront');
     if (previewFront) {
       previewFront.src = dataUrl;
-      previewFront.style.display = 'block';
     }
   } else {
     // --- 裏面の撮影完了 ---
     capturedImages.back = dataUrl;
-    isFrontSide = true; // ★ ここで状態を表面（デフォルト）に戻す！
+    isFrontSide = true; // 状態を表面（デフォルト）に戻す
     
-    const previewBack = document.getElementById('previewBack');
-    if (previewBack) {
-      previewBack.src = dataUrl;
+    if (guidePreview) guidePreview.style.display = 'none';
+    
+    if (previewFront && capturedImages.front) {
+      previewFront.src = capturedImages.front;
+      previewFront.style.display = 'block';
+    }
+    if (previewBack && capturedImages.back) {
+      previewBack.src = capturedImages.back;
       previewBack.style.display = 'block'; // 裏面プレビューを確実に表示
     }
-
-    const guidePreview = document.getElementById('guidePreview');
-    if (guidePreview) guidePreview.style.display = 'none';
-
-    const previewContainer = document.getElementById('previewContainer');
-    if (previewContainer) previewContainer.style.display = 'flex';
+    if (previewContainer) {
+      previewContainer.style.display = 'flex';
+    }
   }
   
   if (video) video.style.display = 'none';
@@ -1677,34 +1681,44 @@ captureBtn?.addEventListener('click', async () => {
   const guideFrame = document.getElementById('guide-frame');
   if (guideFrame) guideFrame.style.display = 'none';
   
-  // 撮影完了後にアクションUI（両面完了または表面完了のボタン群）を更新・表示
   showActionUI();
   src.delete();
 });
 
-// 「裏面を撮影」ボタンを押したとき
+// 2. 「裏面を撮影」ボタンを押したとき
 backCaptureBtn?.addEventListener('click', () => {
   isFrontSide = false; 
   previousBackImage = null; 
-  updatePreviewDisplay();
   
-  showBackCaptureUI(); // 👈 ここを showBackCaptureUI に！
+  // プレビューを隠してカメラ画面を表示
+  const guidePreview = document.getElementById('guidePreview');
+  if (guidePreview) guidePreview.style.display = 'none';
+  const previewContainer = document.getElementById('previewContainer');
+  if (previewContainer) previewContainer.style.display = 'none';
+  
+  showBackCaptureUI(); 
   isDetecting = true;
   detectLoop();
 });
 
-// 「裏面撮り直し」ボタンを押したとき
+// 3. 「裏面撮り直し」ボタンを押したとき
 retryBackBtn?.addEventListener('click', () => {
   isFrontSide = false;
   previousBackImage = capturedImages.back; 
   capturedImages.back = null;             
-  updatePreviewDisplay();
   
-  showBackCaptureUI(); // 👈 ここも showBackCaptureUI に！
+  // プレビューを隠してカメラ画面を表示
+  const guidePreview = document.getElementById('guidePreview');
+  if (guidePreview) guidePreview.style.display = 'none';
+  const previewContainer = document.getElementById('previewContainer');
+  if (previewContainer) previewContainer.style.display = 'none';
+  
+  showBackCaptureUI(); 
   isDetecting = true;
   detectLoop();
 });
 
+// 4. 「最初から直す」ボタンを押したとき
 retryAllBtn?.addEventListener('click', () => {
   globalCardId = null;
   isFrontSide = true;
@@ -1716,7 +1730,7 @@ retryAllBtn?.addEventListener('click', () => {
   detectLoop();
 });
 
-// 「キャンセル」ボタンを押したとき（前に戻る処理）
+// 5. 「キャンセル」ボタンを押したとき（前に戻る処理）
 const cancelBackBtn = document.getElementById('cancelBackBtn');
 
 cancelBackBtn?.addEventListener('click', () => {
@@ -1725,15 +1739,15 @@ cancelBackBtn?.addEventListener('click', () => {
   const guideFrame = document.getElementById('guide-frame');
   if (guideFrame) guideFrame.style.display = 'none';
 
-  // ★ もし直前に裏面がすでに撮影されていた（＝撮り直しを途中でやめた）場合、元の裏面画像を復元する
+  // もし直前に裏面がすでに撮影されていた場合、元の裏面画像を復元する
   if (previousBackImage) {
     capturedImages.back = previousBackImage;
     previousBackImage = null;
   }
 
-  isFrontSide = true; // 状態を表面に戻す[cite: 3, 4]
+  isFrontSide = true; 
 
-  // プレビュー表示コンテナを再表示
+  // プレビュー表示を復元
   const previewContainer = document.getElementById('previewContainer');
   if (previewContainer) previewContainer.style.display = 'flex';
   
@@ -1754,13 +1768,12 @@ cancelBackBtn?.addEventListener('click', () => {
     }
   }
 
-  // アクションUI（送信する / 裏面を撮影 or 撮り直し）を再表示
   showActionUI();
 });
 
-// 1. プレビュー表示時のアクションUI制御（表面撮影後、または両面完了時）
+// 6. アクションボタン群の表示制御（プレビュー画面用）
 function showActionUI() {
-  if (captureBtn) captureBtn.style.display = 'none'; // プレビュー時はシャッターボタンを隠す
+  if (captureBtn) captureBtn.style.display = 'none'; 
   if (actionBtns) actionBtns.style.display = 'flex';
   
   const cancelBackBtn = document.getElementById('cancelBackBtn');
@@ -1782,18 +1795,18 @@ function showActionUI() {
   }
 }
 
-// 2. 表面撮影中のカメラUI（シャッターボタンのみ表示）
+// 7. 表面撮影中のカメラUI
 function showCaptureUI() {
   if (captureBtn) captureBtn.style.display = 'flex'; 
   if (actionBtns) actionBtns.style.display = 'flex';
   
   if (sendBtn) sendBtn.style.display = 'none';
-  if (backCaptureBtn) backCaptureBtn.style.display = 'none';
-  if (retryBackBtn) retryBackBtn.style.display = 'none';
-  if (retryAllBtn) retryAllBtn.style.display = 'none';
+  if (backCaptureBtn) sendBtn.style.display = 'none';
+  if (retryBackBtn) sendBtn.style.display = 'none';
+  if (retryAllBtn) sendBtn.style.display = 'none';
   
   const cancelBackBtn = document.getElementById('cancelBackBtn');
-  if (cancelBackBtn) cancelBackBtn.style.display = 'none'; // 表面撮影時はキャンセル非表示
+  if (cancelBackBtn) cancelBackBtn.style.display = 'none';
 
   if (canvas) canvas.style.display = 'none';
   if (video) video.style.display = 'block';
@@ -1804,18 +1817,18 @@ function showCaptureUI() {
   }
 }
 
-// 3. 裏面撮影中（または撮り直し中）専用のカメラUI（シャッターボタン ＋ キャンセルボタンを表示）
+// 8. 裏面撮影中（または撮り直し中）専用のカメラUI
 function showBackCaptureUI() {
-  if (captureBtn) captureBtn.style.display = 'flex'; // シャッターボタンを表示
-  if (actionBtns) actionBtns.style.display = 'flex'; // アクションボタン群を表示
+  if (captureBtn) captureBtn.style.display = 'flex'; 
+  if (actionBtns) actionBtns.style.display = 'flex';
   
   if (sendBtn) sendBtn.style.display = 'none';
-  if (backCaptureBtn) backCaptureBtn.style.display = 'none';
-  if (retryBackBtn) retryBackBtn.style.display = 'none';
-  if (retryAllBtn) retryAllBtn.style.display = 'none';
+  if (backCaptureBtn) sendBtn.style.display = 'none';
+  if (retryBackBtn) sendBtn.style.display = 'none';
+  if (retryAllBtn) sendBtn.style.display = 'none';
 
   const cancelBackBtn = document.getElementById('cancelBackBtn');
-  if (cancelBackBtn) cancelBackBtn.style.display = 'flex'; // 裏面撮影時はキャンセルを表示
+  if (cancelBackBtn) cancelBackBtn.style.display = 'flex'; // キャンセルボタンを表示
 
   if (canvas) canvas.style.display = 'none';
   if (video) video.style.display = 'block';
@@ -1825,7 +1838,6 @@ function showBackCaptureUI() {
     guideFrame.classList.remove('detected');
   }
 }
-
 function resetPreview() {
   const guidePreview = document.getElementById('guidePreview');
   if (guidePreview) {
