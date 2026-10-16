@@ -1684,47 +1684,23 @@ captureBtn?.addEventListener('click', async () => {
 
 // 「裏面を撮影」ボタンを押したとき
 backCaptureBtn?.addEventListener('click', () => {
-  isFrontSide = false; // 裏面撮影モードへ切り替え[cite: 3, 4]
-  previousBackImage = null; // 新規撮影なのでクリア
+  isFrontSide = false; 
+  previousBackImage = null; 
+  updatePreviewDisplay();
   
-  const guidePreview = document.getElementById('guidePreview');
-  if (guidePreview) {
-    guidePreview.style.display = 'none';
-    guidePreview.src = "";
-  }
-  const previewFront = document.getElementById('previewFront');
-  if (previewFront && capturedImages.front) {
-    previewFront.style.display = 'block';
-  }
-
-  // プレビュー領域を隠して、カメラ撮影画面を表示状態にする
-  const previewContainer = document.getElementById('previewContainer');
-  if (previewContainer) previewContainer.style.display = 'none';
-
-  showCaptureUI();   // カメラ画面＆シャッター・キャンセルボタンを表示
+  showBackCaptureUI(); // 👈 ここを showBackCaptureUI に！
   isDetecting = true;
   detectLoop();
 });
 
 // 「裏面撮り直し」ボタンを押したとき
 retryBackBtn?.addEventListener('click', () => {
-  isFrontSide = false; // 撮り直しのため裏面モードへ
-  previousBackImage = capturedImages.back; // ★ 直前の裏面画像を保持しておく（前に戻れるようにする）
-  capturedImages.back = null;             // 撮り直しのため一時クリア
+  isFrontSide = false;
+  previousBackImage = capturedImages.back; 
+  capturedImages.back = null;             
+  updatePreviewDisplay();
   
-  const previewBack = document.getElementById('previewBack');
-  if (previewBack) previewBack.src = "";
-  
-  const previewContainer = document.getElementById('previewContainer');
-  if (previewContainer) previewContainer.style.display = 'none';
-
-  const guidePreview = document.getElementById('guidePreview');
-  if (guidePreview) {
-    guidePreview.style.display = 'none';
-    guidePreview.src = "";
-  }
-
-  showCaptureUI();   // カメラ画面＆シャッター・キャンセルボタンを表示
+  showBackCaptureUI(); // 👈 ここも showBackCaptureUI に！
   isDetecting = true;
   detectLoop();
 });
@@ -1782,22 +1758,22 @@ cancelBackBtn?.addEventListener('click', () => {
   showActionUI();
 });
 
-// アクションボタン群の表示制御
+// 1. プレビュー表示時のアクションUI制御（表面撮影後、または両面完了時）
 function showActionUI() {
-  if (captureBtn) captureBtn.style.display = 'none'; // プレビュー時は撮影ボタンを隠す
+  if (captureBtn) captureBtn.style.display = 'none'; // プレビュー時はシャッターボタンを隠す
   if (actionBtns) actionBtns.style.display = 'flex';
   
   const cancelBackBtn = document.getElementById('cancelBackBtn');
 
   if (capturedImages.front && capturedImages.back) {
-    // 1. 両面とも撮影完了している場合
+    // --- 両面とも撮影完了している場合 ---
     if (sendBtn) sendBtn.style.display = 'flex';
     if (backCaptureBtn) backCaptureBtn.style.display = 'none';
     if (cancelBackBtn) cancelBackBtn.style.display = 'none';
     if (retryBackBtn) retryBackBtn.style.display = 'flex';
     if (retryAllBtn) retryAllBtn.style.display = 'flex';
   } else {
-    // 2. 表面だけ撮影した初期状態（または裏面撮影からキャンセルして戻った場合）
+    // --- 表面だけ撮影した初期状態（または裏面撮影からキャンセルして戻った場合） ---
     if (sendBtn) sendBtn.style.display = 'flex';
     if (backCaptureBtn) backCaptureBtn.style.display = 'flex';
     if (cancelBackBtn) cancelBackBtn.style.display = 'none';
@@ -1806,19 +1782,18 @@ function showActionUI() {
   }
 }
 
-// カメラ撮影UI（シャッターボタン ＋ キャンセルボタンを表示する状態）
+// 2. 表面撮影中のカメラUI（シャッターボタンのみ表示）
 function showCaptureUI() {
-  if (captureBtn) captureBtn.style.display = 'flex'; // シャッターボタンを表示
-  if (actionBtns) actionBtns.style.display = 'flex'; // アクションボタン群を表示
+  if (captureBtn) captureBtn.style.display = 'flex'; 
+  if (actionBtns) actionBtns.style.display = 'flex';
   
-  // 撮影中は「送信」「裏面撮影」「撮り直し」「最初から」を隠し、「キャンセル」だけを表示する
   if (sendBtn) sendBtn.style.display = 'none';
   if (backCaptureBtn) backCaptureBtn.style.display = 'none';
   if (retryBackBtn) retryBackBtn.style.display = 'none';
   if (retryAllBtn) retryAllBtn.style.display = 'none';
   
   const cancelBackBtn = document.getElementById('cancelBackBtn');
-  if (cancelBackBtn) cancelBackBtn.style.display = 'flex';
+  if (cancelBackBtn) cancelBackBtn.style.display = 'none'; // 表面撮影時はキャンセル非表示
 
   if (canvas) canvas.style.display = 'none';
   if (video) video.style.display = 'block';
@@ -1829,17 +1804,18 @@ function showCaptureUI() {
   }
 }
 
-  // ★ 追加: 裏面撮影中専用のUI（シャッターボタン ＋ キャンセルボタンを表示）
+// 3. 裏面撮影中（または撮り直し中）専用のカメラUI（シャッターボタン ＋ キャンセルボタンを表示）
 function showBackCaptureUI() {
   if (captureBtn) captureBtn.style.display = 'flex'; // シャッターボタンを表示
   if (actionBtns) actionBtns.style.display = 'flex'; // アクションボタン群を表示
   
-  // アクションボタンの中で「キャンセル」だけを表示し、他を隠す
+  if (sendBtn) sendBtn.style.display = 'none';
   if (backCaptureBtn) backCaptureBtn.style.display = 'none';
-  const cancelBackBtn = document.getElementById('cancelBackBtn');
-  if (cancelBackBtn) cancelBackBtn.style.display = 'flex';
   if (retryBackBtn) retryBackBtn.style.display = 'none';
   if (retryAllBtn) retryAllBtn.style.display = 'none';
+
+  const cancelBackBtn = document.getElementById('cancelBackBtn');
+  if (cancelBackBtn) cancelBackBtn.style.display = 'flex'; // 裏面撮影時はキャンセルを表示
 
   if (canvas) canvas.style.display = 'none';
   if (video) video.style.display = 'block';
