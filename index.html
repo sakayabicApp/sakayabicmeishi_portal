@@ -1746,40 +1746,28 @@ retryAllBtn?.addEventListener('click', () => {
 // 5. 「キャンセル」ボタンを押したとき（前に戻る処理）
 const cancelBackBtn = document.getElementById('cancelBackBtn');
 
+// 5. 「キャンセル」ボタンを押したとき（前に戻る処理）
 cancelBackBtn?.addEventListener('click', () => {
   isDetecting = false;
   if (video) video.style.display = 'none';
   const guideFrame = document.getElementById('guide-frame');
   if (guideFrame) guideFrame.style.display = 'none';
 
-  // もし直前に裏面がすでに撮影されていた場合、元の裏面画像を復元する
-  if (previousBackImage) {
-    capturedImages.back = previousBackImage;
-    previousBackImage = null;
-  }
-
+  // ★ 修正：キャンセル時は裏面を未撮影（null）にリセットし、表面だけの状態に戻す
+  capturedImages.back = null;
+  previousBackImage = null;
   isFrontSide = true; 
 
-  // プレビュー表示を復元
+  // 表面撮影直後のプレビュー状態（guidePreview）を確実に復元する
+  const guidePreview = document.getElementById('guidePreview');
+  if (guidePreview && capturedImages.front) {
+    guidePreview.src = capturedImages.front;
+    guidePreview.style.display = 'block';
+  }
+  
+  // 両面用のプレビューコンテナは非表示にする
   const previewContainer = document.getElementById('previewContainer');
-  if (previewContainer) previewContainer.style.display = 'flex';
-  
-  const previewFront = document.getElementById('previewFront');
-  if (previewFront && capturedImages.front) {
-    previewFront.style.display = 'block';
-    previewFront.src = capturedImages.front;
-  }
-  
-  const previewBack = document.getElementById('previewBack');
-  if (previewBack) {
-    if (capturedImages.back) {
-      previewBack.style.display = 'block';
-      previewBack.src = capturedImages.back;
-    } else {
-      previewBack.style.display = 'none';
-      previewBack.src = "";
-    }
-  }
+  if (previewContainer) previewContainer.style.display = 'none';
 
   showActionUI();
 });
@@ -1801,10 +1789,10 @@ function showActionUI() {
   } else {
     // --- 表面だけ撮影した初期状態（または裏面撮影からキャンセルして戻った場合） ---
     if (sendBtn) sendBtn.style.display = 'flex';
-    if (backCaptureBtn) sendBtn.style.display = 'flex';
-    if (cancelBackBtn) cancelBackBtn.style.display = 'none';
+    if (backCaptureBtn) sendBtn.style.display = 'flex'; // ★ 裏面を撮影を表示
+    if (cancelBackBtn) cancelBackBtn.style.display = 'none'; // キャンセルは非表示
     if (retryBackBtn) retryBackBtn.style.display = 'none';
-    if (retryAllBtn) retryAllBtn.style.display = 'flex';
+    if (retryAllBtn) retryAllBtn.style.display = 'flex'; // 最初から直すを表示
   }
 }
 
@@ -1832,8 +1820,8 @@ function showCaptureUI() {
 
 // 8. 裏面撮影中（または撮り直し中）専用のカメラUI
 function showBackCaptureUI() {
-  if (captureBtn) captureBtn.style.display = 'flex'; 
-  if (actionBtns) actionBtns.style.display = 'flex'; // ★ キャンセルボタンを表示するため表示
+  if (captureBtn) captureBtn.style.display = 'flex'; // ★ シャッターボタンを表示
+  if (actionBtns) actionBtns.style.display = 'flex'; 
   
   if (sendBtn) sendBtn.style.display = 'none';
   if (backCaptureBtn) sendBtn.style.display = 'none';
@@ -1841,7 +1829,7 @@ function showBackCaptureUI() {
   if (retryAllBtn) sendBtn.style.display = 'none';
 
   const cancelBackBtn = document.getElementById('cancelBackBtn');
-  if (cancelBackBtn) cancelBackBtn.style.display = 'flex'; // 「キャンセル」のみ表示
+  if (cancelBackBtn) cancelBackBtn.style.display = 'flex'; // ★ 「キャンセル」ボタンのみ表示
 
   if (canvas) canvas.style.display = 'none';
   if (video) video.style.display = 'block';
@@ -1851,6 +1839,7 @@ function showBackCaptureUI() {
     guideFrame.classList.remove('detected');
   }
 }
+  
 function resetPreview() {
   const guidePreview = document.getElementById('guidePreview');
   if (guidePreview) {
