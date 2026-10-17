@@ -1799,6 +1799,9 @@ function showActionUI() {
   
   const cancelBackBtn = document.getElementById('cancelBackBtn');
 
+  // デバッグ用（F12のコンソールで中身がどうなっているか確認できます）
+  console.log("現在の画像データ:", capturedImages);
+
   if (capturedImages.front && capturedImages.back) {
     // --- 両面とも撮影完了している場合 ---
     if (sendBtn) sendBtn.style.display = 'flex';
@@ -1807,12 +1810,19 @@ function showActionUI() {
     if (retryBackBtn) retryBackBtn.style.display = 'flex';
     if (retryAllBtn) retryAllBtn.style.display = 'flex';
   } else {
-    // --- 表面だけ撮影した初期状態（または裏面撮影からキャンセルして戻った場合） ---
+    // --- 表面だけ撮影した初期状態（またはやり直し後） ---
     if (sendBtn) sendBtn.style.display = 'flex';
-    if (backCaptureBtn) sendBtn.style.display = 'flex'; // ★ 裏面を撮影を表示
-    if (cancelBackBtn) cancelBackBtn.style.display = 'none'; // キャンセルは非表示
+    
+    // ▼ ここで「裏面を撮影」ボタンを確実に強制表示させる
+    const btnBack = document.getElementById('backCaptureBtn');
+    if (btnBack) {
+      btnBack.style.display = 'flex';
+      btnBack.textContent = '裏面を撮影';
+    }
+
+    if (cancelBackBtn) cancelBackBtn.style.display = 'none';
     if (retryBackBtn) retryBackBtn.style.display = 'none';
-    if (retryAllBtn) retryAllBtn.style.display = 'flex'; // 最初から直すを表示
+    if (retryAllBtn) retryAllBtn.style.display = 'flex';
   }
 }
 
