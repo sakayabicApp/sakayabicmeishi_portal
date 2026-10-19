@@ -1468,7 +1468,7 @@ function findCardQuad(srcMat) {
   let maxDetectedArea = 0;
   let fullArea = srcMat.cols * srcMat.rows;
   
-  let minArea = fullArea * 0.15;
+  let minArea = fullArea * 0.08;
   let maxArea = fullArea * 0.80;
 
   for (let i = 0; i < contours.size(); ++i) {
