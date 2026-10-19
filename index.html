@@ -933,6 +933,39 @@
   cursor: pointer;
 }  
 
+/* モード切替ボタン */
+  .mode-select-btn {
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 20px;
+    border: 1.5px solid rgba(255, 255, 255, 0.6);
+    background: rgba(15, 23, 42, 0.6);
+    color: #ffffff;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+  }
+  .mode-select-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+  }
+
+  /* 縦長モード時のガイドフレーム形状 */
+  #guide-frame.vertical-mode {
+    width: calc(60vh * 55 / 91);
+    max-width: 240px;
+    height: 60vh;
+    max-height: 400px;
+  }
+  #guidePreview.vertical-mode {
+    width: calc(60vh * 55 / 91);
+    max-width: 240px;
+    height: 60vh;
+    max-height: 400px;
+  }  
+
   
 </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
@@ -965,6 +998,10 @@
 <div id="page-camera" class="page">
   <div id="camera-container">
     <div id="status-message">名刺をガイド枠内に合わせてください</div>
+    <div id="card-mode-selector" style="display: flex; gap: 8px; margin-top: 8px;">
+        <button type="button" id="modeHorizontalBtn" class="mode-select-btn active" onclick="switchCardMode('horizontal')">横名刺モード</button>
+        <button type="button" id="modeVerticalBtn" class="mode-select-btn" onclick="switchCardMode('vertical')">縦名刺モード</button>
+    </div>
     <video id="video" playsinline autoplay></video>
     <div id="guide-frame"></div>
     <img id="guidePreview" style="display: none;" />
@@ -1481,7 +1518,13 @@ function findCardQuad(srcMat) {
 
       let rect = cv.boundingRect(cnt);
       let aspectRatio = rect.width / rect.height;
-      let isGoodRatio = (aspectRatio >= 1.2 && aspectRatio <= 2.2) || (aspectRatio >= 0.45 && aspectRatio <= 0.85);
+      // ★ モードに応じた比率チェック
+      let isGoodRatio = false;
+      if (currentCardMode === 'vertical') {
+        isGoodRatio = (aspectRatio >= 0.45 && aspectRatio <= 0.85);
+      } else {
+        isGoodRatio = (aspectRatio >= 1.2 && aspectRatio <= 2.2);
+      }
 
       if (isGoodRatio && approx.rows === 4) {
         let quadCandidate = [];
@@ -1551,7 +1594,8 @@ function sortPoints(pts) {
   return [topPts[0], topPts[1], bottomPts[1], bottomPts[0]];
 }
 
-function warpPerspective(srcMat, quadPoints) {
+// ★ モード（横長・縦長）に応じたパース補正サイズ調整
+function warpPerspective(srcMat, quadPoints, mode) {
   try {
     let sorted = sortPoints(quadPoints);
     let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
@@ -1561,8 +1605,14 @@ function warpPerspective(srcMat, quadPoints) {
       sorted[3].x, sorted[3].y
     ]);
 
-    const cardWidth = 800;
-    const cardHeight = 484;
+    let cardWidth, cardHeight;
+    if (mode === 'vertical') {
+      cardWidth = 484;
+      cardHeight = 800;
+    } else {
+      cardWidth = 800;
+      cardHeight = 484;
+    }
 
     let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
       0, 0,
@@ -1635,18 +1685,18 @@ captureBtn?.addEventListener('click', async () => {
   let success = false;
 
   if (isDetected && lastDetectedQuad) {
-    success = warpPerspective(src, lastDetectedQuad);
+    success = warpPerspective(src, lastDetectedQuad, currentCardMode);
   }
 
   if (!success) {
     let fallbackQuad = findCardQuad(src);
     if (fallbackQuad) {
-      success = warpPerspective(src, fallbackQuad);
+      success = warpPerspective(src, fallbackQuad, currentCardMode);
     }
   }
 
   if (!success) {
-    cropFallbackROI(src);
+    cropFallbackROI(src, currentCardMode);
   }
 
   const outputCanvas = document.getElementById('outputCanvas');
@@ -2777,6 +2827,30 @@ function downloadVCard() {
     alert("vCardファイルの生成に失敗しました");
   }
 }
+
+let currentCardMode = 'horizontal'; // 'horizontal' または 'vertical'
+
+// ★ モード切替処理
+function switchCardMode(mode) {
+  currentCardMode = mode;
+  const guideFrame = document.getElementById('guide-frame');
+  const guidePreview = document.getElementById('guidePreview');
+  const btnH = document.getElementById('modeHorizontalBtn');
+  const btnV = document.getElementById('modeVerticalBtn');
+
+  if (mode === 'vertical') {
+    guideFrame?.classList.add('vertical-mode');
+    guidePreview?.classList.add('vertical-mode');
+    btnV?.classList.add('active');
+    btnH?.classList.remove('active');
+  } else {
+    guideFrame?.classList.remove('vertical-mode');
+    guidePreview?.classList.remove('vertical-mode');
+    btnH?.classList.add('active');
+    btnV?.classList.remove('active');
+  }
+}  
+  
 </script>
 </body>
 </html>
