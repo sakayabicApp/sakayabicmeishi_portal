@@ -295,13 +295,14 @@
     z-index: 30;
     width: 100%;
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* 縦並びにしてボタン同士が重ならないようにする */
     align-items: center;
     gap: 12px;
     padding: 0 20px;
-    pointer-events: none;
+    pointer-events: none; /* コントロール全体の背景はタッチを透過させ、ボタン自体で受け付ける */
   }
 
+  /* 子要素のボタンやコンテナはタッチを有効化 */
   #controls > * {
     pointer-events: auto;
   }
@@ -358,7 +359,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    white-space: nowrap;
+    white-space: nowrap; /* 文字が変に改行されないようにする */
   }
 
   #sendBtn { background: var(--success); }
@@ -373,7 +374,7 @@
     position: sticky;
     top: 0;
     background: #e2e8f0;
-    padding: 16px;
+    padding: 16px 16px 16px 16px;
     z-index: 20;
     border-bottom: 1px solid #cbd5e1;
   }
@@ -461,6 +462,12 @@
     gap: 8px;
   }
 
+  .card-kana {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: normal;
+  }
+
   .card-company {
     font-size: 16px;
     color: #334155;
@@ -534,6 +541,7 @@
     background: #f1f5f9;
   }
 
+ /* 画像プレビュー容器（デフォルト：片面時は中央に1列配置） */
   .card-preview-container {
     display: flex;
     flex-direction: column;
@@ -543,11 +551,11 @@
     width: 100%;
   }
   
+　/* 2枚（表裏両方）ある場合のグリッド設定 */
   .card-preview-container.has-both {
     display: grid;
     gap: 10px;
   }
-
   .preview-item {
     display: flex;
     flex-direction: column;
@@ -558,8 +566,9 @@
 
   .preview-item img {
     width: 100%;
+    /* ★ 名刺の標準比率（91:55 ≒ 1.65:1）に固定し、カードサイズとして綺麗に収める */
     aspect-ratio: 91 / 55;
-    object-fit: contain;
+    object-fit: contain; /* または contain（上下に余白を出したくない場合は cover） */
     border-radius: 6px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     background-color: #ffffff;
@@ -571,6 +580,18 @@
     opacity: 0.9;
   }
 
+  .preview-label {
+    display: none !important;
+  }
+
+  /* 両面ある場合（has-both）のグリッド設定 */
+  .card-preview-container.has-both {
+    display: grid;
+    gap: 10px;
+    max-width: 100%;
+  }
+
+  /* 768px以下（スマホなど）は両面でも縦に1列 */
   @media (max-width: 768px) {
     .card-preview-container.has-both {
       grid-template-columns: 1fr;
@@ -581,17 +602,20 @@
     }
   }
 
+  /* 769px以上（PCなど）で両面ある場合は横に2列表示 */
   @media (min-width: 769px) {
     .card-preview-container.has-both {
       grid-template-columns: repeat(2, auto);
-      justify-content: center;
+      justify-content: center;              /* グリッド全体を真ん中に配置 */
       gap: 16px;
     }
     .card-preview-container.has-both .preview-item {
-      max-width: 320px;
+      max-width:320px;
     }
   }
 
+
+  /* モーダルフォーム */
   .form-group {
     margin-bottom: 14px;
   }
@@ -634,6 +658,7 @@
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
   }
 
+  /* 閲覧モード時 (readonly) */
   #detail-modal input[readonly],
   #detail-modal textarea[readonly],
   .form-group textarea.auto-resize[readonly] {
@@ -643,6 +668,7 @@
     cursor: default;
   }
 
+  /* メタ情報グリッド */
   .meta-info-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -674,6 +700,20 @@
     word-break: break-all;
   }
 
+  @media (orientation: landscape), (max-height: 500px) {
+    .meta-info-grid {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px 12px;
+      padding: 8px 16px;
+    }
+    #detail-modal .modal-footer,
+  #detail-modal #view-buttons,
+  #detail-modal #edit-buttons {
+    display: none !important;
+  }
+}
+
+  /* モーダルフッター */
   .modal-footer {
     flex-shrink: 0;
     background: #e2e8f0;
@@ -706,6 +746,11 @@
   .btn-gray { background-color: #94a3b8; }
   .btn-darkgray { background-color: #64748b; }
   .btn-green { background-color: #10b981; }
+
+  /* キャンセルボタン用の確実な表示制御用クラス */
+  .action-btn.is-visible {
+    display: flex !important;
+  }
 
   /* ---------------------------------------------------------
      7. 画像拡大ライトボックス (#image-lightbox-modal)
@@ -818,82 +863,92 @@
     font-weight: bold;
   }
 
-  .user-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    font-size: 13px;
-    color: #495057;
-    border: 1px solid #e9ecef;
-  }
-  .user-info {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
+ /* ユーザー情報バー */
+.user-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #495057;
+  border: 1px solid #e9ecef;
+}
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 
-  .user-name {
-    font-weight: bold;
-    color: #212529;
-  }
+.user-name {
+  font-weight: bold;
+  color: #212529;
+}
 
-  .user-code {
-    color: #6c757d;
-    font-size: 12px;
-  }
+.user-code {
+  color: #6c757d;
+  font-size: 12px;
+}
 
-  .logout-btn {
-    background: none;
-    border: 1px solid #ced4da;
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 12px;
-    color: #6c757d;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
+.logout-btn {
+  background: none;
+  border: 1px solid #ced4da;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-  .logout-btn:hover {
-    background-color: #e9ecef;
-    color: #dc3545;
-    border-color: #dc3545;
-  }
+.logout-btn:hover {
+  background-color: #e9ecef;
+  color: #dc3545;
+  border-color: #dc3545;
+}
 
-  .search-container {
-    margin-bottom: 16px;
-  }
+/* 検索エリア＆チェックボックスの装飾 */
+.search-container {
+  margin-bottom: 16px;
+}
 
-  .filter-checkbox-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 8px;
-    margin-left: 16px;
-    font-size: 13px;
-    color: #495057;
-    cursor: pointer;
-    user-select: none;
-  }
+.filter-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  margin-left: 16px;
+  font-size: 13px;
+  color: #495057;
+  cursor: pointer;
+  user-select: none;
+}
 
-  .filter-checkbox-label input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: #0d6efd;
-    cursor: pointer;
-  }  
+.filter-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #0d6efd; /* チェックボックスのアクセントカラー */
+  cursor: pointer;
+}  
+
+  
 </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
+
+  
 </head>
 <body>
+
+
 
 <div id="page-login" class="page">
   <div class="login-box">
     <h2>酒ゃビック名刺管理</h2>
     <p class="subtitle">アカウント情報を入力してログイン</p>
+    
+    <!-- id="loginForm" を追加 -->
     <form id="loginForm">
       <div class="input-group">
         <input type="text" id="loginId" placeholder="ユーザーID" autocomplete="username">
@@ -903,6 +958,7 @@
       </div>
       <button type="submit" id="loginBtn" class="btn-primary">ログイン</button>
     </form>
+    
   </div>
 </div>
   
@@ -926,6 +982,7 @@
       <div id="actionBtns">
         <button id="sendBtn" class="action-btn">送信する</button>
         <button id="backCaptureBtn" class="action-btn">裏面を撮影</button>
+        <!-- ★ 追加: 裏面撮影モードからのキャンセル（表面のみの状態に戻す） -->
         <button id="cancelBackBtn" class="action-btn cancel-action-btn" style="background: #64748b; display: none;">キャンセル</button>
         <button id="retryBackBtn" class="action-btn">裏面撮り直し</button>
         <button id="retryAllBtn" class="action-btn">最初から直す</button>
@@ -934,6 +991,7 @@
   </div>
 
 <div id="orientation-warning">
+  <!-- 絵文字の代わりにCSSアニメーションのスマホ枠を配置 -->
   <div class="phone-icon-anim"></div>
   <p style="font-size: 20px; font-weight: 700; margin: 0 0 10px 0;">画面を縦向きにしてください</p>
   <p style="font-size: 14px; color: #94a3b8; margin: 0;">本システムは縦向き表示専用です</p>
@@ -941,6 +999,7 @@
 </div>
   
 <div id="page-search" class="page">
+  <!-- ユーザー情報＆ログアウトエリア -->
 <div class="user-bar">
   <div class="user-info">
     <span class="user-label">ログイン：</span>
@@ -953,11 +1012,13 @@
   <div class="search-header">
     <input type="text" id="searchInput" placeholder="会社名や氏名で検索...">
   </div>
+ <!-- 検索＆フィルタエリア -->
 <div class="search-container">
   <label class="filter-checkbox-label">
     <input type="checkbox" id="myCardsOnlyCheckbox">
     <span>自分が登録・更新した名刺のみ表示</span>
   </label>
+ 
 </div>
   <div id="card-container"></div>
 </div>
@@ -970,6 +1031,7 @@
   </div>
   <div class="modal-body">
     
+<!-- 修正後：詳細モーダルのプレビュー領域 -->
 <div class="card-preview-container" id="modalPreviewContainer">
   <div class="preview-item" id="p-front-wrapper">
     <img id="m-front-img" src="" alt="表面" />
@@ -980,7 +1042,8 @@
 </div>
 
     <input type="hidden" id="edit-rowIndex">
-    <input type="hidden" id="edit-docId">
+    <!-- ★ 下記を追加 -->
+<input type="hidden" id="edit-docId">
     <div class="form-group">
       <label>会社名</label>
       <textarea id="edit-company" class="auto-resize" rows="1"></textarea>
@@ -1005,35 +1068,42 @@
       <label>役職</label>
       <textarea id="edit-title" class="auto-resize" rows="1"></textarea>
     </div>
+    <!-- 電話番号 -->
 <div class="form-group">
   <label>電話番号</label>
   <div id="action-phone" class="action-link-container"></div>
   <textarea id="edit-phone" class="auto-resize" rows="1"></textarea>
 </div>
+<!-- ★ 追加: FAX -->
 <div class="form-group">
   <label>FAX</label>
   <div id="action-fax" class="action-link-container"></div>
   <textarea id="edit-fax" class="auto-resize" rows="1"></textarea>
 </div>    
+<!-- 携帯電話 -->
 <div class="form-group">
   <label>携帯電話</label>
   <div id="action-mobile" class="action-link-container"></div>
   <textarea id="edit-mobile" class="auto-resize" rows="1"></textarea>
 </div>
+<!-- Email -->
 <div class="form-group">
   <label>Email</label>
   <div id="action-email" class="action-link-container"></div>
   <textarea id="edit-email" class="auto-resize" rows="1"></textarea>
 </div>
+<!-- 郵便番号 (省略可能) -->
 <div class="form-group">
   <label>郵便番号</label>
   <textarea id="edit-zipCode" class="auto-resize" rows="1"></textarea>
 </div>
+<!-- 住所 -->
 <div class="form-group">
   <label>住所</label>
   <div id="action-address" class="action-link-container"></div>
   <textarea id="edit-address" class="auto-resize" rows="1"></textarea>
 </div>
+<!-- ★ 追加: 備考/メモ -->
 <div class="form-group">
   <label>備考 / メモ</label>
   <textarea id="edit-memo" class="auto-resize" rows="2" placeholder="商談メモや補足情報を入力..."></textarea>
@@ -1042,7 +1112,7 @@
   <button type="button" class="modal-btn btn-green" onclick="downloadVCard()" style="width: 100%; font-size: 15px;">📲 連絡先に保存</button>
 </div>
   </div>
-
+ <!-- モーダル本文 (.modal-body) の一番下に追加 -->
 <div class="meta-info-grid">
   <div class="meta-item">
     <span class="meta-label">登録者</span>
@@ -1060,15 +1130,19 @@
     <span class="meta-label">最終更新日時</span>
     <span class="meta-value" id="detail-updatedAt">-</span>
   </div>
+ 
 </div> 
   
+<!-- 詳細モーダル内の下部ボタンエリア -->
 <div class="modal-footer">
+  <!-- 【閲覧モード時のボタン群】 -->
   <div id="view-buttons" class="btn-group">
     <button type="button" class="modal-btn btn-blue" onclick="enableEditMode()">編集</button>
     <button type="button" class="modal-btn btn-red" onclick="deleteCard()">削除</button>
     <button type="button" class="modal-btn btn-gray" onclick="closeDetailModal()">閉じる</button>
   </div>
 
+  <!-- 【編集モード時のボタン群（初期は非表示）】 -->
   <div id="edit-buttons" class="btn-group" style="display: none;">
     <button type="button" id="saveCardBtn" class="modal-btn btn-green" onclick="saveCardEdit()">保存</button>
     <button type="button" class="modal-btn btn-darkgray" onclick="cancelEditMode()">取消</button>
@@ -1076,6 +1150,9 @@
 </div>
 </div> 
 
+
+
+<!-- 画像拡大表示モーダル（ライトボックス） -->
 <div id="image-lightbox-modal" class="lightbox-modal">
   <span class="lightbox-close">&times;</span>
   <div class="lightbox-content-wrapper" id="lightbox-wrapper">
@@ -1092,10 +1169,12 @@
   </button>
 </nav>
 
+<!-- Firebase SDK (v10+ Compat) --><!-- Firebase SDK (compat版) の読み込み -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
 <script>
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyCxZsnnfBCUs7pUMO1DouAFGBEmrBKHtCA",
   authDomain: "project-a5a71d15-9b03-461e-aae.firebaseapp.com",
@@ -1106,14 +1185,22 @@ const firebaseConfig = {
   measurementId: "G-M0T1T66EMN"
 };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+ // 初期化
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
   
-const db = firebase.firestore();
-db.settings({ experimentalForceLongPolling: true });
+  // データベース ID "sakayabic-meishikanri" を指定して db を定義 (compat形式)
+  const db = firebase.firestore();
+
+  // 【追加】WebChannelの通信切断（Listen stream errored）を回避するための設定
+db.settings({
+  experimentalForceLongPolling: true
+});
+  
 </script>
 
+  
 <script>  
 const video = document.getElementById('video');
 const captureBtn = document.getElementById('capture-btn');
@@ -1130,15 +1217,19 @@ const CLOUD_RUN_URL = "https://upload-meishi-function-769951420007.asia-northeas
 let isDetecting = true;
 let globalCardId = null; 
 let isFrontSide = true; 
-let capturedImages = { front: null, back: null };
+let capturedImages = { front: null, back: null }; // ⭕️ capturedImages に統一！
 
 let isDetected = false;
 let lastDetectedQuad = null;
-let allCardsData = [];
-let currentSelectedItem = null;
+let allCardsData = []; // スプレッドシートから取得した名刺データ全件
+let currentSelectedItem = null; // 現在選択中のカードデータ（編集キャンセル時用）
 let unsubscribeCards = null;  
+// 直前の裏面画像を保持しておくための変数
 let previousBackImage = null;
 
+
+
+// 画面回転イベント
 window.addEventListener('resize', checkOrientation);
 window.addEventListener('orientationchange', checkOrientation);
 
@@ -1171,6 +1262,7 @@ function checkOrientation() {
   }
 }
 
+// ログイン処理関数
 async function handleLogin(e) {
   if (e) e.preventDefault();
 
@@ -1210,8 +1302,10 @@ async function handleLogin(e) {
       sessionStorage.setItem('userName', result.userName || id);
       sessionStorage.setItem('loginTime', Date.now().toString());
 
+      // ★ 1. ユーザー情報表示を更新
       initUserInfo();
 
+      // ★ 2. ログインフォームを初期状態に戻す（次回ログインのため）
       loginBtn.disabled = false;
       loginBtn.textContent = originalText;
       loginBtn.style.opacity = "1";
@@ -1227,7 +1321,7 @@ async function handleLogin(e) {
       loginBtn.textContent = originalText;
       loginBtn.style.opacity = "1";
     }
-  } catch (e) {
+  }catch (e) {
     console.error(e);
     alert("通信エラーが発生しました: " + e.message);
     loginBtn.disabled = false;
@@ -1238,6 +1332,9 @@ async function handleLogin(e) {
 
 document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
 
+// ---------------------------------------------------------
+// ページ切り替え処理
+// ---------------------------------------------------------
 function showPage(pageId) {
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active');
@@ -1254,17 +1351,25 @@ function showPage(pageId) {
 
   document.querySelectorAll('#bottom-nav button').forEach(btn => btn.classList.remove('active'));
   if (pageId === 'page-camera') {
-    globalCardId = null;
-    isFrontSide = true;
-    capturedImages = { front: null, back: null };
-    previousBackImage = null;
-    resetPreview();
-    showCaptureUI();
+  // ★ 検索ページなどから撮影ページに遷移した際、必ず初期状態にリセット
+  globalCardId = null;
+  isFrontSide = true;
+  capturedImages = { front: null, back: null };
+  previousBackImage = null;
+  resetPreview();
+  showCaptureUI();
+
+  startCamera();
+} else {
+  stopCamera();
+}
+  if (pageId === 'page-search') document.getElementById('nav-search')?.classList.add('active');
+
+  if (pageId === 'page-camera') {
     startCamera();
   } else {
     stopCamera();
   }
-  if (pageId === 'page-search') document.getElementById('nav-search')?.classList.add('active');
 
   if (pageId === 'page-search') {
     fetchCardsData();
@@ -1310,6 +1415,7 @@ async function startCamera() {
   }
 }
 
+// ひらがな・カタカナ互換ヘルパー
 function hiraToKata(str) {
   return str.replace(/[\u3041-\u3096]/g, m => String.fromCharCode(m.charCodeAt(0) + 0x60));
 }
@@ -1317,6 +1423,7 @@ function kataToHira(str) {
   return str.replace(/[\u30a1-\u30f6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
 }
 
+// 検索バー入力イベント
 document.getElementById('searchInput')?.addEventListener('input', (e) => {
   const query = e.target.value.toLowerCase().trim();
   if (!query) {
@@ -1339,69 +1446,63 @@ document.getElementById('searchInput')?.addEventListener('input', (e) => {
   renderCards(filtered);
 });
 
-// ★ 【バージョンアップ】スコアリング方式による自動 4頂点検知（横長・縦長両対応 ＆ QRコード等の正方形を完全除外）
+// OpenCV 4頂点検知
 function findCardQuad(srcMat) {
   let gray = new cv.Mat();
-  let thresh = new cv.Mat();
+  let equalized = new cv.Mat();
+  let edges = new cv.Mat();
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
 
-  // 1. 適応的二値化により、照明の影や変化に強く名刺のフチをくっきり検出
   cv.cvtColor(srcMat, gray, cv.COLOR_RGBA2GRAY);
-  cv.adaptiveThreshold(gray, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2);
+  cv.equalizeHist(gray, equalized);
+  cv.Canny(equalized, edges, 70, 200);
 
-  cv.findContours(thresh, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+  let kernel = cv.Mat.ones(3, 3, cv.CV_8U);
+  cv.dilate(edges, edges, kernel);
+
+  cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let bestQuad = null;
-  let highestScore = -1;
+  let maxDetectedArea = 0;
   let fullArea = srcMat.cols * srcMat.rows;
+  
+  let minArea = fullArea * 0.15;
+  let maxArea = fullArea * 0.80;
 
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
     let area = cv.contourArea(cnt);
 
-    // 画面全体の 5% 〜 90% の範囲のオブジェクトを対象にする
-    if (area > fullArea * 0.05 && area < fullArea * 0.90) {
+    if (area >= minArea && area <= maxArea && area > maxDetectedArea) {
       let approx = new cv.Mat();
       let perimeter = cv.arcLength(cnt, true);
-      cv.approxPolyDP(cnt, approx, 0.02 * perimeter, true);
+      cv.approxPolyDP(cnt, approx, 0.03 * perimeter, true);
 
-      // 4角形であり、かつ歪んでいない（凸包）かチェック
-      if (approx.rows === 4 && cv.isContourConvex(approx)) {
-        let rect = cv.boundingRect(cnt);
-        let aspectRatio = rect.width / rect.height;
+      let rect = cv.boundingRect(cnt);
+      let aspectRatio = rect.width / rect.height;
+      let isGoodRatio = (aspectRatio >= 1.2 && aspectRatio <= 2.2) || (aspectRatio >= 0.45 && aspectRatio <= 0.85);
 
-        // ★ 横長名刺（約1.65周辺: 1.3 〜 2.1）または 縦長名刺（約0.60周辺: 0.45 〜 0.77）
-        // ※ 比率1.0付近のQRコードや正方形のロゴは、この条件により自動で完全に除外されます！
-        let isHorizontal = (aspectRatio >= 1.3 && aspectRatio <= 2.1);
-        let isVertical = (aspectRatio >= 0.45 && aspectRatio <= 0.77);
-
-        if (isHorizontal || isVertical) {
-          let targetRatio = isHorizontal ? 1.65 : 0.60;
-          // スコアリング：面積が大きいほど、また理想の名刺比率に近いほど高得点にする
-          let score = area - Math.abs(aspectRatio - targetRatio) * 10000;
-
-          if (score > highestScore) {
-            let quadCandidate = [];
-            for (let j = 0; j < 4; j++) {
-              quadCandidate.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
-            }
-            bestQuad = quadCandidate;
-            highestScore = score;
-          }
+      if (isGoodRatio && approx.rows === 4) {
+        let quadCandidate = [];
+        for (let j = 0; j < 4; j++) {
+          quadCandidate.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
         }
+        bestQuad = quadCandidate;
+        maxDetectedArea = area;
       }
       approx.delete();
     }
   }
 
-  gray.delete(); thresh.delete(); contours.delete(); hierarchy.delete();
+  kernel.delete(); gray.delete(); equalized.delete(); edges.delete(); contours.delete(); hierarchy.delete();
   return bestQuad;
 }
 
 // リアルタイム認識ループ
 function detectLoop() {
   if (!isDetecting) return;
+  // ★ 修正点: video要素が存在し、かつ実際に映像サイズが取得できる状態（ready）かチェックする
   if (!video || video.readyState !== 4 || video.style.display === 'none' || !video.videoWidth || !video.videoHeight) {
     setTimeout(() => requestAnimationFrame(detectLoop), 200);
     return;
@@ -1420,7 +1521,7 @@ function detectLoop() {
       if (guideEl) guideEl.classList.add('detected');
       if (statusEl) {
         statusEl.classList.add('detected');
-        statusEl.textContent = '名刺を自動検知しました (ボタンを押して撮影)';
+        statusEl.textContent = '名刺を検知しました (ボタンを押して撮影)';
       }
       if (captureBtn) captureBtn.classList.add('active');
     } else {
@@ -1429,13 +1530,14 @@ function detectLoop() {
       if (guideEl) guideEl.classList.remove('detected');
       if (statusEl) {
         statusEl.classList.remove('detected');
-        statusEl.textContent = 'ガイド枠内に合わせてください (いつでもシャッター可能)';
+        statusEl.textContent = 'ガイド枠内に合わせてください (タップで手動撮影)';
       }
       if (captureBtn) captureBtn.classList.remove('active');
     }
   } catch (err) {
+    // 万が一 OpenCV 側で読み込みエラーが出てもループを止めないための安全策
     console.warn("OpenCV imread 待機中:", err);
-  } finally {
+  }finally {
     fullMat.delete();
   }
 
@@ -1519,7 +1621,7 @@ function generateShortCardId() {
   return `${yy}${mm}${dd}-${rand}`;
 }
   
-// シャッターボタン（表面・裏面の撮影完了処理）
+// 1. シャッターボタン（表面・裏面の撮影完了処理）
 captureBtn?.addEventListener('click', async () => {
   if (!globalCardId) globalCardId = generateShortCardId();
   isDetecting = false;
@@ -1532,13 +1634,17 @@ captureBtn?.addEventListener('click', async () => {
   let src = cv.imread(tempCanvas);
   let success = false;
 
-  // 1. スコアリング方式で検出できている、または直近で検知していれば綺麗にパース補正
-  let quad = findCardQuad(src) || lastDetectedQuad;
-  if (quad) {
-    success = warpPerspective(src, quad);
+  if (isDetected && lastDetectedQuad) {
+    success = warpPerspective(src, lastDetectedQuad);
   }
 
-  // 2. 万が一検出できなくても安全なフォールバック切り抜きで確実に撮影
+  if (!success) {
+    let fallbackQuad = findCardQuad(src);
+    if (fallbackQuad) {
+      success = warpPerspective(src, fallbackQuad);
+    }
+  }
+
   if (!success) {
     cropFallbackROI(src);
   }
@@ -1552,7 +1658,9 @@ captureBtn?.addEventListener('click', async () => {
   const previewBack = document.getElementById('previewBack');
 
   if (isFrontSide) {
+    // --- 表面の撮影完了 ---
     capturedImages.front = dataUrl;
+    
     if (guidePreview) {
       guidePreview.src = dataUrl;
       guidePreview.style.display = 'block';
@@ -1561,8 +1669,9 @@ captureBtn?.addEventListener('click', async () => {
       previewFront.src = dataUrl;
     }
   } else {
+    // --- 裏面の撮影完了 ---
     capturedImages.back = dataUrl;
-    isFrontSide = true;
+    isFrontSide = true; // 状態を表面（デフォルト）に戻す
     
     if (guidePreview) guidePreview.style.display = 'none';
     
@@ -1572,7 +1681,7 @@ captureBtn?.addEventListener('click', async () => {
     }
     if (previewBack && capturedImages.back) {
       previewBack.src = capturedImages.back;
-      previewBack.style.display = 'block';
+      previewBack.style.display = 'block'; // 裏面プレビューを確実に表示
     }
     if (previewContainer) {
       previewContainer.style.display = 'flex';
@@ -1589,10 +1698,12 @@ captureBtn?.addEventListener('click', async () => {
   src.delete();
 });
 
+// 2. 「裏面を撮影」ボタンを押したとき
 backCaptureBtn?.addEventListener('click', () => {
   isFrontSide = false; 
   previousBackImage = null; 
   
+  // プレビューを隠してカメラ画面を表示
   const guidePreview = document.getElementById('guidePreview');
   if (guidePreview) guidePreview.style.display = 'none';
   const previewContainer = document.getElementById('previewContainer');
@@ -1603,11 +1714,13 @@ backCaptureBtn?.addEventListener('click', () => {
   detectLoop();
 });
 
+// 3. 「裏面撮り直し」ボタンを押したとき
 retryBackBtn?.addEventListener('click', () => {
   isFrontSide = false;
   previousBackImage = capturedImages.back; 
   capturedImages.back = null;             
   
+  // プレビューを隠してカメラ画面を表示
   const guidePreview = document.getElementById('guidePreview');
   if (guidePreview) guidePreview.style.display = 'none';
   const previewContainer = document.getElementById('previewContainer');
@@ -1618,6 +1731,7 @@ retryBackBtn?.addEventListener('click', () => {
   detectLoop();
 });
 
+// 4. 「最初から直す」ボタンを押したとき
 retryAllBtn?.addEventListener('click', () => {
   globalCardId = null;
   isFrontSide = true;
@@ -1629,25 +1743,31 @@ retryAllBtn?.addEventListener('click', () => {
   detectLoop();
 });
 
+// 5. 「キャンセル」ボタンを押したとき（前に戻る処理）
 const cancelBackBtn = document.getElementById('cancelBackBtn');
+
 cancelBackBtn?.addEventListener('click', () => {
   isDetecting = false;
   if (video) video.style.display = 'none';
   const guideFrame = document.getElementById('guide-frame');
   if (guideFrame) guideFrame.style.display = 'none';
 
+  // ★「裏面撮り直し」からのキャンセルなら、退避していた元の裏面画像を復活させる
   if (previousBackImage) {
     capturedImages.back = previousBackImage;
     previousBackImage = null;
   } else {
+    // 初めての「裏面を撮影」からのキャンセルなら裏面はなし
     capturedImages.back = null;
   }
 
   isFrontSide = true; 
 
+  // ★ 表面撮影直後の単体プレビュー（guidePreview）は非表示にする
   const guidePreview = document.getElementById('guidePreview');
   if (guidePreview) guidePreview.style.display = 'none';
 
+  // ★ 表裏のプレビューコンテナを表示する
   const previewContainer = document.getElementById('previewContainer');
   if (previewContainer) previewContainer.style.display = 'flex';
   
@@ -1668,23 +1788,32 @@ cancelBackBtn?.addEventListener('click', () => {
     }
   }
 
+  // ★ プレビュー用のボタン表示に切り替える（両面揃っていれば送信・撮り直し、片面なら送信・裏面撮影）
   showActionUI();
 });
 
+// 6. アクションボタン群の表示制御（プレビュー画面用）
 function showActionUI() {
   if (captureBtn) captureBtn.style.display = 'none'; 
   if (actionBtns) actionBtns.style.display = 'flex';
   
   const cancelBackBtn = document.getElementById('cancelBackBtn');
 
+  // デバッグ用（F12のコンソールで中身がどうなっているか確認できます）
+  console.log("現在の画像データ:", capturedImages);
+
   if (capturedImages.front && capturedImages.back) {
+    // --- 両面とも撮影完了している場合 ---
     if (sendBtn) sendBtn.style.display = 'flex';
     if (backCaptureBtn) backCaptureBtn.style.display = 'none';
     if (cancelBackBtn) cancelBackBtn.style.display = 'none';
     if (retryBackBtn) retryBackBtn.style.display = 'flex';
     if (retryAllBtn) retryAllBtn.style.display = 'flex';
   } else {
+    // --- 表面だけ撮影した初期状態（またはやり直し後） ---
     if (sendBtn) sendBtn.style.display = 'flex';
+    
+    // ▼ ここで「裏面を撮影」ボタンを確実に強制表示させる
     const btnBack = document.getElementById('backCaptureBtn');
     if (btnBack) {
       btnBack.style.display = 'flex';
@@ -1697,9 +1826,10 @@ function showActionUI() {
   }
 }
 
+// 7. 表面撮影中のカメラUI
 function showCaptureUI() {
   if (captureBtn) captureBtn.style.display = 'flex'; 
-  if (actionBtns) actionBtns.style.display = 'none';
+  if (actionBtns) actionBtns.style.display = 'none'; // ★ 撮影中はアクション群を非表示
   
   if (sendBtn) sendBtn.style.display = 'none';
   if (backCaptureBtn) sendBtn.style.display = 'none';
@@ -1718,8 +1848,9 @@ function showCaptureUI() {
   }
 }
 
+// 8. 裏面撮影中（または撮り直し中）専用のカメラUI
 function showBackCaptureUI() {
-  if (captureBtn) captureBtn.style.display = 'flex';
+  if (captureBtn) captureBtn.style.display = 'flex'; // ★ シャッターボタンを表示
   if (actionBtns) actionBtns.style.display = 'flex'; 
   
   if (sendBtn) sendBtn.style.display = 'none';
@@ -1728,7 +1859,7 @@ function showBackCaptureUI() {
   if (retryAllBtn) sendBtn.style.display = 'none';
 
   const cancelBackBtn = document.getElementById('cancelBackBtn');
-  if (cancelBackBtn) cancelBackBtn.style.display = 'flex';
+  if (cancelBackBtn) cancelBackBtn.style.display = 'flex'; // ★ 「キャンセル」ボタンのみ表示
 
   if (canvas) canvas.style.display = 'none';
   if (video) video.style.display = 'block';
@@ -1755,6 +1886,11 @@ function resetPreview() {
   if (pBack) pBack.src = "";
 }
 
+
+
+// ---------------------------------------------------------
+// Firestoreからのデータ取得（リアルタイム監視）
+// ---------------------------------------------------------
 function fetchCardsData() {
   const container = document.getElementById('card-container');
   if (!container) return;
@@ -1765,6 +1901,7 @@ function fetchCardsData() {
 
   container.innerHTML = `<div style="text-align:center; padding: 40px; color: #94a3b8;">読み込み中...</div>`;
 
+  // (default) データベースの 'cards' コレクションを取得
   unsubscribeCards = db.collection('cards')
     .orderBy('updatedAt', 'desc')
     .onSnapshot((snapshot) => {
@@ -1787,6 +1924,8 @@ function fetchCardsData() {
       }
     }, (error) => {
       console.error("Firestoreデータ取得エラー:", error);
+      
+      // インデックス未作成エラー(FAILED_PRECONDITION)が起きている場合のエラー表示強化
       let errorMsg = "データ取得に失敗しました";
       if (error.code === 'failed-precondition') {
         errorMsg = "インデックスの作成が必要です。コンソールのURLからインデックスを作成してください。";
@@ -1850,11 +1989,15 @@ document.addEventListener('DOMContentLoaded', () => {
       await uploadAllImages();
       alert("送信完了しました");
       
+      // データを初期状態にリセット
       globalCardId = null;
       isFrontSide = true;
       capturedImages = { front: null, back: null };
       
+      // プレビューの非表示とリセット
       resetPreview();
+      
+      // カメラ撮影UIと初期のアクションボタン状態に復元
       showCaptureUI();
     } catch (e) {
       alert("エラー: " + e.message);
@@ -1865,6 +2008,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// ★ 修正箇所：安全な数値パースでエラーを防止
 window.addEventListener('load', () => {
   const loginTimeStr = sessionStorage.getItem('loginTime');
   const loginTime = parseInt(loginTimeStr, 10);
@@ -1885,6 +2029,10 @@ window.addEventListener('load', () => {
   }
 });
 
+
+
+
+// ★ 修正箇所：安全なDrive URLパース関数
 function formatDriveUrl(url) {
   if (!url || typeof url !== 'string') return "";
   if (url.includes('drive.google.com/thumbnail')) return url;
@@ -1931,6 +2079,9 @@ function renderCards(dataList) {
   });
 }
 
+// ---------------------------------------------------------
+// textareaの高さ自動調整ヘルパー
+// ---------------------------------------------------------
 function autoResizeTextarea(el) {
   if (!el) return;
   el.style.height = 'auto';
@@ -1942,6 +2093,9 @@ function adjustAllModalTextareas() {
   textareas.forEach(ta => autoResizeTextarea(ta));
 }
   
+// ---------------------------------------------------------
+// 詳細モーダルを開く
+// ---------------------------------------------------------
 function openDetailModal(item) {
   currentSelectedItem = item;
 
@@ -1955,6 +2109,7 @@ function openDetailModal(item) {
     if (el) el.value = item[field] || '';
   });
 
+  // ★ ダイレクトアクションリンクの生成
   renderDirectActions(item);
 
   const registrarName = item.registrarName || '未記録';
@@ -1997,12 +2152,13 @@ function openDetailModal(item) {
 
   if (container) {
     container.classList.remove('has-both', 'has-single');
+    // 両方ある場合は 'has-both' を付与して2列グリッドにし、片面だけなら単独中央表示にする
     if (hasFront && hasBack) {
       container.classList.add('has-both');
     }
   }
 
-  setFormReadOnly(true);
+  setFormReadOnly(true); // 閲覧モードで開く
   const detailModal = document.getElementById('detail-modal');
   if (detailModal) detailModal.style.display = 'flex';
 
@@ -2011,11 +2167,14 @@ function openDetailModal(item) {
   }, 50);
 }
 
+
+// アクションリンクの生成関数
 function renderDirectActions(item) {
   setupPhoneLink('phone', item.phone);
-  setupPhoneLink('fax', item.fax);
+  setupPhoneLink('fax', item.fax); // ★ FAX用リンク設定を追加
   setupPhoneLink('mobile', item.mobile);
 
+  // Email
   const emailArea = document.getElementById('action-email');
   if (emailArea) {
     const email = item.email || '';
@@ -2024,6 +2183,7 @@ function renderDirectActions(item) {
       : '';
   }
 
+  // 住所（Googleマップ）
   const addressArea = document.getElementById('action-address');
   if (addressArea) {
     const address = item.address || '';
@@ -2036,6 +2196,7 @@ function renderDirectActions(item) {
   }
 }
 
+// 電話発信（確認ダイアログ付き）
 function setupPhoneLink(fieldKey, phoneVal) {
   const area = document.getElementById(`action-${fieldKey}`);
   if (!area) return;
@@ -2051,6 +2212,7 @@ function setupPhoneLink(fieldKey, phoneVal) {
   }
 }
 
+// エスケープ処理ヘルパー（未定義エラー防止）
 function escapeHTML(str) {
   if (!str) return '';
   return String(str)
@@ -2062,18 +2224,22 @@ function escapeHTML(str) {
 }
   
 function setFormReadOnly(isReadOnly) {
+  // テキストエリアの readOnly 切替
   const modalTextareas = document.querySelectorAll('#detail-modal textarea');
   modalTextareas.forEach(ta => {
     ta.readOnly = isReadOnly;
   });
   
+  // アクション対象のフィールドリスト
   const actionFields = ['phone', 'fax', 'mobile', 'email', 'address'];
 
+  // 閲覧/編集モードに応じたダイレクトアクションと入力欄の表示切替
   actionFields.forEach(field => {
     const actionEl = document.getElementById(`action-${field}`);
     const inputEl = document.getElementById(`edit-${field}`);
 
     if (isReadOnly) {
+      // 閲覧モード：リンクが生成されていれば表示し、入力欄を隠す
       if (actionEl && actionEl.innerHTML.trim() !== '') {
         actionEl.style.display = 'block';
         if (inputEl) inputEl.style.display = 'none';
@@ -2082,6 +2248,7 @@ function setFormReadOnly(isReadOnly) {
         if (inputEl) inputEl.style.display = 'block';
       }
     } else {
+      // 編集モード：リンクを隠し、入力欄を表示する
       if (actionEl) actionEl.style.display = 'none';
       if (inputEl) inputEl.style.display = 'block';
     }
@@ -2139,6 +2306,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });  
 
+
+// ---------------------------------------------------------
+// 名刺データの更新保存処理 (Firestore直更新 + GAS送信)
+// ---------------------------------------------------------
 async function saveCardEdit() {
   const saveBtn = document.getElementById('saveCardBtn');
   if (saveBtn) {
@@ -2153,6 +2324,7 @@ async function saveCardEdit() {
 
   const docId = getValue('edit-docId');
 
+  // ★ 現在日時を YYYY/MM/DD HH:mm 形式の文字列で作成
   const now = new Date();
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -2174,7 +2346,7 @@ async function saveCardEdit() {
     department: getValue('edit-department'),
     title: getValue('edit-title'),
     phone: getValue('edit-phone'),
-    fax: getValue('edit-fax'),
+    fax: getValue('edit-fax'), // ★ 追加
     mobile: getValue('edit-mobile'),
     email: getValue('edit-email'),
     zipCode: getValue('edit-zipCode'),
@@ -2183,6 +2355,7 @@ async function saveCardEdit() {
   };
 
   try {
+    // 1. Firestoreを直接更新（onSnapshotにより画面へ即時反映）
     if (docId) {
       await db.collection('cards').doc(docId).update({
         company: payload.company,
@@ -2192,7 +2365,7 @@ async function saveCardEdit() {
         department: payload.department,
         title: payload.title,
         phone: payload.phone,
-        fax: payload.fax,
+        fax: payload.fax, // ★ 追加: Firestore更新
         mobile: payload.mobile,
         email: payload.email,
         zipCode: payload.zipCode,
@@ -2201,10 +2374,14 @@ async function saveCardEdit() {
         updaterCode: payload.updaterCode,
         updaterName: payload.updaterName,
         updatedAt: nowFormatted,
+
+        // ★ 追加: 関与者配列 (editorCodes) に今回の更新者を即時追加
+        // arrayUnion を使うことで、既に配列内に自分のコードがあっても重複せず安全に追加されます
         editorCodes: firebase.firestore.FieldValue.arrayUnion(payload.updaterCode)
       });
     }
 
+    // 2. GAS（スプレッドシート）への更新リクエスト送信
     const res = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -2229,6 +2406,9 @@ async function saveCardEdit() {
   }
 }
 
+// ---------------------------------------------------------
+// 名刺データの削除処理 (Firestore直削除 + GAS送信)
+// ---------------------------------------------------------
 async function deleteCard() {
   const rowIndexEl = document.getElementById('edit-rowIndex');
   const docIdEl = document.getElementById('edit-docId');
@@ -2246,15 +2426,17 @@ async function deleteCard() {
 
   const payload = {
     action: "deleteCard",
-    docId: docId,
+    docId: docId, // ★ GASへ送るpayloadに追加
     rowIndex: Number(rowIndex)
   };
 
   try {
+    // 1. Firestoreから直接削除（画面から即時消去）
     if (docId) {
       await db.collection('cards').doc(docId).delete();
     }
 
+    // 2. GAS（スプレッドシート）へ削除リクエスト送信
     const res = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -2274,6 +2456,9 @@ async function deleteCard() {
   }
 }
 
+// ---------------------------------------------------------
+// 名刺画像タップ拡大 ＆ ピンチズーム/スワイプ移動
+// ---------------------------------------------------------
 let currentScale = 1;
 let initialDistance = 0;
 let currentX = 0;
@@ -2307,7 +2492,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   setupLightboxTouchEvents();
-  initUserInfo();
 });
 
 function openLightbox(src) {
@@ -2405,15 +2589,17 @@ function getDistance(t1, t2) {
   const dy = t1.clientY - t2.clientY;
   return Math.sqrt(dx * dx + dy * dy);
 }
-
+// ログイン中のユーザーコードを取得
 function getCurrentUserCode() {
   return sessionStorage.getItem('userCode') || '';
 }
 
+// ログイン中のユーザー名を取得
 function getCurrentUserName() {
   return sessionStorage.getItem('userName') || '';
 }  
 
+// カードの絞り込み一括処理関数
 function filterCards() {
   const searchInput = document.getElementById('searchInput');
   const myCardsCheckbox = document.getElementById('myCardsOnlyCheckbox');
@@ -2426,21 +2612,31 @@ function filterCards() {
   const qHira = typeof kataToHira === 'function' ? kataToHira(query) : query;
 
   const filtered = allCardsData.filter(card => {
+    // 1. 「自分が登録・更新した名刺のみ」チェックの検証
     if (isMyCardsOnly) {
       const curCodeStr = String(currentCode);
+
+      // ★ editorCodes 配列が存在していれば includes で判定
       let isRelated = false;
       if (card.editorCodes && Array.isArray(card.editorCodes)) {
         isRelated = card.editorCodes.some(code => String(code) === curCodeStr);
       } else {
+        // バックアップ判定（editorCodes がまだ無い過去データ用）
         const isRegistrar = card.registrarCode && String(card.registrarCode) === curCodeStr;
         const isUpdater = card.updaterCode && String(card.updaterCode) === curCodeStr;
         isRelated = isRegistrar || isUpdater;
       }
-      if (!isRelated) return false;
+
+      // 関わっていない名刺は除外
+      if (!isRelated) {
+        return false;
+      }
     }
 
+    // 2. キーワード検索（空の場合は全件通過）
     if (!query) return true;
 
+    // 検索対象テキストグループに card.memo を含む
     const textGroup = [
       card.name, card.nameKana, card.company, card.companyKana,
       card.department, card.title, card.email, card.phone, card.memo
@@ -2452,14 +2648,26 @@ function filterCards() {
   renderCards(filtered);
 }
 
+// ---------------------------------------------------------
+// イベントリスナーの登録
+// ---------------------------------------------------------
+
+// 1. 検索バー入力時
 document.getElementById('searchInput')?.addEventListener('input', () => {
   filterCards();
 });
 
+// 2. チェックボックス切り替え時
 document.getElementById('myCardsOnlyCheckbox')?.addEventListener('change', () => {
   filterCards();
 });
 
+// 初期化処理（画面読み込み時に呼び出す）
+document.addEventListener('DOMContentLoaded', () => {
+  initUserInfo();
+});
+
+// 初期化処理（画面読み込み時やログイン/ログアウト時に呼び出す）
 function initUserInfo() {
   const userCode = getCurrentUserCode();
   const userName = getCurrentUserName();
@@ -2467,6 +2675,7 @@ function initUserInfo() {
   const elName = document.getElementById('display-user-name');
   const elCode = document.getElementById('display-user-code');
 
+  // ログイン済みの場合のみ表示を更新
   if (userCode && userName) {
     if (elName) elName.textContent = userName;
     if (elCode) elCode.textContent = `(${userCode})`;
@@ -2476,19 +2685,29 @@ function initUserInfo() {
   }
 }
 
+// ---------------------------------------------------------
+// ログアウト処理
+// ---------------------------------------------------------
 function handleLogout() {
   if (confirm("ログアウトしますか？")) {
     if (typeof stopCamera === 'function') {
       stopCamera();
     }
+
     sessionStorage.clear();
+
+    // ★ 表示をリセット
     initUserInfo();
+
     showPage('page-login');
     const bottomNav = document.getElementById('bottom-nav');
     if (bottomNav) bottomNav.style.display = 'none';
   }
 }
 
+// ---------------------------------------------------------
+// vCard (.vcf) 生成＆ダウンロード処理 (会社名のみ・名前カナ対応・役職メモ集約・安定Blob方式)
+// ---------------------------------------------------------
 function downloadVCard() {
   const card = typeof currentSelectedItem !== 'undefined' ? currentSelectedItem : null;
   
@@ -2502,11 +2721,12 @@ function downloadVCard() {
   const fax = card.fax ? String(card.fax).trim() : '';
   const company = card.company ? String(card.company).trim() : '';
   const department = card.department ? String(card.department).trim() : '';
-  const title = card.title ? String(card.title).trim() : '';
+  const title = card.title ? String(card.title).trim() : ''; // 役職
   const name = card.name ? String(card.name).trim() : '';
   const nameKana = card.nameKana ? String(card.nameKana).trim() : '';
   const memo = card.memo ? String(card.memo).trim() : '';
 
+  // 部署名と役職をまとめてメモ欄へ記載
   let details = [];
   if (department) details.push(`部署: ${department}`);
   if (title) details.push(`役職: ${title}`);
@@ -2517,28 +2737,31 @@ function downloadVCard() {
     noteContent = noteContent ? `${infoPrefix} / ${noteContent}` : infoPrefix;
   }
 
+  // vCard 3.0 形式の組み立て（会社名カナは含めない）
   const vcardLines = [
     'BEGIN:VCARD',
     'VERSION:3.0',
     `N:${name};;;;`,
     `FN:${name}`,
-    `SOUND;X-IRMC-N:${nameKana};;;;`,
-    `X-PHONETIC-FIRST-NAME:${nameKana}`,
-    `ORG:${company}`,
+    `SOUND;X-IRMC-N:${nameKana};;;;`,          // 氏名フリガナ
+    `X-PHONETIC-FIRST-NAME:${nameKana}`,     // Android等での読み対応
+    `ORG:${company}`,                        // 会社名のみ
     `TEL;TYPE=CELL:${mobile}`,
     `TEL;TYPE=WORK,VOICE:${phone}`,
     `TEL;TYPE=FAX:${fax}`,
     `EMAIL;TYPE=WORK:${card.email || ''}`,
     `ADR;TYPE=WORK:;;${card.address || ''};;;;`,
-    `NOTE:${noteContent}`,
+    `NOTE:${noteContent}`,                   // 部署・役職・メモを集約
     'END:VCARD'
   ];
 
   const vcardContent = vcardLines.join('\r\n');
 
   try {
+    // 安定の Blob URL 方式
     const blob = new Blob([vcardContent], { type: 'text/vcard;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
+
     const fileName = `${name || 'contact'}.vcf`;
 
     const a = document.createElement('a');
