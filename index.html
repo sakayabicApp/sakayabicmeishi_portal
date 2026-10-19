@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>酒ゃビック名刺管理システム</title>
 <style>
-  
   /* ---------------------------------------------------------
      1. 変数・全体基本設定
      --------------------------------------------------------- */
@@ -228,9 +227,9 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 75vw;
+    width: 82vw;
     max-width: 380px;
-    height: 82vw;
+    height: calc(82vw * 55 / 91);
     max-height: calc(380px * 55 / 91);
     box-sizing: border-box;
     pointer-events: none;
@@ -252,9 +251,9 @@
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 15;
-    width: 75vw;
+    width: 82vw;
     max-width: 380px;
-    height: 82vw;
+    height: calc(82vw * 55 / 91);
     max-height: calc(380px * 55 / 91);
     border-radius: 12px;
     object-fit: contain;
@@ -1245,37 +1244,6 @@ async function enforcePortraitOrientation() {
   checkOrientation();
 }
 
-// リアルタイム認識ループ
-// リアルタイム認識ループ（シンプル版）
-function detectLoop() {
-  if (!isDetecting) return;
-  if (!video || video.readyState !== 4 || video.style.display === 'none' || !video.videoWidth || !video.videoHeight) {
-    setTimeout(() => requestAnimationFrame(detectLoop), 200);
-    return;
-  }
-
-  let fullMat = cv.imread(video);
-  try {
-    // 4点検知をこっそり試す（失敗してもエラーにしない）
-    let quad = findCardQuad(fullMat);
-
-    if (quad) {
-      isDetected = true;
-      lastDetectedQuad = quad;
-    } else {
-      isDetected = false;
-      lastDetectedQuad = null;
-    }
-  } catch (err) {
-    console.warn("OpenCV 待機中:", err);
-  } finally {
-    fullMat.delete();
-  }
-
-  setTimeout(() => requestAnimationFrame(detectLoop), 200);
-}
-  
-
 function checkOrientation() {
   const warningEl = document.getElementById('orientation-warning');
   const isLandscape = window.innerWidth > window.innerHeight;
@@ -1438,7 +1406,7 @@ async function startCamera() {
         checkOrientation();
         if (window.innerWidth <= window.innerHeight) {
           isDetecting = true;
-          oop();
+          detectLoop();
         }
       };
     }
@@ -1499,7 +1467,7 @@ function findCardQuad(srcMat) {
   let maxDetectedArea = 0;
   let fullArea = srcMat.cols * srcMat.rows;
   
-  let minArea = fullArea * 0.08;
+  let minArea = fullArea * 0.15;
   let maxArea = fullArea * 0.80;
 
   for (let i = 0; i < contours.size(); ++i) {
@@ -1513,8 +1481,7 @@ function findCardQuad(srcMat) {
 
       let rect = cv.boundingRect(cnt);
       let aspectRatio = rect.width / rect.height;
-      // ※ 0.78 〜 1.30 の間（正方形に近いもの）はすべて無視する
-      let isGoodRatio = (aspectRatio >= 1.30 && aspectRatio <= 2.10) || (aspectRatio >= 0.48 && aspectRatio <= 0.78);
+      let isGoodRatio = (aspectRatio >= 1.2 && aspectRatio <= 2.2) || (aspectRatio >= 0.45 && aspectRatio <= 0.85);
 
       if (isGoodRatio && approx.rows === 4) {
         let quadCandidate = [];
@@ -1532,6 +1499,50 @@ function findCardQuad(srcMat) {
   return bestQuad;
 }
 
+// リアルタイム認識ループ
+function detectLoop() {
+  if (!isDetecting) return;
+  // ★ 修正点: video要素が存在し、かつ実際に映像サイズが取得できる状態（ready）かチェックする
+  if (!video || video.readyState !== 4 || video.style.display === 'none' || !video.videoWidth || !video.videoHeight) {
+    setTimeout(() => requestAnimationFrame(detectLoop), 200);
+    return;
+  }
+
+  let fullMat = cv.imread(video);
+  try {
+    let quad = findCardQuad(fullMat);
+
+    const statusEl = document.getElementById('status-message');
+    const guideEl = document.getElementById('guide-frame');
+
+    if (quad) {
+      isDetected = true;
+      lastDetectedQuad = quad;
+      if (guideEl) guideEl.classList.add('detected');
+      if (statusEl) {
+        statusEl.classList.add('detected');
+        statusEl.textContent = '名刺を検知しました (ボタンを押して撮影)';
+      }
+      if (captureBtn) captureBtn.classList.add('active');
+    } else {
+      isDetected = false;
+      lastDetectedQuad = null;
+      if (guideEl) guideEl.classList.remove('detected');
+      if (statusEl) {
+        statusEl.classList.remove('detected');
+        statusEl.textContent = 'ガイド枠内に合わせてください (タップで手動撮影)';
+      }
+      if (captureBtn) captureBtn.classList.remove('active');
+    }
+  } catch (err) {
+    // 万が一 OpenCV 側で読み込みエラーが出てもループを止めないための安全策
+    console.warn("OpenCV imread 待機中:", err);
+  }finally {
+    fullMat.delete();
+  }
+
+  setTimeout(() => requestAnimationFrame(detectLoop), 200);
+}
 
 function sortPoints(pts) {
   pts.sort((a, b) => a.y - b.y);
@@ -1543,22 +1554,15 @@ function sortPoints(pts) {
 function warpPerspective(srcMat, quadPoints) {
   try {
     let sorted = sortPoints(quadPoints);
-
-    // ① 4頂点から「縦長」か「横長」かを自動判定する
-    const widthTop = Math.hypot(sorted[1].x - sorted[0].x, sorted[1].y - sorted[0].y);
-    const heightLeft = Math.hypot(sorted[3].x - sorted[0].x, sorted[3].y - sorted[0].y);
-    const isPortrait = heightLeft > widthTop; // 高さが勝っていれば縦長
-
-    // ② 縦長ならサイズを入れ替える (横長: 800×484 / 縦長: 484×800)
-    const cardWidth = isPortrait ? 484 : 800;
-    const cardHeight = isPortrait ? 800 : 484;
-
     let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
       sorted[0].x, sorted[0].y,
       sorted[1].x, sorted[1].y,
       sorted[2].x, sorted[2].y,
       sorted[3].x, sorted[3].y
     ]);
+
+    const cardWidth = 800;
+    const cardHeight = 484;
 
     let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
       0, 0,
@@ -1590,17 +1594,18 @@ function cropFallbackROI(srcMat) {
   let w = srcMat.cols;
   let h = srcMat.rows;
 
-  let cropSize = Math.floor(Math.min(w, h) * 0.82);
+  let cropW = Math.floor(w * 0.82);
+  let cropH = Math.floor(cropW * 55 / 91);
   let startX = Math.floor((w - cropW) / 2);
   let startY = Math.floor((h - cropH) / 2);
 
-  let rect = new cv.Rect(startX, startY, cropSize, cropSize);
+  let rect = new cv.Rect(startX, startY, cropW, cropH);
   let roi = srcMat.roi(rect);
 
   let outputCanvas = document.getElementById('outputCanvas');
   if (outputCanvas) {
-    outputCanvas.width = cropSize;
-    outputCanvas.height = cropSize;
+    outputCanvas.width = cropW;
+    outputCanvas.height = cropH;
     cv.imshow('outputCanvas', roi);
   }
 
@@ -1629,12 +1634,17 @@ captureBtn?.addEventListener('click', async () => {
   let src = cv.imread(tempCanvas);
   let success = false;
 
-  // 4点検知できていれば、綺麗に台形補正して切り取る
   if (isDetected && lastDetectedQuad) {
     success = warpPerspective(src, lastDetectedQuad);
   }
 
-  // 検知できていなくても、安全なフォールバック切り抜きで必ず撮影できる
+  if (!success) {
+    let fallbackQuad = findCardQuad(src);
+    if (fallbackQuad) {
+      success = warpPerspective(src, fallbackQuad);
+    }
+  }
+
   if (!success) {
     cropFallbackROI(src);
   }
