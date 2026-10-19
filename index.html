@@ -230,7 +230,7 @@
     transform: translate(-50%, -50%);
     width: 75vw;
     max-width: 380px;
-    height: 75vw;
+    height: 82vw;
     max-height: calc(380px * 55 / 91);
     box-sizing: border-box;
     pointer-events: none;
@@ -254,7 +254,7 @@
     z-index: 15;
     width: 75vw;
     max-width: 380px;
-    height: 75vw;
+    height: 82vw;
     max-height: calc(380px * 55 / 91);
     border-radius: 12px;
     object-fit: contain;
@@ -1245,6 +1245,37 @@ async function enforcePortraitOrientation() {
   checkOrientation();
 }
 
+// リアルタイム認識ループ
+// リアルタイム認識ループ（シンプル版）
+function detectLoop() {
+  if (!isDetecting) return;
+  if (!video || video.readyState !== 4 || video.style.display === 'none' || !video.videoWidth || !video.videoHeight) {
+    setTimeout(() => requestAnimationFrame(detectLoop), 200);
+    return;
+  }
+
+  let fullMat = cv.imread(video);
+  try {
+    // 4点検知をこっそり試す（失敗してもエラーにしない）
+    let quad = findCardQuad(fullMat);
+
+    if (quad) {
+      isDetected = true;
+      lastDetectedQuad = quad;
+    } else {
+      isDetected = false;
+      lastDetectedQuad = null;
+    }
+  } catch (err) {
+    console.warn("OpenCV 待機中:", err);
+  } finally {
+    fullMat.delete();
+  }
+
+  setTimeout(() => requestAnimationFrame(detectLoop), 200);
+}
+  
+
 function checkOrientation() {
   const warningEl = document.getElementById('orientation-warning');
   const isLandscape = window.innerWidth > window.innerHeight;
@@ -1407,7 +1438,7 @@ async function startCamera() {
         checkOrientation();
         if (window.innerWidth <= window.innerHeight) {
           isDetecting = true;
-          detectLoop();
+          oop();
         }
       };
     }
@@ -1501,50 +1532,6 @@ function findCardQuad(srcMat) {
   return bestQuad;
 }
 
-// リアルタイム認識ループ
-function detectLoop() {
-  if (!isDetecting) return;
-  // ★ 修正点: video要素が存在し、かつ実際に映像サイズが取得できる状態（ready）かチェックする
-  if (!video || video.readyState !== 4 || video.style.display === 'none' || !video.videoWidth || !video.videoHeight) {
-    setTimeout(() => requestAnimationFrame(detectLoop), 200);
-    return;
-  }
-
-  let fullMat = cv.imread(video);
-  try {
-    let quad = findCardQuad(fullMat);
-
-    const statusEl = document.getElementById('status-message');
-    const guideEl = document.getElementById('guide-frame');
-
-    if (quad) {
-      isDetected = true;
-      lastDetectedQuad = quad;
-      if (guideEl) guideEl.classList.add('detected'); // ★ ここで上のCSS（緑色の実線）が適用される
-      if (statusEl) {
-        statusEl.classList.add('detected');
-        statusEl.textContent = '名刺を検知しました (ボタンを押して撮影)';
-      }
-      if (captureBtn) captureBtn.classList.add('active'); // ★ シャッターボタンも光る
-    } else {
-      isDetected = false;
-      lastDetectedQuad = null;
-      if (guideEl) guideEl.classList.remove('detected'); // 枠を元の破線に戻す
-      if (statusEl) {
-        statusEl.classList.remove('detected');
-        statusEl.textContent = '正方形の枠内に合わせてください';
-      }
-      if (captureBtn) captureBtn.classList.remove('active');
-    }
-  }catch (err) {
-    // 万が一 OpenCV 側で読み込みエラーが出てもループを止めないための安全策
-    console.warn("OpenCV imread 待機中:", err);
-  }finally {
-    fullMat.delete();
-  }
-
-  setTimeout(() => requestAnimationFrame(detectLoop), 200);
-}
 
 function sortPoints(pts) {
   pts.sort((a, b) => a.y - b.y);
@@ -1642,15 +1629,15 @@ captureBtn?.addEventListener('click', async () => {
   let src = cv.imread(tempCanvas);
   let success = false;
 
+  // 4点検知できていれば、綺麗に台形補正して切り取る
   if (isDetected && lastDetectedQuad) {
     success = warpPerspective(src, lastDetectedQuad);
   }
 
+  // 検知できていなくても、安全なフォールバック切り抜きで必ず撮影できる
   if (!success) {
-    let fallbackQuad = findCardQuad(src);
-    if (fallbackQuad) {
-      success = warpPerspective(src, fallbackQuad);
-    }
+    cropFallbackROI(src);
+  }
   }
 
   if (!success) {
