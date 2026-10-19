@@ -1482,7 +1482,8 @@ function findCardQuad(srcMat) {
 
       let rect = cv.boundingRect(cnt);
       let aspectRatio = rect.width / rect.height;
-      let isGoodRatio = (aspectRatio >= 1.2 && aspectRatio <= 2.2) || (aspectRatio >= 0.45 && aspectRatio <= 0.85);
+      // ※ 0.78 〜 1.30 の間（正方形に近いもの）はすべて無視する
+      let isGoodRatio = (aspectRatio >= 1.30 && aspectRatio <= 2.10) || (aspectRatio >= 0.48 && aspectRatio <= 0.78);
 
       if (isGoodRatio && approx.rows === 4) {
         let quadCandidate = [];
