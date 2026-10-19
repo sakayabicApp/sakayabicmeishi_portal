@@ -228,9 +228,9 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 82vw;
+    width: 75vw;
     max-width: 380px;
-    height: 82vw;
+    height: 75vw;
     max-height: calc(380px * 55 / 91);
     box-sizing: border-box;
     pointer-events: none;
@@ -252,9 +252,9 @@
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 15;
-    width: 82vw;
+    width: 75vw;
     max-width: 380px;
-    height: 82vw;
+    height: 75vw;
     max-height: calc(380px * 55 / 91);
     border-radius: 12px;
     object-fit: contain;
@@ -1519,23 +1519,22 @@ function detectLoop() {
     if (quad) {
       isDetected = true;
       lastDetectedQuad = quad;
-      if (guideEl) guideEl.classList.add('detected');
+      if (guideEl) guideEl.classList.add('detected'); // ★ ここで上のCSS（緑色の実線）が適用される
       if (statusEl) {
         statusEl.classList.add('detected');
         statusEl.textContent = '名刺を検知しました (ボタンを押して撮影)';
       }
-      if (captureBtn) captureBtn.classList.add('active');
-    } else {
+      if (captureBtn) captureBtn.classList.add('active'); // ★ シャッターボタンも光る
+    }else else {
       isDetected = false;
       lastDetectedQuad = null;
-      if (guideEl) guideEl.classList.remove('detected');
+      if (guideEl) guideEl.classList.remove('detected'); // 枠を元の破線に戻す
       if (statusEl) {
         statusEl.classList.remove('detected');
-        statusEl.textContent = 'ガイド枠内に合わせてください (タップで手動撮影)';
+        statusEl.textContent = '正方形の枠内に合わせてください';
       }
       if (captureBtn) captureBtn.classList.remove('active');
-    }
-  } catch (err) {
+    } catch (err) {
     // 万が一 OpenCV 側で読み込みエラーが出てもループを止めないための安全策
     console.warn("OpenCV imread 待機中:", err);
   }finally {
