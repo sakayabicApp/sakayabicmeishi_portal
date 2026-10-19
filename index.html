@@ -1638,11 +1638,9 @@ captureBtn?.addEventListener('click', async () => {
   if (!success) {
     cropFallbackROI(src);
   }
-  }
+}
 
-  if (!success) {
-    cropFallbackROI(src);
-  }
+
 
   const outputCanvas = document.getElementById('outputCanvas');
   const dataUrl = outputCanvas.toDataURL('image/jpeg', 0.9);
