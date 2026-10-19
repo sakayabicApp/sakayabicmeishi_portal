@@ -1525,7 +1525,7 @@ function detectLoop() {
         statusEl.textContent = '名刺を検知しました (ボタンを押して撮影)';
       }
       if (captureBtn) captureBtn.classList.add('active'); // ★ シャッターボタンも光る
-    }else else {
+    }else {
       isDetected = false;
       lastDetectedQuad = null;
       if (guideEl) guideEl.classList.remove('detected'); // 枠を元の破線に戻す
