@@ -262,6 +262,41 @@
     display: none;
   }
 
+  /* モード切替ボタンのスタイル */
+  .mode-select-btn {
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 20px;
+    border: 1.5px solid rgba(255, 255, 255, 0.6);
+    background: rgba(15, 23, 42, 0.6);
+    color: #ffffff;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+  }
+  .mode-select-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+  }
+
+  /* 縦長モード時のガイドフレーム形状（比率を逆転：55/91） */
+  #guide-frame.vertical-mode {
+    width: calc(65vh * 55 / 91);
+    max-width: 240px;
+    height: 65vh;
+    max-height: 420px;
+  }
+
+  /* 縦長モード時のプレビュー用フレーム形状 */
+  #guidePreview.vertical-mode {
+    width: calc(65vh * 55 / 91);
+    max-width: 240px;
+    height: 65vh;
+    max-height: 420px;
+  }
+
   #previewContainer {
     position: absolute;
     top: 45%;
@@ -934,6 +969,8 @@
 }  
 
   
+
+  
 </style>
   <script src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"></script>
 
@@ -965,6 +1002,11 @@
 <div id="page-camera" class="page">
   <div id="camera-container">
     <div id="status-message">名刺をガイド枠内に合わせてください</div>
+    <!-- ★ 追加: 縦・横の切り替えボタン -->
+    <div id="card-mode-selector" style="position: relative; z-index: 12; display: flex; gap: 8px; margin-top: 10px;">
+      <button type="button" id="modeHorizontalBtn" class="mode-select-btn active" onclick="switchCardMode('horizontal')">横名刺モード</button>
+      <button type="button" id="modeVerticalBtn" class="mode-select-btn" onclick="switchCardMode('vertical')">縦名刺モード</button>
+    </div>
     <video id="video" playsinline autoplay></video>
     <div id="guide-frame"></div>
     <img id="guidePreview" style="display: none;" />
@@ -1226,6 +1268,8 @@ let currentSelectedItem = null; // 現在選択中のカードデータ（編集
 let unsubscribeCards = null;  
 // 直前の裏面画像を保持しておくための変数
 let previousBackImage = null;
+  // 現在の撮影モード ('horizontal' または 'vertical')
+let currentCardMode = 'horizontal';
 
 
 
@@ -1499,6 +1543,27 @@ function findCardQuad(srcMat) {
   return bestQuad;
 }
 
+// モード切替時に呼ばれる関数（ボタンの色変更やモード保持）
+function switchCardMode(mode) {
+  currentCardMode = mode;
+  const guideFrame = document.getElementById('guide-frame');
+  const guidePreview = document.getElementById('guidePreview');
+  const btnH = document.getElementById('modeHorizontalBtn');
+  const btnV = document.getElementById('modeVerticalBtn');
+
+  if (mode === 'vertical') {
+    guideFrame?.classList.add('vertical-mode');
+    guidePreview?.classList.add('vertical-mode');
+    btnV?.classList.add('active');
+    btnH?.classList.remove('active');
+  } else {
+    guideFrame?.classList.remove('vertical-mode');
+    guidePreview?.classList.remove('vertical-mode');
+    btnH?.classList.add('active');
+    btnV?.classList.remove('active');
+  }
+}  
+
 // リアルタイム認識ループ
 function detectLoop() {
   if (!isDetecting) return;
@@ -1590,12 +1655,22 @@ function warpPerspective(srcMat, quadPoints) {
   }
 }
 
-function cropFallbackROI(srcMat) {
+// ★ モードに応じて縦長・横長を切り替える安全なクロップ関数
+function cropFallbackROI(srcMat, mode) {
   let w = srcMat.cols;
   let h = srcMat.rows;
+  let cropW, cropH;
 
-  let cropW = Math.floor(w * 0.82);
-  let cropH = Math.floor(cropW * 55 / 91);
+  if (mode === 'vertical') {
+    // 縦長名刺の比率 (55:91) に合わせて切り抜き
+    cropH = Math.floor(h * 0.78);
+    cropW = Math.floor(cropH * 55 / 91);
+  } else {
+    // 横長名刺の比率 (91:55) に合わせて切り抜き
+    cropW = Math.floor(w * 0.82);
+    cropH = Math.floor(cropW * 55 / 91);
+  }
+
   let startX = Math.floor((w - cropW) / 2);
   let startY = Math.floor((h - cropH) / 2);
 
@@ -1620,6 +1695,9 @@ function generateShortCardId() {
   const rand = Math.random().toString(36).substring(2, 5);
   return `${yy}${mm}${dd}-${rand}`;
 }
+
+
+
   
 // 1. シャッターボタン（表面・裏面の撮影完了処理）
 captureBtn?.addEventListener('click', async () => {
@@ -1638,17 +1716,14 @@ captureBtn?.addEventListener('click', async () => {
     success = warpPerspective(src, lastDetectedQuad);
   }
 
+  // 検知できていない、あるいは手動モードで確実に切り抜きたい場合
   if (!success) {
-    let fallbackQuad = findCardQuad(src);
-    if (fallbackQuad) {
-      success = warpPerspective(src, fallbackQuad);
-    }
+    // ★ ここで現在のモード（'horizontal' または 'vertical'）を渡す
+    cropFallbackROI(src, currentCardMode);
+    success = true; // フォールバックで強制的に成功とする
   }
-
-  if (!success) {
-    cropFallbackROI(src);
-  }
-
+  
+  
   const outputCanvas = document.getElementById('outputCanvas');
   const dataUrl = outputCanvas.toDataURL('image/jpeg', 0.9);
   
