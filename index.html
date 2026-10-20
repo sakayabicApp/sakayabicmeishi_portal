@@ -933,25 +933,27 @@
   cursor: pointer;
 }  
 
-/* モード切替ボタン */
+/* モード切替ボタン（シャッター右側用） */
   .mode-select-btn {
-    padding: 6px 16px;
-    font-size: 13px;
+    padding: 6px 12px;
+    font-size: 12px;
     font-weight: 600;
-    border-radius: 20px;
+    border-radius: 16px;
     border: 1.5px solid rgba(255, 255, 255, 0.6);
     background: rgba(15, 23, 42, 0.6);
     color: #ffffff;
     cursor: pointer;
     backdrop-filter: blur(4px);
     transition: all 0.2s ease;
+    white-space: nowrap;
+    text-align: center;
   }
   .mode-select-btn.active {
     background: var(--primary);
     border-color: var(--primary);
     box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
   }
-
+  
   /* 縦長モード時のガイドフレーム形状 */
   #guide-frame.vertical-mode {
     width: calc(60vh * 55 / 91);
@@ -1000,10 +1002,6 @@
     <!-- ★ ステータスメッセージとモード切替ボタンを上部にまとめて配置 -->
     <div style="display: flex; flex-direction: column; align-items: center; width: 100%; z-index: 12; position: absolute; top: 15px;">
       <div id="status-message" style="position: relative; margin-top: 0;">名刺をガイド枠内に合わせてください</div>
-      <div id="card-mode-selector" style="display: flex; gap: 8px; margin-top: 8px;">
-        <button type="button" id="modeHorizontalBtn" class="mode-select-btn active" onclick="switchCardMode('horizontal')">横名刺モード</button>
-        <button type="button" id="modeVerticalBtn" class="mode-select-btn" onclick="switchCardMode('vertical')">縦名刺モード</button>
-      </div>
     </div>
     <video id="video" playsinline autoplay></video>
     <div id="guide-frame"></div>
@@ -1018,7 +1016,15 @@
     
     <div id="controls">
       <div id="capture-btn"></div>
-
+      <!-- ★ シャッターボタンと、その右側の縦並びモード切替ボタンをまとめるコンテナ -->
+      <div style="display: flex; align-items: center; gap: 16px; width: 100%; justify-content: center;">
+        <div id="capture-btn"></div>
+        
+        <div id="card-mode-selector" style="display: flex; flex-direction: column; gap: 6px;">
+          <button type="button" id="modeHorizontalBtn" class="mode-select-btn active" onclick="switchCardMode('horizontal')">横名刺</button>
+          <button type="button" id="modeVerticalBtn" class="mode-select-btn" onclick="switchCardMode('vertical')">縦名刺</button>
+        </div>
+      </div>
       <div id="actionBtns">
         <button id="sendBtn" class="action-btn">送信する</button>
         <button id="backCaptureBtn" class="action-btn">裏面を撮影</button>
