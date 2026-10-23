@@ -1500,8 +1500,15 @@ function findCardQuad(srcMat) {
 
   cv.cvtColor(srcMat, gray, cv.COLOR_RGBA2GRAY);
   cv.equalizeHist(gray, equalized);
+  
+  // ★ 負荷を軽くするため1回のCanny処理にし、白名刺もカラー名刺も拾いやすい中間値（55, 160）に設定
+  cv.Canny(equalized, edges, 55, 160);
 
   let kernel = cv.Mat.ones(3, 3, cv.CV_8U);
+  cv.dilate(edges, edges, kernel);
+
+  cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
   let bestQuad = null;
   let maxDetectedArea = 0;
   let fullArea = srcMat.cols * srcMat.rows;
@@ -1509,57 +1516,35 @@ function findCardQuad(srcMat) {
   let minArea = fullArea * 0.15;
   let maxArea = fullArea * 0.80;
 
-  // ▼ 【ポイント】まず「標準設定（白ベース向け）」で探索、見つからなければ「高感度設定（濃色向け）」で再挑戦する2段階ループ
-  let thresholdTries = [
-    { low: 70, high: 200 }, // 1回目：標準（白名刺に強い）
-    { low: 40, high: 120 }  // 2回目：高感度（カラー・濃色名刺に強い）
-  ];
+  for (let i = 0; i < contours.size(); ++i) {
+    let cnt = contours.get(i);
+    let area = cv.contourArea(cnt);
 
-  for (let t = 0; t < thresholdTries.length; t++) {
-    let th = thresholdTries[t];
-    
-    cv.Canny(equalized, edges, th.low, th.high);
-    cv.dilate(edges, edges, kernel);
+    if (area >= minArea && area <= maxArea && area > maxDetectedArea) {
+      let approx = new cv.Mat();
+      let perimeter = cv.arcLength(cnt, true);
+      cv.approxPolyDP(cnt, approx, 0.03 * perimeter, true);
 
-    cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-    for (let i = 0; i < contours.size(); ++i) {
-      let cnt = contours.get(i);
-      let area = cv.contourArea(cnt);
-
-      if (area >= minArea && area <= maxArea && area > maxDetectedArea) {
-        let approx = new cv.Mat();
-        let perimeter = cv.arcLength(cnt, true);
-        cv.approxPolyDP(cnt, approx, 0.03 * perimeter, true);
-
-        let rect = cv.boundingRect(cnt);
-        let aspectRatio = rect.width / rect.height;
-        
-        let isGoodRatio = false;
-        if (currentCardMode === 'vertical') {
-          isGoodRatio = (aspectRatio >= 0.45 && aspectRatio <= 0.85);
-        } else {
-          isGoodRatio = (aspectRatio >= 1.2 && aspectRatio <= 2.2);
-        }
-
-        if (isGoodRatio && approx.rows === 4) {
-          let quadCandidate = [];
-          for (let j = 0; j < 4; j++) {
-            quadCandidate.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
-          }
-          bestQuad = quadCandidate;
-          maxDetectedArea = area;
-        }
-        approx.delete();
+      let rect = cv.boundingRect(cnt);
+      let aspectRatio = rect.width / rect.height;
+      
+      let isGoodRatio = false;
+      if (currentCardMode === 'vertical') {
+        isGoodRatio = (aspectRatio >= 0.45 && aspectRatio <= 0.85);
+      } else {
+        isGoodRatio = (aspectRatio >= 1.2 && aspectRatio <= 2.2);
       }
-    }
 
-    // 1回目の標準設定で見つかれば、2回目を実行せずにループを抜ける（効率化）
-    if (bestQuad) {
-      contours.clear(); // 次のループに備えてクリア
-      break;
+      if (isGoodRatio && approx.rows === 4) {
+        let quadCandidate = [];
+        for (let j = 0; j < 4; j++) {
+          quadCandidate.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
+        }
+        bestQuad = quadCandidate;
+        maxDetectedArea = area;
+      }
+      approx.delete();
     }
-    contours.clear();
   }
 
   kernel.delete(); gray.delete(); equalized.delete(); edges.delete(); contours.delete(); hierarchy.delete();
