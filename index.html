@@ -1062,9 +1062,29 @@
   <label class="filter-checkbox-label">
     <input type="checkbox" id="myCardsOnlyCheckbox">
     <span>自分が登録・更新した名刺のみ表示</span>
-  </label>
- 
+  </label> 
 </div>
+<!-- 検索＆フィルタエリア -->
+<div class="search-container" style="display: flex; flex-direction: column; gap: 8px; padding: 0 16px;">
+  <label class="filter-checkbox-label" style="margin-left: 0;">
+    <input type="checkbox" id="myCardsOnlyCheckbox">
+    <span>自分が登録・更新した名刺のみ表示</span>
+  </label>
+  
+  <!-- ★ 並び替え選択メニューを追加 -->
+  <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #495057; padding: 0 2px;">
+    <span style="font-weight: 600;">並び替え:</span>
+    <select id="sortOrderSelect" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #fff; font-size: 13px; color: #0f172a; cursor: pointer;">
+      <option value="updatedAt_desc">更新日が新しい順</option>
+      <option value="company_asc">会社名 昇順</option>
+      <option value="company_desc">会社名 降順</option>
+      <option value="name_asc">氏名 昇順</option>
+      <option value="name_desc">氏名 降順</option>
+    </select>
+  </div>
+</div>
+
+  
   <div id="card-container"></div>
 </div>
 
