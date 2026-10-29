@@ -1491,6 +1491,7 @@ document.getElementById('searchInput')?.addEventListener('input', (e) => {
   renderCards(filtered);
 });
 
+// OpenCV 4頂点検知（高精度版 ＋ 縦横モード別の面積最適化）
 function findCardQuad(srcMat) {
   let gray = new cv.Mat();
   let equalized = new cv.Mat();
@@ -1501,8 +1502,8 @@ function findCardQuad(srcMat) {
   cv.cvtColor(srcMat, gray, cv.COLOR_RGBA2GRAY);
   cv.equalizeHist(gray, equalized);
   
-  // ★ 負荷を軽くするため1回のCanny処理にし、白名刺もカラー名刺も拾いやすい中間値（55, 160）に設定
-  cv.Canny(equalized, edges, 55, 160);
+  // 定評のある高精度な Canny 設定（70, 200）
+  cv.Canny(equalized, edges, 70, 200);
 
   let kernel = cv.Mat.ones(3, 3, cv.CV_8U);
   cv.dilate(edges, edges, kernel);
@@ -1513,9 +1514,15 @@ function findCardQuad(srcMat) {
   let maxDetectedArea = 0;
   let fullArea = srcMat.cols * srcMat.rows;
   
-  // ▼ 【修正】縦長モードのときは面積のハードルを少し下げる（15% → 8%）
-  let minArea = (currentCardMode === 'vertical') ? fullArea * 0.08 : fullArea * 0.15;
-  let maxArea = fullArea * 0.80;
+  // ★ 【見直しポイント】縦長モードと横長モードで面積の許容範囲を最適化
+  let minArea, maxArea;
+  if (currentCardMode === 'vertical') {
+    minArea = fullArea * 0.10; // 縦長は少し小さめに写っても検知しやすくする (10%)
+    maxArea = fullArea * 0.75;
+  } else {
+    minArea = fullArea * 0.15; // 横長は標準 (15%)
+    maxArea = fullArea * 0.80;
+  }
 
   for (let i = 0; i < contours.size(); ++i) {
     let cnt = contours.get(i);
@@ -1529,11 +1536,12 @@ function findCardQuad(srcMat) {
       let rect = cv.boundingRect(cnt);
       let aspectRatio = rect.width / rect.height;
       
+      // モードに応じた比率チェック
       let isGoodRatio = false;
       if (currentCardMode === 'vertical') {
-        isGoodRatio = (aspectRatio >= 0.45 && aspectRatio <= 0.85);
+        isGoodRatio = (aspectRatio >= 0.45 && aspectRatio <= 0.85); // 縦名刺用
       } else {
-        isGoodRatio = (aspectRatio >= 1.2 && aspectRatio <= 2.2);
+        isGoodRatio = (aspectRatio >= 1.2 && aspectRatio <= 2.2);   // 横名刺用
       }
 
       if (isGoodRatio && approx.rows === 4) {
