@@ -2703,52 +2703,58 @@ function getCurrentUserCode() {
   return sessionStorage.getItem('userCode') || '';
 }
 
+
 // ログイン中のユーザー名を取得
 function getCurrentUserName() {
   return sessionStorage.getItem('userName') || '';
 }  
 
+// 漢字・ひらがな・カタカナ・略称の法人格をすべて自動で除外して純粋な社名だけにするヘルパー関数
+function removeCorporateType(str) {
+  if (!str) return '';
+  return str
+    // 漢字の法人格・略称
+    .replace(/株式会社|有限会社|合同会社|合資会社|合名会社|一般社団法人|一般財団法人|（株）|\(株\)|（有）|\(有\)/g, '')
+    // ひらがなの法人格
+    .replace(/かぶしきがいしゃ|ゆうげんがいしゃ|ごうどうがいしゃ|ごうしがいしゃ|ごうめいがしゃ/g, '')
+    // カタカナの法人格
+    .replace(/カブシキガイシャ|ユウゲンガイシャ|ゴウドウガイシャ|ガウスガイシャ/g, '')
+    // 半角カナの法人格（念のため）
+    .replace(/ｶﾌﾞｼｷｶﾞｲｼｬ|ﾕｳｹﾞﾝｶﾞｲｼｬ/g, '')
+    .trim();
+}
+  
 // カードの絞り込み＆並び替え一括処理関数
 function filterCards() {
   const searchInput = document.getElementById('searchInput');
   const myCardsCheckbox = document.getElementById('myCardsOnlyCheckbox');
-  const sortSelect = document.getElementById('sortOrderSelect'); // ★ 並び替え用セレクトボックス
+  const sortSelect = document.getElementById('sortOrderSelect');
 
   const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
   const isMyCardsOnly = myCardsCheckbox ? myCardsCheckbox.checked : false;
-  const sortOrder = sortSelect ? sortSelect.value : 'updatedAt_desc';
+  const sortOrder = (sortSelect && sortSelect.value) ? sortSelect.value : 'updatedAt_desc';
   const currentCode = getCurrentUserCode();
 
   const qKata = typeof hiraToKata === 'function' ? hiraToKata(query) : query;
   const qHira = typeof kataToHira === 'function' ? kataToHira(query) : query;
 
-  // 1. 絞り込み処理（元コードのロジックを完全網羅）
+  // 1. 絞り込み処理
   const filtered = allCardsData.filter(card => {
-    // 1. 「自分が登録・更新した名刺のみ」チェックの検証
     if (isMyCardsOnly) {
       const curCodeStr = String(currentCode);
-
-      // ★ editorCodes 配列が存在していれば includes で判定
       let isRelated = false;
       if (card.editorCodes && Array.isArray(card.editorCodes)) {
         isRelated = card.editorCodes.some(code => String(code) === curCodeStr);
       } else {
-        // バックアップ判定（editorCodes がまだ無い過去データ用）
         const isRegistrar = card.registrarCode && String(card.registrarCode) === curCodeStr;
         const isUpdater = card.updaterCode && String(card.updaterCode) === curCodeStr;
         isRelated = isRegistrar || isUpdater;
       }
-
-      // 関わっていない名刺は除外
-      if (!isRelated) {
-        return false;
-      }
+      if (!isRelated) return false;
     }
 
-    // 2. キーワード検索（空の場合は全件通過）
     if (!query) return true;
 
-    // 検索対象テキストグループに card.memo を含む
     const textGroup = [
       card.name, card.nameKana, card.company, card.companyKana,
       card.department, card.title, card.email, card.phone, card.memo
@@ -2757,38 +2763,41 @@ function filterCards() {
     return textGroup.includes(query) || textGroup.includes(qKata) || textGroup.includes(qHira);
   });
 
-  // 2. 並び替え（ソート）処理（カナを基準にする）
-  filtered.sort((a, b) => {
-    if (sortOrder === 'updatedAt_desc') {
-      const timeA = a.updatedAt || a.createdAt || '';
-      const timeB = b.updatedAt || b.createdAt || '';
-      return timeB.localeCompare(timeA); // 更新日が新しい順
-    } else if
-      (sortOrder === 'updatedAt_asc') {
-      const timeA = a.updatedAt || a.createdAt || '';
-      const timeB = b.updatedAt || b.createdAt || '';
-      return timeA.localeCompare(timeB); // 更新日が古い順
-    } else if(sortOrder === 'company_asc') {
-      // 会社名カナを優先（カナがなければ漢字で代用）
-      const cA = a.companyKana || a.company || '';
-      const cB = b.companyKana || b.company || '';
-      return cA.localeCompare(cB, 'ja'); 
-    } else if (sortOrder === 'company_desc') {
-      const cA = a.companyKana || a.company || '';
-      const cB = b.companyKana || b.company || '';
-      return cB.localeCompare(cA, 'ja'); 
-    } else if (sortOrder === 'name_asc') {
-      // 氏名カナを優先（カナがなければ漢字で代用）
-      const nA = a.nameKana || a.name || '';
-      const nB = b.nameKana || b.name || '';
-      return nA.localeCompare(nB, 'ja'); 
-    } else if (sortOrder === 'name_desc') {
-      const nA = a.nameKana || a.name || '';
-      const nB = b.nameKana || b.name || '';
-      return nB.localeCompare(nA, 'ja'); 
-    }
-    return 0;
-  });
+  // 2. 並び替え（ソート）処理（法人格を無視して社名カナ/漢字で綺麗にソート）
+  try {
+    filtered.sort((a, b) => {
+      if (sortOrder === 'updatedAt_desc') {
+        const timeA = a.updatedAt || a.createdAt || '';
+        const timeB = b.updatedAt || b.createdAt || '';
+        return timeB.localeCompare(timeA);
+      } else if (sortOrder === 'updatedAt_asc') {
+        const timeA = a.updatedAt || a.createdAt || '';
+        const timeB = b.updatedAt || b.createdAt || '';
+        return timeA.localeCompare(timeB);
+      } else if(sortOrder === 'company_asc') {
+        // ★ 法人格を除いた状態で比較
+        const cA = removeCorporateType(String(a.companyKana || a.company || ''));
+        const cB = removeCorporateType(String(b.companyKana || b.company || ''));
+        return cA.localeCompare(cB, 'ja');
+      } else if (sortOrder === 'company_desc') {
+        // ★ 法人格を除いた状態で比較（降順）
+        const cA = removeCorporateType(String(a.companyKana || a.company || ''));
+        const cB = removeCorporateType(String(b.companyKana || b.company || ''));
+        return cB.localeCompare(cA, 'ja');
+      } else if (sortOrder === 'name_asc') {
+        const nA = String(a.nameKana || a.name || '');
+        const nB = String(b.nameKana || b.name || '');
+        return nA.localeCompare(nB, 'ja');
+      } else if (sortOrder === 'name_desc') {
+        const nA = String(a.nameKana || a.name || '');
+        const nB = String(b.nameKana || b.name || '');
+        return nB.localeCompare(nA, 'ja');
+      }
+      return 0;
+    });
+  } catch (e) {
+    console.error("ソート処理エラー:", e);
+  }
 
   renderCards(filtered);
 }
