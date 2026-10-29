@@ -1064,12 +1064,6 @@
     <span>自分が登録・更新した名刺のみ表示</span>
   </label> 
 </div>
-<!-- 検索＆フィルタエリア -->
-<div class="search-container" style="display: flex; flex-direction: column; gap: 8px; padding: 0 16px;">
-  <label class="filter-checkbox-label" style="margin-left: 0;">
-    <input type="checkbox" id="myCardsOnlyCheckbox">
-    <span>自分が登録・更新した名刺のみ表示</span>
-  </label>
   
   <!-- ★ 並び替え選択メニューを追加 -->
   <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #495057; padding: 0 2px;">
@@ -2736,28 +2730,30 @@ function filterCards() {
     return textGroup.includes(query) || textGroup.includes(qKata) || textGroup.includes(qHira);
   });
 
-  // 2. 並び替え（ソート）処理
+  // 2. 並び替え（ソート）処理（カナを基準にする）
   filtered.sort((a, b) => {
     if (sortOrder === 'updatedAt_desc') {
       const timeA = a.updatedAt || a.createdAt || '';
       const timeB = b.updatedAt || b.createdAt || '';
       return timeB.localeCompare(timeA); // 更新日が新しい順
     } else if (sortOrder === 'company_asc') {
-      const cA = a.company || '';
-      const cB = b.company || '';
-      return cA.localeCompare(cB, 'ja'); // 会社名 昇順
+      // 会社名カナを優先（カナがなければ漢字で代用）
+      const cA = a.companyKana || a.company || '';
+      const cB = b.companyKana || b.company || '';
+      return cA.localeCompare(cB, 'ja'); 
     } else if (sortOrder === 'company_desc') {
-      const cA = a.company || '';
-      const cB = b.company || '';
-      return cB.localeCompare(cA, 'ja'); // 会社名 降順
+      const cA = a.companyKana || a.company || '';
+      const cB = b.companyKana || b.company || '';
+      return cB.localeCompare(cA, 'ja'); 
     } else if (sortOrder === 'name_asc') {
-      const nA = a.name || '';
-      const nB = b.name || '';
-      return nA.localeCompare(nB, 'ja'); // 氏名 昇順
+      // 氏名カナを優先（カナがなければ漢字で代用）
+      const nA = a.nameKana || a.name || '';
+      const nB = b.nameKana || b.name || '';
+      return nA.localeCompare(nB, 'ja'); 
     } else if (sortOrder === 'name_desc') {
-      const nA = a.name || '';
-      const nB = b.name || '';
-      return nB.localeCompare(nA, 'ja'); // 氏名 降順
+      const nA = a.nameKana || a.name || '';
+      const nB = b.nameKana || b.name || '';
+      return nB.localeCompare(nA, 'ja'); 
     }
     return 0;
   });
