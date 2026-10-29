@@ -1513,7 +1513,8 @@ function findCardQuad(srcMat) {
   let maxDetectedArea = 0;
   let fullArea = srcMat.cols * srcMat.rows;
   
-  let minArea = fullArea * 0.15;
+  // ▼ 【修正】縦長モードのときは面積のハードルを少し下げる（15% → 8%）
+  let minArea = (currentCardMode === 'vertical') ? fullArea * 0.08 : fullArea * 0.15;
   let maxArea = fullArea * 0.80;
 
   for (let i = 0; i < contours.size(); ++i) {
