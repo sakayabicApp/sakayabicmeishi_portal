@@ -1069,6 +1069,7 @@
     <span style="font-weight: 600;">並び替え:</span>
     <select id="sortOrderSelect" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #fff; font-size: 13px; color: #0f172a; cursor: pointer;">
       <option value="updatedAt_desc">更新日が新しい順</option>
+      <option value="updatedAt_asc">更新日が古い順</option>
       <option value="company_asc">会社名 昇順</option>
       <option value="company_desc">会社名 降順</option>
       <option value="name_asc">氏名 昇順</option>
@@ -2762,7 +2763,12 @@ function filterCards() {
       const timeA = a.updatedAt || a.createdAt || '';
       const timeB = b.updatedAt || b.createdAt || '';
       return timeB.localeCompare(timeA); // 更新日が新しい順
-    } else if (sortOrder === 'company_asc') {
+    } else if
+      (sortOrder === 'updatedAt_asc') {
+      const timeA = a.updatedAt || a.createdAt || '';
+      const timeB = b.updatedAt || b.createdAt || '';
+      return timeA.localeCompare(timeB); // 更新日が古い順
+    } else if(sortOrder === 'company_asc') {
       // 会社名カナを優先（カナがなければ漢字で代用）
       const cA = a.companyKana || a.company || '';
       const cB = b.companyKana || b.company || '';
