@@ -2687,18 +2687,21 @@ function getCurrentUserName() {
   return sessionStorage.getItem('userName') || '';
 }  
 
-// カードの絞り込み一括処理関数
+// カードの絞り込み＆並び替え一括処理関数
 function filterCards() {
   const searchInput = document.getElementById('searchInput');
   const myCardsCheckbox = document.getElementById('myCardsOnlyCheckbox');
+  const sortSelect = document.getElementById('sortOrderSelect'); // ★ 並び替え用セレクトボックス
 
   const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
   const isMyCardsOnly = myCardsCheckbox ? myCardsCheckbox.checked : false;
+  const sortOrder = sortSelect ? sortSelect.value : 'updatedAt_desc';
   const currentCode = getCurrentUserCode();
 
   const qKata = typeof hiraToKata === 'function' ? hiraToKata(query) : query;
   const qHira = typeof kataToHira === 'function' ? kataToHira(query) : query;
 
+  // 1. 絞り込み処理（元コードのロジックを完全網羅）
   const filtered = allCardsData.filter(card => {
     // 1. 「自分が登録・更新した名刺のみ」チェックの検証
     if (isMyCardsOnly) {
@@ -2733,9 +2736,36 @@ function filterCards() {
     return textGroup.includes(query) || textGroup.includes(qKata) || textGroup.includes(qHira);
   });
 
+  // 2. 並び替え（ソート）処理
+  filtered.sort((a, b) => {
+    if (sortOrder === 'updatedAt_desc') {
+      const timeA = a.updatedAt || a.createdAt || '';
+      const timeB = b.updatedAt || b.createdAt || '';
+      return timeB.localeCompare(timeA); // 更新日が新しい順
+    } else if (sortOrder === 'company_asc') {
+      const cA = a.company || '';
+      const cB = b.company || '';
+      return cA.localeCompare(cB, 'ja'); // 会社名 昇順
+    } else if (sortOrder === 'company_desc') {
+      const cA = a.company || '';
+      const cB = b.company || '';
+      return cB.localeCompare(cA, 'ja'); // 会社名 降順
+    } else if (sortOrder === 'name_asc') {
+      const nA = a.name || '';
+      const nB = b.name || '';
+      return nA.localeCompare(nB, 'ja'); // 氏名 昇順
+    } else if (sortOrder === 'name_desc') {
+      const nA = a.name || '';
+      const nB = b.name || '';
+      return nB.localeCompare(nA, 'ja'); // 氏名 降順
+    }
+    return 0;
+  });
+
   renderCards(filtered);
 }
 
+  
 // ---------------------------------------------------------
 // イベントリスナーの登録
 // ---------------------------------------------------------
@@ -2749,6 +2779,11 @@ document.getElementById('searchInput')?.addEventListener('input', () => {
 document.getElementById('myCardsOnlyCheckbox')?.addEventListener('change', () => {
   filterCards();
 });
+
+// 並び替えメニュー変更時
+document.getElementById('sortOrderSelect')?.addEventListener('change', () => {
+  filterCards();
+});  
 
 // 初期化処理（画面読み込み時に呼び出す）
 document.addEventListener('DOMContentLoaded', () => {
