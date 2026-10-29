@@ -1069,10 +1069,10 @@
     <span style="font-weight: 600;">並び替え:</span>
     <select id="sortOrderSelect" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #fff; font-size: 13px; color: #0f172a; cursor: pointer;">
       <option value="updatedAt_desc">更新日が新しい順</option>
-      <option value="company_asc">会社名 昇順 (あ〜わ)</option>
-      <option value="company_desc">会社名 降順 (わ〜あ)</option>
-      <option value="name_asc">氏名 昇順 (あ〜わ)</option>
-      <option value="name_desc">氏名 降順 (わ〜あ)</option>
+      <option value="company_asc">会社名 昇順</option>
+      <option value="company_desc">会社名 降順</option>
+      <option value="name_asc">氏名 昇順</option>
+      <option value="name_desc">氏名 降順</option>
     </select>
   </div>
 </div>
@@ -1393,6 +1393,12 @@ document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
 // ---------------------------------------------------------
 // ページ切り替え処理
 // ---------------------------------------------------------
+// 競合防止用のリクエストカウンター
+let cameraRequestSeq = 0;
+
+// ---------------------------------------------------------
+// ページ切り替え処理（重複を整理し、カメラ制御を一本化）
+// ---------------------------------------------------------
 function showPage(pageId) {
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active');
@@ -1408,28 +1414,26 @@ function showPage(pageId) {
   }
 
   document.querySelectorAll('#bottom-nav button').forEach(btn => btn.classList.remove('active'));
-  if (pageId === 'page-camera') {
-  // ★ 検索ページなどから撮影ページに遷移した際、必ず初期状態にリセット
-  globalCardId = null;
-  isFrontSide = true;
-  capturedImages = { front: null, back: null };
-  previousBackImage = null;
-  resetPreview();
-  showCaptureUI();
 
-  startCamera();
-} else {
-  stopCamera();
-}
-  if (pageId === 'page-search') document.getElementById('nav-search')?.classList.add('active');
-
+  // カメラの起動・停止を確実に交通整理
   if (pageId === 'page-camera') {
+    // 撮影ページに遷移した場合
+    globalCardId = null;
+    isFrontSide = true;
+    capturedImages = { front: null, back: null };
+    previousBackImage = null;
+    resetPreview();
+    showCaptureUI();
+
     startCamera();
   } else {
+    // 撮影ページ以外（検索やログイン画面など）に遷移した場合、確実にカメラを止める
     stopCamera();
   }
 
+  // ナビゲーションやデータの連動
   if (pageId === 'page-search') {
+    document.getElementById('nav-search')?.classList.add('active');
     fetchCardsData();
   }
 }
@@ -1446,7 +1450,17 @@ function stopCamera() {
 
 async function startCamera() {
   await enforcePortraitOrientation();
+  
+  // 起動処理に入った時点で、すでに撮影ページ以外に移動していたら即中断
+  const activePage = document.querySelector('.page.active');
+  if (!activePage || activePage.id !== 'page-camera') {
+    return;
+  }
+
   if (video && video.srcObject) return;
+
+  // 今回のリクエストIDを発行
+  const currentSeq = ++cameraRequestSeq;
 
   const constraints = {
     video: {
@@ -1458,21 +1472,34 @@ async function startCamera() {
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    
+    // 【重要】ストリーム取得を待っている間に、ユーザーが別のページ（検索やログイン）に移動していた場合
+    const currentActivePage = document.querySelector('.page.active');
+    if (!currentActivePage || currentActivePage.id !== 'page-camera' || currentSeq !== cameraRequestSeq) {
+      // 取得してしまったカメラのストリームを即座に破棄して終了
+      stream.getTracks().forEach(track => track.stop());
+      return;
+    }
+
     if (video) {
       video.srcObject = stream;
       video.onloadedmetadata = () => {
         checkOrientation();
-        if (window.innerWidth <= window.innerHeight) {
+        // メタデータ読み込み時にもう一度ページがカメラ画面か確認
+        const checkPage = document.querySelector('.page.active');
+        if (checkPage && checkPage.id === 'page-camera' && window.innerWidth <= window.innerHeight) {
           isDetecting = true;
           detectLoop();
+        } else {
+          stopCamera();
         }
       };
     }
   } catch (err) { 
-    alert("カメラアクセスを許可してください"); 
+    console.error("カメラアクセスエラー:", err);
+    // カメラ拒否時などは必要に応じて処理
   }
 }
-
 // ひらがな・カタカナ互換ヘルパー
 function hiraToKata(str) {
   return str.replace(/[\u3041-\u3096]/g, m => String.fromCharCode(m.charCodeAt(0) + 0x60));
