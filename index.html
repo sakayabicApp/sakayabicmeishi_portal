@@ -418,7 +418,7 @@
     transform: scale(0.98);
   }
 
-/* 検索ページのサムネイル（横型デフォルト、縦型時は幅を自動調整して高さを維持） */
+/* 検索ページのサムネイル（縦横問わず横幅を統一して開始位置を揃える） */
   .card-thumb-box {
     width: 76px;
     height: 48px;
@@ -430,13 +430,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: width 0.1s ease;
   }
 
-  /* ★ 追加：縦型サムネイル用のスリム幅 */
-  .card-thumb-box.vertical-thumb {
-    width: calc(48px * 55 / 91); 
-  }
+  
 
   .card-thumb-box img {
     width: 100%;
@@ -2186,13 +2182,6 @@ function formatDriveUrl(url) {
   return url;
 }
 
-// ★ 追加：サムネイル画像の縦横判定用コールバック関数
-function checkThumbOrientation(img) {
-  if (img.naturalHeight > img.naturalWidth) {
-    const box = img.closest('.card-thumb-box');
-    if (box) box.classList.add('vertical-thumb');
-  }
-}  
 
 function renderCards(dataList) {
   const container = document.getElementById('card-container');
@@ -2210,9 +2199,9 @@ function renderCards(dataList) {
     card.onclick = () => openDetailModal(item);
 
     const imageUrl = formatDriveUrl(item.frontUrl);
-    // ★ 変更：onload="checkThumbOrientation(this)" を追加
+    // ★ onload を削除し、常に共通のボックスサイズで表示
     const thumbHtml = imageUrl 
-      ? `<img src="${imageUrl}" alt="名刺" loading="lazy" onload="checkThumbOrientation(this)">` 
+      ? `<img src="${imageUrl}" alt="名刺" loading="lazy">` 
       : `<span class="card-thumb-placeholder">No Img</span>`;
 
     card.innerHTML = `
