@@ -406,7 +406,7 @@
     padding: 14px 16px;
     margin-bottom: 12px;
     display: flex;
-    align-items: flex-start; /* ★ 縦長のサムネイルが入っても上部が揃うように変更 */
+    align-items: center; /* ★ 縦長のサムネイルが入っても上部が揃うように変更 */
     gap: 14px;
     box-shadow: var(--shadow-sm);
     cursor: pointer;
@@ -2222,6 +2222,7 @@ function renderCards(dataList) {
         </div>
         <p class="card-company">${item.company || "会社名なし"}</p>
         <div class="card-dept">${[item.department, item.title].filter(Boolean).join(' / ')}</div>
+        <div class="card-date">最終更新者: ${item.updaterName || '-'}</div>
         <div class="card-date">最終更新日時: ${item.updatedAt || item.createdAt || '-'}</div>
       </div>
     `;
