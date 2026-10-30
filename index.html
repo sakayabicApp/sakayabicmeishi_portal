@@ -592,12 +592,20 @@
     display: none !important;
   }
 
+  /* ★ 追加：片面（1枚）表示のときのサイズを2列表示の1枚分に固定 */
+  .card-preview-container.has-single .preview-item {
+    max-width: 320px; /* 横型名刺の2列時と同じサイズに固定 */
+  }
+  .card-preview-container.has-single.is-vertical-container .preview-item {
+    max-width: 190px; /* 縦型名刺の2列時と同じサイズに固定 */
+  }
   /* 両面ある場合（has-both）のグリッド設定 */
   .card-preview-container.has-both {
     display: grid;
     gap: 12px;
     justify-content: center;
   }
+  
 
   /* ★ 追加：縦型名刺の両面：スマホも含めて表裏を横に2列表示 */
   .card-preview-container.has-both.is-vertical-container {
@@ -2294,6 +2302,7 @@ function openDetailModal(item) {
   }
 
   // ★ 追加・変更：プレビュー画像の縦横判定とレイアウト調整
+  // プレビュー画像の縦横判定とレイアウト調整
   if (container) {
     container.classList.remove('has-both', 'has-single', 'is-vertical-container');
     fWrapper?.classList.remove('vertical-preview');
@@ -2309,10 +2318,17 @@ function openDetailModal(item) {
       const isAnyVertical = isFrontVertical || isBackVertical;
 
       if (hasFront && hasBack) {
+        // 両面ある場合
         if (isAnyVertical) {
           container.classList.add('has-both', 'is-vertical-container');
         } else {
           container.classList.add('has-both');
+        }
+      } else {
+        // ★ 追加：片面のみの場合（縦型・横型それぞれの2列時と同じサイズに合わせる）
+        container.classList.add('has-single');
+        if (isAnyVertical) {
+          container.classList.add('is-vertical-container');
         }
       }
     };
