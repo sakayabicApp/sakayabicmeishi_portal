@@ -2212,6 +2212,7 @@ function renderCards(dataList) {
         </div>
         <p class="card-company">${item.company || "会社名なし"}</p>
         <div class="card-dept">${[item.department, item.title].filter(Boolean).join(' / ')}</div>
+        <div class="card-date">最終更新者: ${item.updaterName || '-'}</div>
         <div class="card-date">最終更新日時: ${item.updatedAt || item.createdAt || '-'}</div>
       </div>
     `;
