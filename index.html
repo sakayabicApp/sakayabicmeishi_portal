@@ -418,6 +418,7 @@
     transform: scale(0.98);
   }
 
+/* 検索ページのサムネイル（横型デフォルト、縦型時は幅を自動調整して高さを維持） */
   .card-thumb-box {
     width: 76px;
     height: 48px;
@@ -429,12 +430,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: width 0.1s ease;
+  }
+
+  /* ★ 追加：縦型サムネイル用のスリム幅 */
+  .card-thumb-box.vertical-thumb {
+    width: calc(48px * 55 / 91); 
   }
 
   .card-thumb-box img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
   }
 
   .card-thumb-placeholder {
@@ -560,16 +567,21 @@
     max-width: 360px;
   }
 
+  /* --- 詳細ページのプレビュー関連 --- */
   .preview-item img {
     width: 100%;
-    /* ★ 名刺の標準比率（91:55 ≒ 1.65:1）に固定し、カードサイズとして綺麗に収める */
-    aspect-ratio: 91 / 55;
-    object-fit: contain; /* または contain（上下に余白を出したくない場合は cover） */
+    aspect-ratio: 91 / 55; /* 横型名刺標準 */
+    object-fit: contain;
     border-radius: 6px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     background-color: #ffffff;
     cursor: pointer;
     transition: opacity 0.2s;
+  }
+
+  /* ★ 追加：縦型名刺プレビューのアスペクト比適用 */
+  .preview-item.vertical-preview img {
+    aspect-ratio: 55 / 91;
   }
 
   .preview-item img:hover {
@@ -583,9 +595,22 @@
   /* 両面ある場合（has-both）のグリッド設定 */
   .card-preview-container.has-both {
     display: grid;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  /* ★ 追加：縦型名刺の両面：スマホも含めて表裏を横に2列表示 */
+  .card-preview-container.has-both.is-vertical-container {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 380px;
+    margin: 0 auto;
     gap: 10px;
+  }
+  .card-preview-container.has-both.is-vertical-container .preview-item {
     max-width: 100%;
   }
+ 
+  
 
   /* 768px以下（スマホなど）は両面でも縦に1列 */
   @media (max-width: 768px) {
@@ -2153,6 +2178,14 @@ function formatDriveUrl(url) {
   return url;
 }
 
+// ★ 追加：サムネイル画像の縦横判定用コールバック関数
+function checkThumbOrientation(img) {
+  if (img.naturalHeight > img.naturalWidth) {
+    const box = img.closest('.card-thumb-box');
+    if (box) box.classList.add('vertical-thumb');
+  }
+}  
+
 function renderCards(dataList) {
   const container = document.getElementById('card-container');
   if (!container) return;
@@ -2169,8 +2202,9 @@ function renderCards(dataList) {
     card.onclick = () => openDetailModal(item);
 
     const imageUrl = formatDriveUrl(item.frontUrl);
+    // ★ 変更：onload="checkThumbOrientation(this)" を追加
     const thumbHtml = imageUrl 
-      ? `<img src="${imageUrl}" alt="名刺" loading="lazy">` 
+      ? `<img src="${imageUrl}" alt="名刺" loading="lazy" onload="checkThumbOrientation(this)">` 
       : `<span class="card-thumb-placeholder">No Img</span>`;
 
     card.innerHTML = `
@@ -2241,7 +2275,7 @@ function openDetailModal(item) {
   const fWrapper = document.getElementById('p-front-wrapper');
   const bWrapper = document.getElementById('p-back-wrapper');
   const container = document.getElementById('modalPreviewContainer');
-
+  
   const frontSrc = formatDriveUrl(item.frontUrl);
   const backSrc = formatDriveUrl(item.backUrl);
   const hasFront = Boolean(frontSrc);
@@ -2259,15 +2293,36 @@ function openDetailModal(item) {
     bWrapper.style.display = hasBack ? "flex" : "none";
   }
 
+  // ★ 追加・変更：プレビュー画像の縦横判定とレイアウト調整
   if (container) {
-    container.classList.remove('has-both', 'has-single');
-    // 両方ある場合は 'has-both' を付与して2列グリッドにし、片面だけなら単独中央表示にする
-    if (hasFront && hasBack) {
-      container.classList.add('has-both');
-    }
+    container.classList.remove('has-both', 'has-single', 'is-vertical-container');
+    fWrapper?.classList.remove('vertical-preview');
+    bWrapper?.classList.remove('vertical-preview');
+
+    const updateOrientation = () => {
+      const isFrontVertical = fImg && fImg.complete && (fImg.naturalHeight > fImg.naturalWidth || item.frontOrientation === 'vertical');
+      const isBackVertical = bImg && bImg.complete && (bImg.naturalHeight > bImg.naturalWidth || item.backOrientation === 'vertical');
+
+      if (isFrontVertical && fWrapper) fWrapper.classList.add('vertical-preview');
+      if (isBackVertical && bWrapper) bWrapper.classList.add('vertical-preview');
+
+      const isAnyVertical = isFrontVertical || isBackVertical;
+
+      if (hasFront && hasBack) {
+        if (isAnyVertical) {
+          container.classList.add('has-both', 'is-vertical-container');
+        } else {
+          container.classList.add('has-both');
+        }
+      }
+    };
+
+    if (fImg) fImg.onload = updateOrientation;
+    if (bImg) bImg.onload = updateOrientation;
+    updateOrientation();
   }
 
-  setFormReadOnly(true); // 閲覧モードで開く
+  setFormReadOnly(true);
   const detailModal = document.getElementById('detail-modal');
   if (detailModal) detailModal.style.display = 'flex';
 
