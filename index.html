@@ -365,38 +365,75 @@
   #retryBackBtn { background: #d97706; }
   #retryAllBtn { background: var(--danger); }
 
-  /* ---------------------------------------------------------
-     5. 検索ページ (#page-search)
-     --------------------------------------------------------- */
-  .search-header {
-    position: sticky;
-    top: 0;
-    background: #e2e8f0;
-    padding: 16px 16px 16px 16px;
-    z-index: 20;
-    border-bottom: 1px solid #cbd5e1;
-  }
+/* ---------------------------------------------------------
+   5. 検索ページ (#page-search)
+   --------------------------------------------------------- */
+.search-header {
+  position: sticky;
+  top: 0;
+  background: #e2e8f0;
+  padding: 16px;
+  z-index: 20;
+  border-bottom: 1px solid #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* 検索窓と下の行の間隔 */
+}
 
-  .search-header input {
-    width: 100%;
-    padding: 14px 16px;
-    border-radius: 25px;
-    border: 1.5px solid #94a3b8;
-    background: #ffffff;
-    color: #0f172a;
-    font-size: 16px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-    transition: all 0.2s ease;
-  }
+.search-header input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 25px;
+  border: 1.5px solid #94a3b8;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  transition: all 0.2s ease;
+}
 
-  .search-header input::placeholder {
-    color: #64748b;
-  }
+ .search-header input::placeholder {
+  color: #64748b;
+}
 
   .search-header input:focus {
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
   }
+
+  /* 検索エリア＆チェックボックスの装飾 */
+.search-container {
+  margin-bottom: 16px;
+}
+
+  /* チェックボックスと並び替えをまとめる行 */
+.search-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #495057;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+  /* 並び替えセレクトボックスの親 */
+.sort-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sort-container select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  background: #fff;
+  font-size: 13px;
+  color: #0f172a;
+  cursor: pointer;
+}
 
   #card-container {
     padding: 12px 16px 80px 16px;
@@ -619,7 +656,22 @@
     max-width: 100%;
   }
  
-  
+  /* --- スマートフォンなどの狭い画面用（レスポンシブ） --- */
+@media (max-width: 600px) {
+  .search-actions-row {
+    flex-direction: column; /* 狭い画面では縦並びに切り替え */
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .sort-container {
+    justify-content: space-between; /* ラベルとセレクトボックスの幅を確保 */
+  }
+
+  .sort-container select {
+    flex: 1; /* スマホでセレクトボックスを押しやすく広げる */
+  }
+}
 
   /* 768px以下（スマホなど）は両面でも縦に1列 */
   @media (max-width: 768px) {
@@ -939,29 +991,28 @@
   border-color: #dc3545;
 }
 
-/* 検索エリア＆チェックボックスの装飾 */
-.search-container {
-  margin-bottom: 16px;
-}
 
+
+/* チェックボックスのラベル */
 .filter-checkbox-label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
-  margin-left: 16px;
+  margin: 0; /* 余計なマージンをリセット */
   font-size: 13px;
   color: #495057;
   cursor: pointer;
   user-select: none;
+  flex: 1;
+  min-width: 180px;
 }
 
 .filter-checkbox-label input[type="checkbox"] {
-  width: 14px; /* ★ 少し小さく調整 */
-  height: 14px; /* ★ 少し小さく調整 */
+  width: 10px; /* ★ ここでサイズを変更できます */
+  height: 10px; /* ★ ここでサイズを変更できます */
   accent-color: #0d6efd;
   cursor: pointer;
-  flex-shrink: 0; /* チェックボックスが潰れないように固定 */
+  flex-shrink: 0;
 }
 
 /* モード切替ボタン（楕円・右側縦並び用） */
@@ -1089,23 +1140,23 @@
   <button id="logoutBtn" class="logout-btn" onclick="handleLogout()">ログアウト</button>
 </div>
   
-<div class="search-header" style="display: flex; flex-direction: column; gap: 10px;">
+<div class="search-header">
   <!-- 1段目: 検索窓 -->
   <input type="text" id="searchInput" placeholder="会社名や氏名で検索...">
 
   <!-- 2段目: フィルター ＆ 並び替え -->
-  <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #495057; gap: 8px; flex-wrap: wrap;">
+  <div class="search-actions-row">
     
-    <!-- 自分が登録・更新した名刺のみ表示（折り返し対応＆フレックス調整） -->
-    <label class="filter-checkbox-label" style="margin-left: 0; display: flex; align-items: center; gap: 6px; cursor: pointer; flex: 1; min-width: 180px;">
+    <!-- 自分が登録・更新した名刺のみ表示 -->
+    <label class="filter-checkbox-label">
       <input type="checkbox" id="myCardsOnlyCheckbox">
       <span>自分が登録・更新した名刺のみ表示</span>
     </label>
     
-    <!-- 並び替えセレクトボックス（縮まないように固定） -->
-    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+    <!-- 並び替えセレクトボックス -->
+    <div class="sort-container">
       <span style="font-weight: 600; white-space: nowrap;">並び替え:</span>
-      <select id="sortOrderSelect" style="padding: 6px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #fff; font-size: 13px; color: #0f172a; cursor: pointer;">
+      <select id="sortOrderSelect">
         <option value="updatedAt_desc">更新日が新しい順</option>
         <option value="updatedAt_asc">更新日が古い順</option>
         <option value="company_asc">会社名 昇順</option>
