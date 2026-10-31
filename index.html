@@ -922,13 +922,15 @@
     bottom: 0;
     left: 0;
     width: 100vw;
-    height: 65px;
+    height: 60px;
     background: #ffffff;
     display: flex;
     justify-content: space-around;
     align-items: center;
     z-index: 100;
     border-top: 1px solid #e2e8f0;
+    /* スマホの下部バーやホームバーに隠れないよう底面に余白を確保 */
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   #bottom-nav button {
