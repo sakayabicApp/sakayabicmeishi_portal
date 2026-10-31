@@ -957,11 +957,12 @@
 }
 
 .filter-checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: #0d6efd; /* チェックボックスのアクセントカラー */
+  width: 14px; /* ★ 少し小さく調整 */
+  height: 14px; /* ★ 少し小さく調整 */
+  accent-color: #0d6efd;
   cursor: pointer;
-}  
+  flex-shrink: 0; /* チェックボックスが潰れないように固定 */
+}
 
 /* モード切替ボタン（楕円・右側縦並び用） */
   .mode-select-btn {
@@ -1094,14 +1095,15 @@
 
   <!-- 2段目: フィルター ＆ 並び替え -->
   <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #495057; gap: 8px; flex-wrap: wrap;">
-    <!-- 自分が登録・更新した名刺のみ表示 -->
-    <label class="filter-checkbox-label" style="margin-left: 0; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+    
+    <!-- 自分が登録・更新した名刺のみ表示（折り返し対応＆フレックス調整） -->
+    <label class="filter-checkbox-label" style="margin-left: 0; display: flex; align-items: center; gap: 6px; cursor: pointer; flex: 1; min-width: 180px;">
       <input type="checkbox" id="myCardsOnlyCheckbox">
       <span>自分が登録・更新した名刺のみ表示</span>
     </label>
     
-    <!-- 並び替えセレクトボックス -->
-    <div style="display: flex; align-items: center; gap: 6px;">
+    <!-- 並び替えセレクトボックス（縮まないように固定） -->
+    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
       <span style="font-weight: 600; white-space: nowrap;">並び替え:</span>
       <select id="sortOrderSelect" style="padding: 6px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #fff; font-size: 13px; color: #0f172a; cursor: pointer;">
         <option value="updatedAt_desc">更新日が新しい順</option>
@@ -1112,6 +1114,7 @@
         <option value="name_desc">氏名 降順</option>
       </select>
     </div>
+
   </div>
 </div>
 
