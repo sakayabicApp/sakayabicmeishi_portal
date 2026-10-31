@@ -3101,33 +3101,36 @@ function switchCardMode(mode) {
     btnV?.classList.remove('active');
   }
 } 
-let lastScrollY = window.scrollY;
+// 修正後：#page-search のスクロールを監視するように変更
+const searchPage = document.getElementById('page-search');
+let lastScrollY = searchPage ? searchPage.scrollTop : 0;
 const searchHeader = document.querySelector('.search-header');
 const scrollThreshold = 30; // 敏感に反応しすぎないための閾値（ピクセル）
 
-window.addEventListener('scroll', () => {
-  const currentScrollY = window.scrollY;
+if (searchPage) {
+  searchPage.addEventListener('scroll', () => {
+    const currentScrollY = searchPage.scrollTop;
 
-  // ページの一番上にいるときは常に表示
-  if (currentScrollY <= 10) {
-    searchHeader.classList.remove('is-hidden');
-    lastScrollY = currentScrollY;
-    return;
-  }
-
-  // スクロール量の変化が閾値を超えた場合のみ判定
-  if (Math.abs(currentScrollY - lastScrollY) > scrollThreshold) {
-    if (currentScrollY > lastScrollY) {
-      // 下にスクロール（フリック）したとき ＝ ヘッダーを隠す
-      searchHeader.classList.add('is-hidden');
-    } else {
-      // 上にスクロール（フリック）したとき ＝ ヘッダーを表示する
+    // ページの一番上にいるときは常に表示
+    if (currentScrollY <= 10) {
       searchHeader.classList.remove('is-hidden');
+      lastScrollY = currentScrollY;
+      return;
     }
-    lastScrollY = currentScrollY;
-  }
-});
-  
+
+    // スクロール量の変化が閾値を超えた場合のみ判定
+    if (Math.abs(currentScrollY - lastScrollY) > scrollThreshold) {
+      if (currentScrollY > lastScrollY) {
+        // 下にスクロールしたとき ＝ 検索ヘッダーを隠す
+        searchHeader.classList.add('is-hidden');
+      } else {
+        // 上にスクロールしたとき ＝ 検索ヘッダーを表示する
+        searchHeader.classList.remove('is-hidden');
+      }
+      lastScrollY = currentScrollY;
+    }
+  });
+}
   
 </script>
 </body>
