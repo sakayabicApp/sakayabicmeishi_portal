@@ -1019,13 +1019,40 @@
 }
 
 .filter-checkbox-label input[type="checkbox"] {
-  width: 10px; /* ★ ここでサイズを変更できます */
-  height: 10px; /* ★ ここでサイズを変更できます */
-  accent-color: #0d6efd;
+  appearance: none;            /* ブラウザ標準のスタイルをリセット */
+  -webkit-appearance: none;
+  width: 10px;                 /* ここで確実にサイズを指定できます */
+  height: 10px;
+  border: 1.5px solid #94a3b8; /* 枠線の色 */
+  border-radius: 3px;          /* 角を少し丸くする */
+  background-color: #fff;      /* 背景を白に */
   cursor: pointer;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.2s ease;
+  margin: 0;                   /* 余計なズレを防ぐ */
+}
+/* チェックが入ったときの背景色と枠線 */
+.filter-checkbox-label input[type="checkbox"]:checked {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
 }
 
+/* チェックが入ったときに表示する白いチェックマーク */
+.filter-checkbox-label input[type="checkbox"]:checked::after {
+  content: "";
+  width: 4px;
+  height: 8px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  position: absolute;
+  top: 1px;
+}  
+  
 /* モード切替ボタン（楕円・右側縦並び用） */
   .mode-select-btn {
     padding: 8px 20px;
