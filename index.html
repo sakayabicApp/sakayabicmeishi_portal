@@ -1014,24 +1014,17 @@
   color: #495057;
   cursor: pointer;
   user-select: none;
-  flex: 1;
-  min-width: 180px;
 }
 
+/* チェックボックス本体 */
 .filter-checkbox-label input[type="checkbox"] {
-  border: 1px solid #94a3b8;
-  border-radius: 2px;
-  background-color: #fff;
   cursor: pointer;
   flex-shrink: 0;
-  transform: scale(0.75);
-  transform-origin: left center; /* 左側を基準に縮小させる */
-  position: relative;
+  transform: scale(0.75);        /* 全体を75%に縮小 */
+  transform-origin: left center; /* 左側を基準に縮小 */
   margin: 0;
-  display: inline-block;
-  vertical-align: middle;
+  accent-color: #0d6efd;         /* チェックが入ったときの青色 */
 }
-
   
 /* モード切替ボタン（楕円・右側縦並び用） */
   .mode-select-btn {
